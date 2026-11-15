@@ -21,13 +21,15 @@ import re
 from . import fach, llm
 
 log = logging.getLogger("diktat")
-SYSTEM = ("Du korrigierst Erkennungsfehler in deutschen ärztlichen Diktaten. Die Spracherkennung verhört sich "
-          "bei Fachbegriffen, Medikamenten und Abkürzungen und schreibt dann ähnlich klingende Wörter "
-          "(Set statt Stent, Kabel statt Cave, Riba statt RIVA). Du bekommst den Text und eine Liste von "
-          "Wörtern, die sicher falsch sind. Antworte nur mit einem JSON-Objekt: Schlüssel ist das falsche Wort "
-          "genau wie im Text, Wert ist das gemeinte Wort in richtiger medizinischer Schreibweise. Nimm jedes "
-          "Wort der Liste auf und zusätzlich jedes andere Wort im Text, das im medizinischen Zusammenhang "
-          "offensichtlich verhört ist. Ändere nichts, was stimmen kann. Keine Erklärungen.")
+SYSTEM = ("Du korrigierst Hörfehler der Spracherkennung in deutschen ärztlichen Diktaten. Die Erkennung verhört "
+          "sich bei Fachbegriffen, Medikamenten und Abkürzungen und schreibt ähnlich klingende Wörter: "
+          "\"Set-Implantation\" statt \"Stent-Implantation\", \"Kabel\" statt \"Cave\", \"Riba\" statt \"RIVA\", "
+          "\"Retroximab\" statt \"Rituximab\". Du bekommst den Text und eine Liste von Wörtern, die in keinem "
+          "Wörterbuch stehen. Antworte nur mit einem JSON-Objekt: Schlüssel ist ein falsch erkanntes Wort genau "
+          "wie im Text, Wert ist das gemeinte Wort in richtiger medizinischer Schreibweise. Prüfe jedes Wort der "
+          "Liste und außerdem jedes andere Wort, das im medizinischen Zusammenhang keinen Sinn ergibt. Nimm nur "
+          "Wörter auf, bei denen du sicher bist, was gemeint ist. Formuliere nichts um, ergänze nichts, ändere "
+          "keine Zahlen. Wenn nichts zu korrigieren ist, antworte mit {}.")
 # kurze Fachwörter und Abkürzungen, die das Lexikon (ab sechs Buchstaben) nicht führt
 SHORT = {"Stent", "Cave", "RIVA", "RCA", "RCX", "GOLD", "STEMI", "NSTEMI", "Sehne", "Ileus", "Lyse", "Shunt", "Ulkus", "Koma", "Tumor", "Aszites", "Ödem", "Sepsis", "Niere", "Leber", "Milz", "Lunge", "Herz"}
 MAX_WORDS = 14          # mehr Verdächtige auf einmal machen die Antwort langsam
@@ -89,7 +91,7 @@ def correct(text: str, cfg_llm: dict, ask=None):
         def ask(system, user):
             return llm.chat(cfg_llm, system, user, json_mode=True)
     try:
-        raw = ask(SYSTEM, f"Text: {text.strip()}\nVerdächtig: {json.dumps(found, ensure_ascii=False)}")
+        raw = ask(SYSTEM, f"Text: {text.strip()}\nNicht im Wörterbuch: {json.dumps(found, ensure_ascii=False)}")
         m = re.search(r"\{.*\}", raw, flags=re.DOTALL)
         answer = json.loads(m.group()) if m else {}
     except Exception as e:

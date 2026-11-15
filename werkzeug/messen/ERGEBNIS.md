@@ -85,6 +85,21 @@ Das ist keine an den Diktaten gewonnene Regel, sondern dasselbe Modell mit wenig
 221 unabhängigen MultiMed-Aufnahmen: roh 13,06 → 12,94 %, mit Nachbearbeitung 12,42 → 12,27 %. Die Unterschiede
 zwischen den drei guten Fassungen (14,3 bis 15,8 %) liegen bei 412 Wörtern im Bereich einzelner Wörter.
 
+## Whisper gegen Parakeet auf der CPU
+
+Whisper large-v3-turbo, deutsch nachtrainiert, mit faster-whisper ohne Grafikkarte (`werkzeug\messen\whisper.py`),
+dieselben fünf Diktate, dieselbe Nachbearbeitung, derselbe Rechner (i7-13700KF):
+
+| Modell | roh | mit Nachbearbeitung | Tempo | 38 s Diktat brauchen |
+|---|---|---|---|---|
+| Whisper turbo deutsch, int8 | 18,0 % | 16,0 % | 4,2-fach | 10,5 s |
+| Whisper turbo deutsch, volle Gewichte | 17,5 % | 15,3 % | 2,4-fach | 17,9 s |
+| Parakeet, Fassung ab 0.9 | 21,8 % | 14,3 % | 12,6-fach | 3 s |
+
+Whisper ist roh genauer, weil es Zahlen und Einheiten von sich aus sauberer schreibt. Nach der Nachbearbeitung
+liegt Parakeet vorn und ist dreimal so schnell; auf einem langsameren Klinikrechner wird der Abstand in
+Sekunden größer.
+
 ## Nachtrainierte Medizin-Modelle: gemessen, schlechter
 
 Beide öffentlich verfügbaren deutschen Medizin-Parakeets, selbst nach ONNX gebracht (`werkzeug/modell/umwandeln.py`),

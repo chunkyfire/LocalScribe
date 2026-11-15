@@ -28,9 +28,9 @@ ask("Antworte mit {}", "{}")      # Modell laden
 with open(out, "w", encoding="utf-8") as f:
     for line in open(src, encoding="utf-8"):
         r = json.loads(line)
-        text = fach.correct(engine.apply_base(r["hyp"]))
+        text = engine.tidy(fach.correct(engine.apply_base(engine.LEADING.sub("", r["hyp"].strip()))))
         start = time.time()
         fixed, changes = korrektor.correct(text, {}, ask)
-        r.update(hyp=fixed, korrektur_s=round(time.time() - start, 1), ersetzt=changes, verdaechtig=korrektor.suspects(text))
+        r.update(hyp=fixed, vorher=text, korrektur_s=round(time.time() - start, 1), ersetzt=changes, verdaechtig=korrektor.suspects(text))
         f.write(json.dumps(r, ensure_ascii=False) + "\n")
-        print(r["name"], r["korrektur_s"], "s", changes, "| offen:", [w for w in korrektor.suspects(fixed)], flush=True)
+        print(r["name"], r["korrektur_s"], "s", changes, flush=True)

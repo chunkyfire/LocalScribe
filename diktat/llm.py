@@ -88,6 +88,23 @@ def list_models(llm: dict, key=None) -> list[str]:
     return sorted(m.get("id", "") for m in data.get("data", []) if m.get("id"))
 
 
+def release(llm: dict) -> None:
+    """Beim Beenden: ein lokales Ollama bitten, das Modell sofort aus dem (Grafik-)Speicher zu nehmen.
+    Ohne das hält Ollama es noch einige Minuten vor. Geht nie ins Netz und scheitert still."""
+    url, model = (llm.get("base_url") or "").strip(), (llm.get("model") or "").strip()
+    host = urllib.parse.urlsplit(url).hostname or ""
+    if not (llm.get("enabled") and url and model and (host == "localhost" or host.startswith("127."))):
+        return
+    try:
+        parts = urllib.parse.urlsplit(url)
+        body = json.dumps({"model": model, "keep_alive": 0}).encode()
+        request = urllib.request.Request(f"{parts.scheme}://{parts.netloc}/api/generate", body,
+                                         {"Content-Type": "application/json"})
+        urllib.request.urlopen(request, timeout=2).close()
+    except Exception:
+        pass                                   # kein Ollama oder schon entladen
+
+
 def chat(llm: dict, system: str, user: str, json_mode: bool = False, key=None) -> str:
     """Eine einzelne Anfrage ohne den Nachbearbeitungs-Rahmen; für die Fachkorrektur."""
     if not (llm.get("model") or "").strip():

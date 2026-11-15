@@ -202,6 +202,7 @@ class Diktat(QtCore.QObject):
         winio.keep_awake(False)
         self.hotkey.stop()
         self.recorder.stop()
+        llm.release(self.cfg["llm"])       # lokales Sprachmodell aus dem Grafikspeicher nehmen
         self.tray.hide()
         self.app.quit()
 
