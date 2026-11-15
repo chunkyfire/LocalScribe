@@ -75,4 +75,39 @@ ok = winio.parse_keys("Strg + Win") == ["ctrl", "win"] and winio.parse_keys("f8"
     and winio.parse_keys("") == [] and winio.parse_keys("ctrl+quatsch") is None
 failed += not ok
 print("OK  " if ok else "FAIL", "Tasten einlesen")
+
+# ---- eine einzelne Modifikatortaste (Strg) als Halte-Taste: startet erst nach kurzem Halten
+import time
+
+MOUSE_LEFT = 0x01
+
+
+def timed(name, steps, expect):
+    """steps: (Taste, gedrückt) oder Zahl = Sekunden warten oder "klick"."""
+    global failed
+    h = make({"dictate": ["ctrl"]}, {"paste_last": ["shift", "f7"]})
+    h.delay = 0.08
+    ev.clear(); down.clear()
+    for s in steps:
+        if isinstance(s, (int, float)):
+            time.sleep(s)
+        elif s == "klick":
+            down.add(MOUSE_LEFT)
+        else:
+            key(h, *s)
+    time.sleep(0.1)
+    ok = ev == expect
+    failed += not ok
+    print("OK  " if ok else "FAIL", name, "" if ok else ev)
+    h.state = "idle"
+
+
+timed("Strg halten startet nach der Wartezeit", [(CTRL, 1), 0.25, (CTRL, 0)], [S, "stop"])
+timed("Strg kurz antippen startet nichts", [(CTRL, 1), 0.02, (CTRL, 0), 0.2], [])
+timed("Strg+C bleibt Kopieren", [(CTRL, 1), 0.02, (A, 1), (A, 0), 0.2, (CTRL, 0)], [])
+timed("Strg+Klick startet nichts", [(CTRL, 1), 0.02, "klick", 0.2, (CTRL, 0)], [])
+timed("Taste während der Aufnahme bricht ab", [(CTRL, 1), 0.25, (A, 1), (A, 0), (CTRL, 0)], [S, "cancel"])
+timed("Mausklick während der Aufnahme bricht ab", [(CTRL, 1), 0.25, "klick", 0.1, (CTRL, 0)], [S, "cancel"])
+timed("Strg + Leertaste: Freihand", [(CTRL, 1), 0.25, (SPACE, 1), (SPACE, 0), (CTRL, 0), 0.05, (CTRL, 1), (CTRL, 0)],
+      [S, "lock", "stop"])
 sys.exit(1 if failed else 0)

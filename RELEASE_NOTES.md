@@ -1,13 +1,14 @@
-## LocalScribe 0.4.0
+## LocalScribe 0.5.0
 
-- **Live-Transkription:** Bei langen Aufnahmen erscheint der Text nach jeder Sprechpause, nicht erst am Ende.
-  Der Zwischenstand lässt sich jederzeit kopieren.
-- **Sprechpausen erkennt jetzt Silero VAD** am Klang statt an der Lautstärke. Das funktioniert auch bei
-  sehr leiser Sprache und in lauter Umgebung.
-- **Wort einsprechen:** Im Wörterbuch die richtige Schreibweise eintippen, Knopf halten, Wort sprechen.
-  Was die Erkennung daraus macht, wird künftig ersetzt.
-- Verlauf wird ab Werk nach 7 Tagen gelöscht.
-- Lizenz: GPL-3.0-or-later. Prüfsumme der ZIP-Datei in `SHA256SUMS.txt`.
+- **Strg ist die neue Standardtaste:** Strg halten, nach dem Ton sprechen, loslassen. Strg+C, Strg+Klick
+  und AltGr funktionieren weiter wie gewohnt. Wer bisher F7 unverändert nutzte, wird umgestellt; jede
+  andere Taste lässt sich in den Einstellungen eintragen.
+- **Medizinisches Basiswörterbuch:** 15.969 Fehlschreibungen von Wirkstoffen, Diagnosen, anatomischen
+  und klinischen Begriffen werden automatisch korrigiert. Aufgenommen ist nur, was es als Wort nicht gibt.
+  Abschaltbar im Wörterbuch.
+- **Mehrsprachiges Sprachmodell zur Auswahl:** NVIDIA Parakeet v3 erkennt 25 europäische Sprachen und
+  wählt die Sprache selbst. Einstellungen, Sprachmodell.
+- Handbuch mit Bildern: `LocalScribe-Handbuch.pdf`.
 
 Installation: ZIP entpacken, `LocalScribe.exe` starten. Keine Adminrechte nötig. Die Datei ist nicht
 signiert: Meldet Windows „Der Computer wurde geschützt“, auf **Weitere Informationen → Trotzdem ausführen**.

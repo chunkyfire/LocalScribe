@@ -4,6 +4,8 @@ import logging
 import os
 import subprocess
 import sys
+import threading
+import time
 import winreg
 from pathlib import Path
 
@@ -21,7 +23,8 @@ for _c in "abcdefghijklmnopqrstuvwxyz0123456789":
     VK[_c] = (ord(_c.upper()),)
 NAME = {vk: name for name, vks in VK.items() for vk in vks}
 
-IDLE, HOLD, LOCKED = "idle", "hold", "locked"
+IDLE, ARMED, HOLD, LOCKED = "idle", "armed", "hold", "locked"
+MOUSE = (0x01, 0x02, 0x04)   # linke, rechte, mittlere Maustaste
 MODS = {"ctrl", "win", "alt", "shift"}
 KEYDOWN, KEYUP = (0x100, 0x104), (0x101, 0x105)
 INJECTED = 0x10
@@ -38,14 +41,20 @@ class Hotkey:
                          Esc oder eine fremde Taste = abbrechen.
     taps:  {id: Tasten}  einmal drücken = Aktion.
     Die Callbacks laufen im Hook-Thread und müssen sofort zurückkehren.
+
+    Besteht ein Halte-Kürzel nur aus einer Modifikatortaste (Strg allein), beginnt die Aufnahme
+    erst nach `delay` Sekunden. Strg+C, Strg+Klick oder AltGr lösen so nichts aus: Jede andere
+    Taste und jeder Mausklick in dieser Zeit lässt die Taste ihre gewohnte Arbeit tun.
     """
 
-    def __init__(self, holds, lock, taps, on_start, on_stop, on_cancel, on_lock, on_tap):
+    def __init__(self, holds, lock, taps, on_start, on_stop, on_cancel, on_lock, on_tap, delay=0.3):
         self.holds = {i: {c.lower() for c in keys} for i, keys in holds.items() if keys}
         self.taps = {i: {c.lower() for c in keys} for i, keys in taps.items() if keys}
         self.lock = (lock or "").lower() or None
         self.on_start, self.on_stop, self.on_cancel = on_start, on_stop, on_cancel
         self.on_lock, self.on_tap = on_lock, on_tap
+        self.delay = delay
+        self.armed = 0           # Zähler: macht überholte Zeitgeber unwirksam
         self.state = IDLE
         self.combo = set()       # Tasten des gerade aktiven Halte-Kürzels
         self.held = set()        # gedrückte virtuelle Tasten
@@ -60,6 +69,27 @@ class Hotkey:
 
     def reset(self):
         self.state = IDLE
+
+    def _solo(self) -> bool:
+        return len(self.combo) == 1 and self.combo <= MODS
+
+    def _wait(self, ident, token):
+        """Läuft neben dem Hook: startet die Aufnahme nach der Wartezeit, bricht bei Mausklick ab."""
+        end = time.time() + self.delay
+        while self.armed == token and self.state in (ARMED, HOLD):
+            if any(is_down(b) for b in MOUSE):
+                was, self.state = self.state, IDLE
+                if was == HOLD:
+                    self.on_cancel()
+                return
+            if self.state == ARMED and time.time() >= end:
+                self.state = HOLD
+                self.on_start(ident)
+            elif self.state == HOLD and not any(is_down(vk) for k in self.combo for vk in VK[k]):
+                self.state = IDLE     # Loslassen verpasst (Sperrbildschirm, Wettlauf mit dem Hook)
+                self.on_stop()
+                return
+            time.sleep(0.02)
 
     def _names(self):
         return {NAME.get(vk, f"vk{vk}") for vk in self.held}
@@ -89,7 +119,9 @@ class Hotkey:
                 return True
         elif msg in KEYUP:
             self.held.discard(vk)
-            if self.state == HOLD and name in self.combo:
+            if self.state == ARMED and name in self.combo:
+                self.state = IDLE
+            elif self.state == HOLD and name in self.combo:
                 self.state = IDLE
                 self.on_stop()
             if vk in self.swallowed:
@@ -100,6 +132,10 @@ class Hotkey:
     def _down(self, name, first, vk) -> bool:
         """True = Tastendruck nicht an Windows weitergeben."""
         # Kürzel-Tasten, die keine Modifikatoren sind (z. B. F7), schlucken wir selbst
+        if self.state == ARMED:
+            if name in self.combo:
+                return False          # Tastenwiederholung der gehaltenen Taste
+            self.state = IDLE         # andere Taste: gewöhnliches Kürzel wie Strg+C, kein Diktat
         if self.state == IDLE:
             if first:
                 names = self._names()
@@ -110,6 +146,11 @@ class Hotkey:
                 for ident, combo in self.holds.items():
                     if name in combo and names == combo:
                         self.combo = combo
+                        if self._solo() and self.delay > 0:
+                            self.state = ARMED
+                            self.armed += 1
+                            threading.Thread(target=self._wait, args=(ident, self.armed), daemon=True).start()
+                            return False
                         self.state = HOLD
                         self.on_start(ident)
                         return name not in MODS

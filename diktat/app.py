@@ -145,7 +145,12 @@ class Diktat(QtCore.QObject):
         self.recorder.device_name = self.cfg.get("microphone")
         self.cleanup()
         self.start_hotkey()
-        if self.ready:
+        if self.ready and self.cfg.get("model_choice", "de") != self.transcriber.loaded:
+            # anderes Sprachmodell gewählt: im Hintergrund laden, bis dahin ruht das Diktieren
+            self.ready = False
+            self.set_status("Sprachmodell wird gewechselt …")
+            threading.Thread(target=self._load, daemon=True).start()
+        elif self.ready:
             self.set_status(self.ready_text())
 
     def rework(self, text, prompt_name):

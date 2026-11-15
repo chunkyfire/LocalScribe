@@ -3,6 +3,8 @@
 Lokales Diktieren per Tastenkürzel für Windows: Taste halten, sprechen, loslassen – der Text
 landet im gerade aktiven Textfeld. Die Spracherkennung läuft vollständig auf dem eigenen Rechner
 (primeline-Parakeet, 600 Mio. Parameter, int8-ONNX, nur CPU, rund 850 MB Arbeitsspeicher).
+Für andere Sprachen lässt sich in den Einstellungen ein mehrsprachiges Modell wählen
+(NVIDIA Parakeet v3, 25 europäische Sprachen, erkennt die Sprache selbst).
 
 **Handbuch mit Bildern:** [docs/LocalScribe-Handbuch.pdf](docs/LocalScribe-Handbuch.pdf) – Installieren, Starten, Diktieren und alle Funktionen auf neun Seiten.
 
@@ -23,13 +25,15 @@ Deinstallieren: Ordner löschen, dazu `%LOCALAPPDATA%\LocalScribe` (Einstellunge
 
 | Aktion | Taste |
 |---|---|
-| Diktieren | **F7** halten, sprechen, loslassen |
-| Freihand | während des Haltens **Leertaste**, dann loslassen und weiterreden; **F7** beendet |
+| Diktieren | **Strg** halten, nach dem Ton sprechen, loslassen |
+| Freihand | während des Haltens **Leertaste**, dann loslassen und weiterreden; **Strg** beendet |
 | Abbrechen | **Esc** oder eine andere Taste während der Aufnahme |
 | Letzten Text noch einmal einfügen | **Umschalt + F7** |
 | Diktieren mit Prompt | Halte-Taste des Prompts, z. B. **F8** für „Glätten“ |
 
 Gesprochene Befehle: „neue Zeile“, „neuer Absatz“. Alle Tasten lassen sich ändern.
+Strg allein startet erst nach 0,3 Sekunden Halten; Strg+C, Strg+Klick und AltGr lösen nichts aus.
+Wer lieber eine eigene Taste hat, trägt in den Einstellungen zum Beispiel `f7` oder `ctrl+win` ein.
 Läuft die App schon, holt ein zweiter Start nur ihr Fenster nach vorn. Schließen des Fensters
 beendet sie nicht; sie bleibt im Infobereich (Rechtsklick → Beenden).
 
@@ -43,6 +47,8 @@ beendet sie nicht; sie bleibt im Infobereich (Rechtsklick → Beenden).
 - **Wörterbuch** – falsch Erkanntes automatisch ersetzen. Mit **Wort einsprechen** lernt die App
   dazu: richtige Schreibweise eintippen, Knopf halten, Wort sprechen. Was die Erkennung daraus
   macht, wird künftig ersetzt. Übernommen wird nur, was dem richtigen Wort ähnlich ist.
+  Mitgeliefert ist ein **medizinisches Basiswörterbuch** (abschaltbar): Fehlschreibungen von rund
+  5 900 Wirkstoffen, Diagnosen, anatomischen und klinischen Begriffen. Siehe unten.
 - **Textbausteine** – gesprochenes Stichwort → hinterlegter Text.
 - **KI-Nachbearbeitung** – Server-Adresse, API-Schlüssel, Modell und eigene Prompts.
   Spricht jede OpenAI-kompatible Schnittstelle (Ollama, LM Studio, vLLM, eigener Anbieter).
@@ -105,6 +111,23 @@ Verarbeitungskette. Ergebnis und Vergleich stehen in `tests/langzeit/ERGEBNIS.md
 - Geprüft wurde mit einer synthetischen Stimme. Die Erkennungsgüte bei echten Stimmen, Dialekt
   und Fachvokabular ist damit nicht belegt. Jeder Text muss vor der Übernahme gegengelesen werden.
 - In Fenster, die mit Adminrechten laufen, kann die App nicht einfügen.
+
+## Das medizinische Basiswörterbuch
+
+`diktat/basiswoerterbuch.json` ordnet Fehlschreibungen dem richtigen Fachbegriff zu. Es wirkt nur mit
+dem deutschen Modell und nach dem eigenen Wörterbuch. Entstanden ist es so (`werkzeug/woerterbuch/`):
+
+1. Begriffe: Wirkstoffe (ATC), Diagnosen (ICD-10) und Anatomie (Terminologia Anatomica) mit deutschem
+   Namen aus Wikidata (CC0), dazu eine Kernliste klinischer Begriffe und Handelsnamen.
+2. Gehört: Jeder Begriff wurde von der Windows-Stimme in einem Satz vorgelesen und vom Sprachmodell
+   erkannt. Was das Modell statt des Begriffs schreibt, ist eine Fehlschreibung aus erster Hand.
+3. Regeln: übliche Lautverwechslungen (ph/f, y/i, th/t, Doppelkonsonanten …).
+4. Trennschärfe: Aufgenommen wird nur, was kein Wort ist (Hunspell deutsch und englisch,
+   Worthäufigkeitslisten in acht Sprachen), kein anderer Fachbegriff ist, sich nur in mehr als der
+   c/k/z-Schreibung unterscheidet und zu genau einem Begriff passt.
+
+Grenzen: Die Fehlschreibungen stammen von einer synthetischen Stimme, nicht von echten Sprechern.
+Seltene Eigennamen, die zufällig einer Fehlschreibung gleichen, würden ersetzt.
 
 ## Lizenz und Signatur
 

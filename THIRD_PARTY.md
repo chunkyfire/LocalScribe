@@ -6,6 +6,8 @@ LocalScribe selbst steht unter der GPL-3.0-or-later (siehe `LICENSE`).
 |---|---|---|---|
 | [primeline/parakeet-primeline](https://huggingface.co/primeline/parakeet-primeline) (primeline; Basis: NVIDIA parakeet-tdt-0.6b-v3) | Spracherkennung | CC-BY-4.0 | nein, wird beim ersten Start geladen |
 | [OpenVoiceOS/primeline-parakeet-onnx](https://huggingface.co/OpenVoiceOS/primeline-parakeet-onnx) | ONNX-Fassung des Modells | CC-BY-4.0 | nein |
+| [istupakov/parakeet-tdt-0.6b-v3-onnx](https://huggingface.co/istupakov/parakeet-tdt-0.6b-v3-onnx) (NVIDIA parakeet-tdt-0.6b-v3) | mehrsprachige Spracherkennung, wahlweise | CC-BY-4.0 | nein, wird bei Auswahl geladen |
+| [Wikidata](https://www.wikidata.org/) | Fachbegriffe im medizinischen Basiswörterbuch | CC0 | ja (`diktat/basiswoerterbuch.json`) |
 | [Silero VAD](https://github.com/snakers4/silero-vad) | erkennt Sprechpausen | MIT | ja (`diktat/silero_vad.onnx`) |
 | [onnx-asr](https://github.com/istupakov/onnx-asr) | führt das Sprachmodell aus | MIT | ja |
 | [ONNX Runtime](https://github.com/microsoft/onnxruntime) | Rechenkern | MIT | ja |

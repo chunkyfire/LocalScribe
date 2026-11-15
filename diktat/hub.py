@@ -9,7 +9,7 @@ import time
 from PySide6 import QtGui, QtWidgets
 from PySide6.QtCore import Qt, QTimer, Signal
 
-from . import config, llm
+from . import config, engine, llm
 from .longform import LongJob
 from .ui import make_icon, make_pixmap, private_mime
 
@@ -809,12 +809,25 @@ class MapPage(Page):
                                "wird künftig durch die richtige Schreibweise ersetzt.", "muted", wrap=True)
             self.body.addWidget(card(label("Wort einsprechen", "h2"), hbox((self.word, 1), self.speak), self.heard))
             self.ctl.sig_heard.connect(self._heard)
+            self.base = QtWidgets.QCheckBox()
+            self.base.toggled.connect(self._base)
+            self.body.addWidget(self.base)
         self.body.addWidget(self.table, 1)
         self.body.addLayout(hbox(button("Hinzufügen", self.add, "primary"),
                                  button("Entfernen", self.remove), None))
 
+    def _base(self, on):
+        if not self.loading and on != bool(self.ctl.cfg.get("base_dictionary", True)):
+            self.ctl.cfg["base_dictionary"] = on
+            self.ctl.apply_cfg()
+
     def refresh(self):
         self.loading = True
+        if hasattr(self, "base"):
+            n = len(engine.base_dictionary())
+            self.base.setText(f"Medizinisches Basiswörterbuch anwenden: {n:,} bekannte Fehlschreibungen von "
+                              "Medikamenten, Diagnosen und Fachbegriffen".replace(",", "."))
+            self.base.setChecked(bool(self.ctl.cfg.get("base_dictionary", True)))
         data = self.ctl.cfg.get(self.key) or {}
         self.table.setRowCount(0)
         for k, v in data.items():
@@ -1167,11 +1180,21 @@ class SettingsPage(Page):
         self.history = QtWidgets.QCheckBox("Verlauf führen (auf gemeinsam genutzten Windows-Konten ausschalten)")
         self.days = QtWidgets.QSpinBox(minimum=0, maximum=3650, suffix=" Tage", specialValueText="nie löschen")
         self.days.setFixedWidth(150)
+        self.model = QtWidgets.QComboBox()
+        for key, m in config.MODELS.items():
+            self.model.addItem(m["label"], key)
+        self.body.addWidget(card(
+            label("Sprachmodell", "h2"), form(("Modell", self.model)),
+            label("Deutsch erkennt deutsche Diktate am genauesten. Mehrsprachig erkennt die gesprochene Sprache "
+                  "selbst, darunter Englisch, Französisch, Spanisch, Italienisch, Polnisch, Russisch und Ukrainisch. "
+                  "Beim ersten Wechsel werden einmalig 670 MB geladen. Das medizinische Basiswörterbuch gilt nur "
+                  "für das deutsche Modell.", "muted", wrap=True)))
         self.body.addWidget(card(
             label("Tasten", "h2"),
             form(("Diktieren (halten)", self.hold), ("Freihand (dazu drücken)", self.lock),
                  ("Letzten Text einfügen", self.paste)),
-            label("Mehrere Tasten mit + verbinden, zum Beispiel ctrl+win. "
+            label("Mehrere Tasten mit + verbinden, zum Beispiel ctrl+win. Eine einzelne Taste wie ctrl startet "
+                  "nach kurzem Halten; Strg+C, Strg+Klick und andere Kürzel funktionieren weiter wie gewohnt. "
                   "Esc bricht eine laufende Aufnahme ab.", "muted", wrap=True)))
         self.body.addWidget(card(label("Aufnahme", "h2"), form(("Mikrofon", self.mic)),
                                  self.sounds, self.clip))
@@ -1187,6 +1210,7 @@ class SettingsPage(Page):
     def refresh(self):
         cfg = self.ctl.cfg
         self.hold.setText("+".join(cfg["hotkey_hold"]))
+        self.model.setCurrentIndex(max(0, self.model.findData(cfg.get("model_choice", "de"))))
         self.lock.setText(cfg.get("hotkey_lock") or "")
         self.paste.setText("+".join(cfg.get("hotkey_paste_last") or []))
         self.mic.clear()
@@ -1213,6 +1237,11 @@ class SettingsPage(Page):
         paste = self.ctl.parse_keys(self.paste.text())
         if not hold or lock is None or paste is None or len(lock) > 1:
             return self.saved(self.note, "Eine Taste ist unbekannt oder das Diktier-Kürzel fehlt.", ok=False)
+        choice = self.model.currentData()
+        if choice != self.ctl.cfg.get("model_choice", "de"):
+            if not self.ctl.ready or self.window().busy():
+                return self.saved(self.note, "Das Sprachmodell lässt sich erst wechseln, wenn nichts mehr läuft.", ok=False)
+            self.ctl.cfg["model_choice"] = choice
         self.ctl.cfg.update(hotkey_hold=hold, hotkey_lock=lock[0] if lock else "", hotkey_paste_last=paste,
                             microphone=self.mic.currentData(), sounds=self.sounds.isChecked(),
                             restore_clipboard=self.clip.isChecked(), history_days=self.days.value(),

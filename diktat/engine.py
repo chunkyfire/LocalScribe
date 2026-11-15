@@ -1,11 +1,15 @@
 """Aufnahme, Spracherkennung und Textnachbearbeitung."""
 import collections
+import json
 import logging
 import re
 import time
 
 import numpy as np
 import sounddevice as sd
+from pathlib import Path
+
+from . import config
 
 from .vad import FRAME, Vad
 
@@ -271,6 +275,7 @@ class Transcriber:
     def __init__(self, cfg):
         self.cfg = cfg
         self.model = None
+        self.loaded = None       # Schlüssel des geladenen Modells aus config.MODELS
 
     def load(self, notify=None):
         import onnx_asr
@@ -285,24 +290,26 @@ class Transcriber:
         t = time.time()
         from huggingface_hub import snapshot_download
         q = cfg.get("quantization")
-        rev = cfg.get("model_revision") or None
+        choice = cfg.get("model_choice") if cfg.get("model_choice") in config.MODELS else "de"
+        repo, rev = config.MODELS[choice]["repo"], config.MODELS[choice]["revision"]
         try:
             ort.disable_telemetry_events()
         except Exception:
             pass
-        files = ["config.json", "vocab.txt", f"*-model.{q}.onnx*" if q else "*-model.onnx*"]
+        files = ["config.json", "vocab.txt", "nemo128.onnx", f"*-model.{q}.onnx*" if q else "*-model.onnx*"]
         try:
             # schon geladen? Dann ohne Netzwerk starten.
-            path = snapshot_download(cfg["model"], revision=rev, allow_patterns=files, local_files_only=True)
+            path = snapshot_download(repo, revision=rev, allow_patterns=files, local_files_only=True)
         except Exception:
-            log.info("Modell nicht im lokalen Cache, lade %s herunter", cfg["model"])
+            log.info("Modell nicht im lokalen Cache, lade %s herunter", repo)
             if notify:
                 notify("Sprachmodell wird einmalig heruntergeladen (650 MB) …")
-            path = snapshot_download(cfg["model"], revision=rev, allow_patterns=files)
+            path = snapshot_download(repo, revision=rev, allow_patterns=files)
         model = onnx_asr.load_model("nemo-conformer-tdt", path, **kw)
         model.recognize(np.zeros(RATE, dtype=np.float32), sample_rate=RATE)  # aufwärmen
         self.model = model
-        log.info("Modell bereit nach %.1f s", time.time() - t)
+        self.loaded = choice
+        log.info("Modell %s bereit nach %.1f s", choice, time.time() - t)
 
     def transcribe_stream(self, blocks, on_part=None, cancelled=lambda: False, stats=None) -> str:
         """Beliebig langen Audiostrom stückweise erkennen.
@@ -349,12 +356,59 @@ def _phrase(key: str) -> str:
     return r"(?<!\w)" + r"\s+".join(re.escape(w) for w in key.split()) + r"(?!\w)"
 
 
+BASE_FILE = Path(__file__).with_name("basiswoerterbuch.json")
+_WORD = re.compile(r"[A-Za-zÄÖÜäöüß]+")
+_base = None
+
+
+def base_dictionary() -> dict:
+    """Mitgeliefertes medizinisches Wörterbuch: Fehlschreibung (klein) -> richtige Schreibweise.
+
+    Enthält nur Schreibweisen, die es als Wort nicht gibt (geprüft gegen deutsche und englische
+    Wörterbücher und gegen die Fachbegriffe selbst). Richtig Geschriebenes wird nie angefasst.
+    """
+    global _base
+    if _base is None:
+        _base = {}
+        try:
+            for right, wrongs in json.loads(BASE_FILE.read_text(encoding="utf-8")).items():
+                for wrong in wrongs:
+                    _base[wrong] = right
+        except Exception:
+            log.exception("Basiswörterbuch nicht lesbar")
+    return _base
+
+
+def apply_base(text: str) -> str:
+    """Wörter (und Paare aufeinanderfolgender Wörter) ersetzen, die im Basiswörterbuch stehen."""
+    base = base_dictionary()
+    if not base:
+        return text
+    words = list(_WORD.finditer(text))
+    out, pos, i = [], 0, 0
+    while i < len(words):
+        m = words[i]
+        right, end = None, m.end()
+        if i + 1 < len(words) and text[m.end():words[i + 1].start()] in (" ", "-"):
+            right = base.get(m.group().lower() + " " + words[i + 1].group().lower())
+            if right:
+                end, i = words[i + 1].end(), i + 1
+        right = right or base.get(m.group().lower())
+        if right:
+            out.append(text[pos:m.start()] + right)
+            pos = end
+        i += 1
+    return "".join(out) + text[pos:]
+
+
 def postprocess(text: str, cfg: dict) -> str:
     text = text.strip()
     if not text:
         return ""
     for wrong, right in (cfg.get("dictionary") or {}).items():
         text = re.sub(_phrase(wrong), lambda m, r=right: r, text, flags=re.IGNORECASE)
+    if cfg.get("base_dictionary", True) and cfg.get("model_choice", "de") == "de":
+        text = apply_base(text)
     for key, snippet in (cfg.get("snippets") or {}).items():
         text = re.sub(_phrase(key) + r"[.,;:!?]?", lambda m, r=snippet: r, text, flags=re.IGNORECASE)
     for key, repl in (cfg.get("commands") or {}).items():
