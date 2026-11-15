@@ -100,6 +100,10 @@ Whisper ist roh genauer, weil es Zahlen und Einheiten von sich aus sauberer schr
 liegt Parakeet vorn und ist dreimal so schnell; auf einem langsameren Klinikrechner wird der Abstand in
 Sekunden größer.
 
+Unabhängige Gegenprobe mit Fachsprache: die 395 vorgelesenen Arztbrief-Sätze (GraSCCo, synthetische Stimme, neu
+erzeugt und mit der Fassung ab 0.9 erkannt). Roh 12,38 → 11,70 %, mit Nachbearbeitung 11,09 → 10,54 %,
+Fachbegriffe richtig 566 → 581 von 659. An diesen Sätzen wurde nichts angepasst.
+
 ## Nachtrainierte Medizin-Modelle: gemessen, schlechter
 
 Beide öffentlich verfügbaren deutschen Medizin-Parakeets, selbst nach ONNX gebracht (`werkzeug/modell/umwandeln.py`),
