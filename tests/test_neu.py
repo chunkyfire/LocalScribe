@@ -35,6 +35,12 @@ check("Eingeschobener Vokal", engine.postprocess("Moxonoidin", cfg) == "Moxonidi
 check("Wörterbuch greift über Bindestrich",
       engine.postprocess("Set-Implantation", dict(cfg, dictionary={"Set Implantation": "Stentimplantation"})) == "Stentimplantation")
 
+voc = dict(cfg, vocabulary=["RIVA", "Trimbow", "Tresiba", "Brinkkötter"])
+t = engine.postprocess("Stent im Riba, Trimbo und Trossiba, Rücksprache mit Brinkötter. Der Riva ist frei, die Rippe nicht.", voc)
+check("Eigene Begriffe werden am Klang erkannt",
+      t == "Stent im RIVA, Trimbow und Tresiba, Rücksprache mit Brinkkötter. Der RIVA ist frei, die Rippe nicht.", t)
+check("Ohne eigene Begriffe bleibt es", "Riba" in engine.postprocess("Stent im Riba", cfg))
+
 # ----- Stimmtraining
 read, learned, open_ = training.learn(
     "Koronare Dreigefäßerkrankung, Zustand nach Stentimplantation im RIVA vor sechs Monaten.",

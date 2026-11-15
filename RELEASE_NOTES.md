@@ -1,3 +1,13 @@
+## LocalScribe 0.9.2
+
+- **Meine Begriffe** (Seite Wörterbuch): nur die richtige Schreibweise eintragen, durch Komma getrennt –
+  Medikamente, Abkürzungen, Namen. LocalScribe erkennt am Klang, wenn die Erkennung daraus etwas Ähnliches macht
+  („Riba“ wird RIVA, „Trossiba“ wird Tresiba), und schreibt den Begriff wie hinterlegt. Man muss nicht mehr
+  wissen, wie das Wort falsch herauskommt. Echte Wörter bleiben unberührt.
+
+Installation: ZIP entpacken, `LocalScribe.exe` starten. Keine Adminrechte nötig. Die Datei ist nicht
+signiert: Meldet Windows „Der Computer wurde geschützt“, auf **Weitere Informationen → Trotzdem ausführen**.
+
 ## LocalScribe 0.9.1
 
 - **Fachkorrektur als Option** (Seite KI-Nachbearbeitung, ab Werk aus): Das eingestellte Sprachmodell schlägt vor,

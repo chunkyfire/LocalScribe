@@ -179,7 +179,8 @@ class LongJob(QtCore.QObject):
         if text:
             cfg = {"dictionary": self.ctl.cfg.get("dictionary"), "trailing_space": False,
                    "base_dictionary": self.ctl.cfg.get("base_dictionary", True),
-                   "model_choice": self.ctl.cfg.get("model_choice", "de")}
+                   "model_choice": self.ctl.cfg.get("model_choice", "de"),
+                   "vocabulary": self.ctl.cfg.get("vocabulary")}
             talk = ""
             if stats.get("pieces") and not self._cancel:
                 try:

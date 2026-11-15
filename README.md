@@ -53,7 +53,8 @@ beendet sie nicht; sie bleibt im Infobereich (Rechtsklick → Beenden).
 - **Sprecher trennen** (Häkchen bei Aufnahme und Datei) – für Gespräche: Der Text bekommt Zeilen
   „Sprecher 1: …“, „Sprecher 2: …“. Läuft auf der CPU dieses Rechners; beim ersten Einschalten wird einmalig
   ein Stimmmodell geladen (26 MB). Siehe „Sprecher trennen“ unten.
-- **Wörterbuch** – falsch Erkanntes automatisch ersetzen. Mit **Wort einsprechen** lernt die App
+- **Wörterbuch** – falsch Erkanntes automatisch ersetzen. Unter **Meine Begriffe** reicht die richtige Schreibweise
+  (RIVA, Trimbow, ein Name): Was ähnlich klingt und kein echtes Wort ist, wird so geschrieben. Mit **Wort einsprechen** lernt die App
   dazu: richtige Schreibweise eintippen, Knopf halten, Wort sprechen. Was die Erkennung daraus
   macht, wird künftig ersetzt. Übernommen wird nur, was dem richtigen Wort ähnlich ist.
   Mitgeliefert ist ein **medizinisches Basiswörterbuch** (abschaltbar): Fehlschreibungen von rund

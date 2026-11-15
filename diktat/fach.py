@@ -7,6 +7,7 @@ dieselbe Form ab. Ersetzt wird ein Wort nur, wenn
   - sein Lautschlüssel zu genau einem Fachbegriff gehört.
 Beugungsformen (Pankreatitiden) haben einen anderen Schlüssel und bleiben, wie sie sind.
 """
+import difflib
 import gzip
 import json
 import logging
@@ -139,10 +140,30 @@ def load():
     return _data
 
 
-def correct(text: str, fuzzy: bool = True) -> str:
+_own = (None, {}, set())
+
+
+def own(vocabulary):
+    """Eigene Begriffe des Nutzers (nur die richtige Schreibweise): Lautschlüssel -> Begriff, und die Begriffe klein."""
+    global _own
+    stamp = tuple(vocabulary or ())
+    if _own[0] != stamp:
+        table, low = {}, {}
+        for term in stamp:
+            term = term.strip()
+            if len(term) >= 4 and WORD.fullmatch(term):
+                low[term.lower()] = term
+                for k in alternates(term.lower()):
+                    table.setdefault(k, term)
+        _own = (stamp, table, low)
+    return _own[1], _own[2]
+
+
+def correct(text: str, fuzzy: bool = True, vocabulary=None) -> str:
     terms, protected, keys, eszett = load()
     if not keys:
         return text
+    own_keys, own_low = own(vocabulary)
 
     def cased(word, term):
         return term[0].lower() + term[1:] if word[0].islower() else term[0].upper() + term[1:]
@@ -152,6 +173,20 @@ def correct(text: str, fuzzy: bool = True) -> str:
         low = word.lower()
         if low in eszett and not (word[0].isupper() and low.startswith(NAMES)):
             return cased(word, eszett[low])     # das Modell schreibt gelegentlich ss für ß
+        if low in own_low:
+            return own_low[low]                 # eigener Begriff: immer in der hinterlegten Schreibweise
+        if own_keys and len(low) >= 4 and low not in terms and low not in protected:
+            # eigene Begriffe haben Vorrang und gelten schon ab vier Buchstaben (Riba -> RIVA)
+            mine = {own_keys[k] for k in alternates(low) if k in own_keys}
+            if len(mine) == 1:
+                return next(iter(mine))
+            if not mine and low not in near()[0]:
+                # kein echtes Wort und klingt fast wie genau ein eigener Begriff (Trossiba -> Tresiba)
+                k = key(low)
+                close = {t for ok, t in own_keys.items() if ok[:1] == k[:1]
+                         and difflib.SequenceMatcher(None, k, ok).ratio() >= 0.75}
+                if len(close) == 1:
+                    return next(iter(close))
         if len(low) < MIN or low in terms or low in protected:
             return word
         found = {keys[k] for k in alternates(low) if k in keys}

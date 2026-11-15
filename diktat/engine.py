@@ -461,7 +461,7 @@ def postprocess(text: str, cfg: dict) -> str:
         text = re.sub(_phrase(wrong), lambda m, r=right: r, text, flags=re.IGNORECASE)
     if cfg.get("base_dictionary", True) and cfg.get("model_choice", "de") in config.GERMAN:
         # erst die bekannten Fehlschreibungen, dann alles, was wie ein Fachbegriff klingt
-        text = tidy(fach.correct(apply_base(text)))
+        text = tidy(fach.correct(apply_base(text), vocabulary=cfg.get("vocabulary")))
     for key, snippet in (cfg.get("snippets") or {}).items():
         text = re.sub(_phrase(key) + r"[.,;:!?]?", lambda m, r=snippet: r, text, flags=re.IGNORECASE)
     for key, repl in (cfg.get("commands") or {}).items():

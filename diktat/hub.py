@@ -839,12 +839,26 @@ class MapPage(Page):
                                "wird künftig durch die richtige Schreibweise ersetzt.", "muted", wrap=True)
             self.body.addWidget(card(label("Wort einsprechen", "h2"), hbox((self.word, 1), self.speak), self.heard))
             self.ctl.sig_heard.connect(self._heard)
+            self.terms = QtWidgets.QLineEdit(placeholderText="z. B. RIVA, Trimbow, Tresiba, Brinkkötter")
+            self.terms.editingFinished.connect(self._terms)
+            self.body.addWidget(card(
+                label("Meine Begriffe", "h2"), self.terms,
+                label("Nur die richtige Schreibweise eintragen, durch Komma getrennt: Medikamente, Abkürzungen, Namen. "
+                      "LocalScribe erkennt am Klang, wenn die Erkennung daraus etwas Ähnliches macht (Riba wird RIVA), "
+                      "und schreibt den Begriff so, wie er hier steht. Wörter, die es wirklich gibt, bleiben unberührt.",
+                      "muted", wrap=True)))
             self.base = QtWidgets.QCheckBox()
             self.base.toggled.connect(self._base)
             self.body.addWidget(self.base)
         self.body.addWidget(self.table, 1)
         self.body.addLayout(hbox(button("Hinzufügen", self.add, "primary"),
                                  button("Entfernen", self.remove), None))
+
+    def _terms(self):
+        terms = [t.strip() for t in self.terms.text().split(",") if t.strip()]
+        if terms != list(self.ctl.cfg.get("vocabulary") or []):
+            self.ctl.cfg["vocabulary"] = terms
+            self.ctl.apply_cfg()
 
     def _base(self, on):
         if not self.loading and on != bool(self.ctl.cfg.get("base_dictionary", True)):
@@ -854,6 +868,7 @@ class MapPage(Page):
     def refresh(self):
         self.loading = True
         if hasattr(self, "base"):
+            self.terms.setText(", ".join(self.ctl.cfg.get("vocabulary") or []))
             n, m = len(engine.base_dictionary()), len(fach.load()[0])
             self.base.setText(f"Medizinisches Basiswörterbuch anwenden: {m:,} Fachbegriffe werden am Klang erkannt, "
                               f"dazu {n:,} bekannte Fehlschreibungen".replace(",", "."))
