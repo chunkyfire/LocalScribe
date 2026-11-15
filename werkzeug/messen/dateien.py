@@ -1,5 +1,6 @@
-"""Eigene Aufnahmen erkennen: python dateien.py <Ausgabe.jsonl> <de|multi> <Tondatei> [...]"""
+"""Eigene Aufnahmen erkennen: python dateien.py <Ausgabe.jsonl> <de|genau|multi|Modellordner> <Tondatei> [...]"""
 import json
+import os
 import pathlib
 import sys
 import time
@@ -10,7 +11,15 @@ import numpy as np
 from diktat import config, engine
 
 out, choice, files = sys.argv[1], sys.argv[2], sys.argv[3:]
-t = engine.Transcriber(dict(config.DEFAULTS, model_choice=choice))
+if pathlib.Path(choice).is_dir():           # statt eines eingebauten Modells ein Ordner mit ONNX-Dateien
+    config.MODELS["ordner"] = dict(config.MODELS["de"], path=str(pathlib.Path(choice).resolve()))
+    choice = "ordner"
+cfg = dict(config.DEFAULTS, model_choice=choice)
+if choice == "ordner" and not list(pathlib.Path(config.MODELS["ordner"]["path"]).glob("*int8*")):
+    cfg["quantization"] = None              # Ordner mit ungekürzten Gewichten
+if os.environ.get("LS_QUANT") == "none":     # ungekürzte Gewichte (2,5 GB) statt int8
+    cfg["quantization"] = None
+t = engine.Transcriber(cfg)
 t.load()
 with open(out, "w", encoding="utf-8") as f:
     for path in files:

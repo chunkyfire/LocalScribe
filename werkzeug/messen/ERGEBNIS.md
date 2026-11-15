@@ -69,6 +69,51 @@ Die rohen Vorschläge sind überwiegend falsch („Nachstemi“ → „Nestgitte
 „Text in wenigen Sekunden, auf der CPU“ taugt das nicht; die groben Verhörer brauchen ein stärkeres Modell
 (geplanter Cloud-Modus) oder ein nachtrainiertes Erkennungsmodell.
 
+## Fassung 0.9: Das Kürzen auf 8 Bit war der größte Fehler
+
+Dieselben fünf Diktate, immer primeline-Parakeet, nur die Rechengenauigkeit des Encoders unterscheidet sich
+(`werkzeug/modell/kuerzen.py`, `werkzeug\messen\dateien.py`):
+
+| Fassung | Größe | roh | mit Nachbearbeitung | Tempo (i7-13700KF) |
+|---|---|---|---|---|
+| verbreitete int8-Fassung (bis 0.8) | 654 MB | 27,7 % | 18,0 % | 11,6-fach |
+| volle Gewichte | 2,5 GB | 21,8 % | 15,0 % | 13,2-fach |
+| nur Matrizen auf 8 Bit | 880 MB | 21,8 % | 15,8 % | 13,7-fach |
+| nur Matrizen auf 8 Bit, je Kanal eigene Skala (ab 0.9) | 882 MB | 21,8 % | 14,3 % | 12,6-fach |
+
+Das ist keine an den Diktaten gewonnene Regel, sondern dasselbe Modell mit weniger Rundungsfehlern. An den
+221 unabhängigen MultiMed-Aufnahmen: roh 13,06 → 12,94 %, mit Nachbearbeitung 12,42 → 12,27 %. Die Unterschiede
+zwischen den drei guten Fassungen (14,3 bis 15,8 %) liegen bei 412 Wörtern im Bereich einzelner Wörter.
+
+## Nachtrainierte Medizin-Modelle: gemessen, schlechter
+
+Beide öffentlich verfügbaren deutschen Medizin-Parakeets, selbst nach ONNX gebracht (`werkzeug/modell/umwandeln.py`),
+an denselben fünf Diktaten, volle Gewichte:
+
+| Modell | roh | mit Nachbearbeitung | Auffällig |
+|---|---|---|---|
+| johannhartmann/parakeet_de_med | 22,8 % | 20,6 % | schreibt Zahlen aus, „Yeah“, „Mm-hmm“ |
+| Mediform/parakeet-medical-de | 33,3 % | 30,8 % | lässt ganze Passagen weg (Medikationsliste, Dosierungen) |
+| primeline-Parakeet | 21,8 % | 15,0 % | |
+
+## Wort-Boosting beim Dekodieren: gemessen, nicht eingebaut
+
+`werkzeug/messen/boost.py` gibt beim Dekodieren Wortstücken einen Zuschlag, die das entstehende Wort zum Anfang
+eines Kernbegriffs machen. Mit der alten int8-Fassung: eigene Diktate 20,4 → 19,4 %, die unabhängigen Aufnahmen
+12,48 → 12,56 %. Ein Punkt Gewinn hier, ein Zehntel Verlust dort; mit dem genaueren Modell bleibt davon wenig.
+
+## Sprechertrennung an echten Gesprächen
+
+`werkzeug\messen\gespraech.py`, Datensätze mit bekannten Sprechern, Anteil der Sprechzeit beim richtigen Sprecher:
+
+| Aufnahmen | richtig zugeordnet | Sprecherzahl stimmt |
+|---|---|---|
+| VoxConverse (Interviews, Diskussionen, 2 bis 6 Sprecher, normale Tonqualität), 10 Aufnahmen | 88,6 % | 5 von 10 |
+| CallHome englisch (Telefon, 8 kHz, viel Durcheinanderreden), 12 Gespräche | 75,4 % | 8 von 12 |
+
+Stimmabdrücke in kurzen Fenstern statt je Äußerung wurden versucht und waren am Telefon schlechter (die Gruppen
+fallen zusammen). Ein deutsches Arzt-Patienten-Gespräch mit bekannten Sprechern gibt es öffentlich nicht.
+
 ## Was die anderen tun
 
 - Heidi hat nach eigener Darstellung NVIDIA Parakeet V2 mit NeMo auf 1 500 Stunden klinischer Aufnahmen

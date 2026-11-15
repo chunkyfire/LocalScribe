@@ -309,7 +309,18 @@ class Transcriber:
             pass
         files = ["config.json", "vocab.txt", "nemo128.onnx", f"*-model.{q}.onnx*" if q else "*-model.onnx*"]
         # liegt das Modell schon auf dem Rechner, startet die App ohne Netzwerk
-        path = modelle.fetch(repo, rev, files, progress)
+        entry = config.MODELS[choice]
+        if entry.get("path"):                    # Messungen mit einem Ordner
+            path = entry["path"]
+        elif entry.get("release") and q == "int8":
+            # schonender gekürzte Fassung aus dem eigenen Release; ohne Netz oder bei Fehler die bisherige
+            try:
+                path = modelle.fetch_release(entry["release"], progress)
+            except Exception as e:
+                log.warning("Verbessertes Modell nicht ladbar (%s), nehme die bisherige Fassung", e)
+                path = modelle.fetch(repo, rev, files, progress)
+        else:
+            path = modelle.fetch(repo, rev, files, progress)
         model = onnx_asr.load_model(config.MODELS[choice].get("type", "nemo-conformer-tdt"), path, **kw)
         self.kw = {"language": config.MODELS[choice]["language"]} if config.MODELS[choice].get("language") else {}
         model.recognize(np.zeros(RATE, dtype=np.float32), sample_rate=RATE, **self.kw)  # aufwärmen

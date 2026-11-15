@@ -22,6 +22,11 @@ from huggingface_hub import hf_hub_download
 from diktat import config, engine
 
 work, choice = pathlib.Path(sys.argv[1]), sys.argv[2]
+label = choice
+if pathlib.Path(choice).is_dir():           # statt eines eingebauten Modells ein Ordner mit ONNX-Dateien
+    label = pathlib.Path(choice).name
+    config.MODELS["ordner"] = dict(config.MODELS["de"], path=str(pathlib.Path(choice).resolve()))
+    choice = "ordner"
 split = sys.argv[3] if len(sys.argv) > 3 else "test"
 path = hf_hub_download("leduckhai/MultiMed", f"German/{split}-00000-of-00001.parquet", repo_type="dataset")
 table = pq.read_table(path)
@@ -42,7 +47,7 @@ def decode(data):
 text_col = next(n for n in table.column_names if n in ("text", "transcription", "sentence", "transcript"))
 total = start = 0.0
 start = time.time()
-with open(work / f"multimed_{choice}_{split}.jsonl", "w", encoding="utf-8") as f:
+with open(work / f"multimed_{label}_{split}.jsonl", "w", encoding="utf-8") as f:
     for i in range(table.num_rows):
         row = table.slice(i, 1).to_pylist()[0]
         try:

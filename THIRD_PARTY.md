@@ -6,6 +6,7 @@ LocalScribe selbst steht unter der GPL-3.0-or-later (siehe `LICENSE`).
 |---|---|---|---|
 | [primeline/parakeet-primeline](https://huggingface.co/primeline/parakeet-primeline) (primeline; Basis: NVIDIA parakeet-tdt-0.6b-v3) | Spracherkennung | CC-BY-4.0 | nein, wird beim ersten Start geladen |
 | [OpenVoiceOS/primeline-parakeet-onnx](https://huggingface.co/OpenVoiceOS/primeline-parakeet-onnx) | ONNX-Fassung des Modells | CC-BY-4.0 | nein |
+| [Release modell-primeline-1](https://github.com/chunkyfire/LocalScribe/releases/tag/modell-primeline-1) | dieselben Gewichte, von LocalScribe schonender auf 8 Bit gekürzt (verändert: nur die Matrizen des Encoders gekürzt) | CC-BY-4.0 | nein, wird beim ersten Start geladen |
 | [istupakov/parakeet-tdt-0.6b-v3-onnx](https://huggingface.co/istupakov/parakeet-tdt-0.6b-v3-onnx) (NVIDIA parakeet-tdt-0.6b-v3) | mehrsprachige Spracherkennung, wahlweise | CC-BY-4.0 | nein, wird bei Auswahl geladen |
 | [istupakov/canary-1b-v2-onnx](https://huggingface.co/istupakov/canary-1b-v2-onnx) (NVIDIA canary-1b-v2) | genaueres deutsches Modell, wahlweise | CC-BY-4.0 | nein, wird bei Auswahl geladen |
 | [Wikidata](https://www.wikidata.org/) | Fachbegriffe im medizinischen Basiswörterbuch | CC0 | ja (`diktat/basiswoerterbuch.json`) |

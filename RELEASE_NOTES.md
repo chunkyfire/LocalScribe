@@ -1,3 +1,20 @@
+## LocalScribe 0.9.0
+
+- **Deutlich genauer bei gleicher Geschwindigkeit.** Die bisher verwendete 8-Bit-Fassung des Sprachmodells
+  hat gegenüber den vollen Gewichten rund sechs Prozentpunkte Wortfehlerrate gekostet. LocalScribe lädt jetzt
+  eine eigene, schonender gekürzte Fassung (910 MB statt 650 MB, einmaliger Download mit Balken): so genau wie
+  die vollen 2,5 GB, so schnell wie bisher. An fünf echten ärztlichen Diktaten 14,3 % Wortfehler statt 18,0 %
+  (roh 21,8 % statt 27,7 %); an 221 unabhängigen Aufnahmen 12,3 % statt 12,4 %. Wer keine Verbindung hat,
+  arbeitet mit der bisherigen Fassung weiter.
+- Gemessen und nicht eingebaut: zwei öffentlich verfügbare, auf Medizin nachtrainierte Parakeet-Modelle
+  (schlechter bzw. mit ausgelassenen Passagen) und Wort-Boosting beim Dekodieren (kaum Wirkung). Zahlen in
+  `werkzeug/messen/ERGEBNIS.md`.
+- Sprechertrennung an echten Gesprächen gemessen: 89 % der Sprechzeit richtig zugeordnet bei Aufnahmen in
+  normaler Tonqualität, 75 % bei Telefonaufnahmen.
+
+Installation: ZIP entpacken, `LocalScribe.exe` starten. Keine Adminrechte nötig. Die Datei ist nicht
+signiert: Meldet Windows „Der Computer wurde geschützt“, auf **Weitere Informationen → Trotzdem ausführen**.
+
 ## LocalScribe 0.8.0
 
 - **Download des Sprachmodells ist sichtbar.** Beim ersten Start zeigt ein Balken im Fenster, in der Leiste

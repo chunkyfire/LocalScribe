@@ -15,7 +15,7 @@ In den Einstellungen stehen zwei weitere Modelle zur Wahl: ein genaueres, langsa
 2. Entpacken, zum Beispiel nach `Dokumente\LocalScribe`.
 3. `LocalScribe.exe` starten. Meldet Windows „Der Computer wurde geschützt“: **Weitere Informationen →
    Trotzdem ausführen** (die Datei ist nicht signiert).
-4. Beim ersten Start lädt die App einmalig das Sprachmodell (650 MB). Ein Balken im Fenster, in der
+4. Beim ersten Start lädt die App einmalig das Sprachmodell (910 MB). Ein Balken im Fenster, in der
    Statusleiste am unteren Bildschirmrand und im Infobereich zeigt, wie weit der Download ist; erst wenn er
    voll ist, lässt sich diktieren. Das Modell bleibt danach dauerhaft unter
    `%LOCALAPPDATA%\LocalScribe\modelle` liegen (ohne Adminrechte beschreibbar) und wird nie erneut geladen.
@@ -139,6 +139,8 @@ Verarbeitungskette. Ergebnis und Vergleich stehen in `tests/langzeit/ERGEBNIS.md
   zwei Prüfungen übereinstimmen (Silero hört keine Sprache, der Pegel hebt sich nicht vom
   Grundrauschen ab); im Zweifel wird erkannt.
 - Echtes Wort-Boosting im Modell gibt es nicht. Das Wörterbuch korrigiert nach der Erkennung.
+- Das Sprachmodell ist primeline-Parakeet in einer eigenen, schonender gekürzten 8-Bit-Fassung (siehe
+  `werkzeug/messen/ERGEBNIS.md`): fünf echte ärztliche Diktate 14,3 % Wortfehler, mit der üblichen Fassung 18,0 %.
 - Gemessen ist an einer synthetischen Stimme, an 221 echten Aufnahmen (MultiMed) und an fünf echten
   ärztlichen Diktaten eines Sprechers (`werkzeug/messen/ERGEBNIS.md`). Dialekt, laute Umgebung und andere
   Fachgebiete sind damit nicht belegt. Jeder Text muss vor der Übernahme gegengelesen werden.

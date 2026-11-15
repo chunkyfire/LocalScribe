@@ -24,7 +24,16 @@ GERMAN = ("de", "genau")      # Modelle, bei denen die deutsche Nachbearbeitung 
 # Sprachmodelle zur Auswahl. Die Fassung ist festgeschrieben: Es wird nie stillschweigend eine andere geladen.
 MODELS = {
     "de": {"label": "Deutsch (primeline-Parakeet)",
-           "repo": "OpenVoiceOS/primeline-parakeet-onnx", "revision": "411093fba73540a11c451841a8e7922c13b0fb00"},
+           "repo": "OpenVoiceOS/primeline-parakeet-onnx", "revision": "411093fba73540a11c451841a8e7922c13b0fb00",
+           # Dieselben Gewichte, schonender auf 8 Bit gekürzt (werkzeug/modell/kuerzen.py): so genau wie die
+           # vollen 2,5 GB, so schnell wie bisher. Dateiname: [Größe, SHA-256].
+           "release": {"name": "primeline-parakeet-kanal8-1",
+                       "url": "https://github.com/chunkyfire/LocalScribe/releases/download/modell-primeline-1/",
+                       "files": {
+                           "config.json": [121, "db59e29a3c1fde6a081bf04965e72bba26cd65be1aee65b064360df8aef468e5"],
+                           "vocab.txt": [93939, "d58544679ea4bc6ac563d1f545eb7d474bd6cfa467f0a6e2c1dc1c7d37e3c35d"],
+                           "decoder_joint-model.int8.onnx": [72520894, "e713d02c73176e629de49948f755a8e855b4850d4341124088d69adcfbc833c1"],
+                           "encoder-model.int8.onnx": [881780860, "d3183080403232b0db42ba461ec4dc917996811fe689de42492747dc723a10d2"]}}},
     "genau": {"label": "Deutsch, genauer und langsamer (NVIDIA Canary 1B v2)", "type": "nemo-canary-1b-v2", "language": "de",
               "repo": "istupakov/canary-1b-v2-onnx", "revision": "5ebc1520cef7b6b318b3526ad17adbfe00bc1bfc"},
     "multi": {"label": "Mehrsprachig: 25 europäische Sprachen (NVIDIA Parakeet v3)",

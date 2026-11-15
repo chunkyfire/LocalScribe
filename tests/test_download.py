@@ -1,4 +1,4 @@
-"""Erster Start: Das Sprachmodell wird wirklich heruntergeladen (650 MB, braucht Internet, dauert Minuten).
+"""Erster Start: Das Sprachmodell wird wirklich heruntergeladen (910 MB, braucht Internet, dauert Minuten).
 
 Prüft, dass der Fortschritt im Fenster ankommt, dass erst danach diktiert werden kann, dass das Modell
 im eigenen Ordner liegt und beim zweiten Start ohne Netz gefunden wird. Läuft in einem leeren
@@ -57,13 +57,12 @@ def poll():
     check("Diktieren während des Downloads startet nicht, sagt aber warum",
           bool(early) and not early[0][0] and "geladen" in early[0][1], str(early))
     check("Danach bereit, Balken weg", d.ready and not d.hub.loadbar.isVisibleTo(d.hub) and not d.hub.banner.isVisibleTo(d.hub))
-    m = config.MODELS["de"]
-    files = ["config.json", "vocab.txt", "nemo128.onnx", "*-model.int8.onnx*"]
-    path = modelle.find(m["repo"], m["revision"], files)
+    rel = config.MODELS["de"]["release"]
+    path = modelle.find_release(rel)
     check("Modell liegt im eigenen Ordner", bool(path) and str(tmp / "modelle") in path
-          and (pathlib.Path(path) / modelle.MARK).exists(), str(path))
+          and all((pathlib.Path(path) / n).stat().st_size == size for n, (size, _) in rel["files"].items()), str(path))
     calls = []
-    again = modelle.fetch(m["repo"], m["revision"], files, lambda a, b: calls.append(a))
+    again = modelle.fetch_release(rel, lambda a, b: calls.append(a))
     check("Zweiter Start lädt nichts", again == path and not calls)
     print(f"Dauer {time.time() - start:.0f} s")
     print("FEHLER:" if failed else "ALLES OK", failed or "", flush=True)

@@ -83,8 +83,29 @@ with tempfile.TemporaryDirectory() as tmp:
     path = modelle.folder() / modelle._name("a/b", "0123456789abcdef")
     path.mkdir(parents=True)
     check("Unvollständiger Download zählt nicht", modelle.find("a/b", "0123456789abcdef", ["*"]) is None)
-    (path / modelle.MARK).write_text("x")
+    (path / modelle._mark(["*"])).write_text("x")
     check("Geladenes Modell wird ohne Netz gefunden", modelle.find("a/b", "0123456789abcdef", ["*"]) == str(path))
+    # Modell aus einem Release: Prüfsumme, Fortsetzen, kein zweiter Download
+    import hashlib
+    src = pathlib.Path(tmp) / "quelle"
+    src.mkdir()
+    (src / "a.bin").write_bytes(b"x" * 300000)
+    (src / "b.txt").write_bytes(b"hallo")
+    rel = {"name": "test-1", "url": src.as_uri() + "/",
+           "files": {n: [(src / n).stat().st_size, hashlib.sha256((src / n).read_bytes()).hexdigest()] for n in ("a.bin", "b.txt")}}
+    steps = []
+    got = modelle.fetch_release(rel, lambda a, b: steps.append((a, b)))
+    check("Release-Modell geladen und geprüft", (pathlib.Path(got) / "a.bin").stat().st_size == 300000
+          and steps and steps[-1] == (300005, 300005), str(steps[-2:]))
+    steps.clear()
+    check("Release-Modell wird nicht doppelt geladen", modelle.fetch_release(rel, lambda a, b: steps.append(a)) == got and not steps)
+    bad = dict(rel, name="test-2", files=dict(rel["files"], **{"b.txt": [5, "0" * 64]}))
+    try:
+        modelle.fetch_release(bad)
+        check("Beschädigte Datei wird verworfen", False)
+    except RuntimeError:
+        check("Beschädigte Datei wird verworfen", modelle.find_release(bad) is None
+              and not (modelle.folder() / "test-2" / "b.txt").exists())
     config.DIR = old
 print("FEHLER:" if failed else "ALLES OK", failed or "")
 sys.exit(1 if failed else 0)
