@@ -62,7 +62,7 @@ for path in sys.argv[2:]:
         r = json.loads(line)
         if r["name"] in gt:
             table.setdefault(label + " roh", {})[r["name"]] = errors(gt[r["name"]], norm(r["hyp"]))
-            table.setdefault(label + " mit Nachbearbeitung", {})[r["name"]] = errors(gt[r["name"]], norm(fach.correct(engine.apply_base(r["hyp"]))))
+            table.setdefault(label + " mit Nachbearbeitung", {})[r["name"]] = errors(gt[r["name"]], norm(engine.tidy(fach.correct(engine.apply_base(engine.LEADING.sub("", r["hyp"].strip()))))))
 names = list(gt)
 total = sum(len(gt[n]) for n in names)
 print(f"{'':52s}" + "".join(f"{n[:10]:>11s}" for n in names) + "     gesamt")

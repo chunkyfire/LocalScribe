@@ -282,12 +282,14 @@ class Transcriber:
         """Ein Stück erkennen. Kurze englische Einwürfe verwirft die deutsche Erkennung: Aus einem
         Atemzug oder Räuspern vor dem ersten Wort macht das Modell gelegentlich „Hey!“ oder „Hello.“"""
         text = (self.model.recognize(chunk, sample_rate=RATE, **self.kw) or "").strip()
-        if (self.loaded in config.GERMAN and len(chunk) < 2.5 * RATE
-                and text.strip(" .!?,").lower() in PHANTOMS):
-            return ""
+        if self.loaded in config.GERMAN:
+            if len(chunk) < 2.5 * RATE and text.strip(" .!?,").lower() in PHANTOMS:
+                return ""
+            text = LEADING.sub("", text)        # „Hey! 58-jähriger Patient …“
         return text
 
-    def load(self, notify=None):
+    def load(self, progress=None):
+        from . import modelle           # zuerst: stellt den Download auf sichtbaren Fortschritt ein
         import onnx_asr
         import onnxruntime as ort
 
@@ -298,7 +300,6 @@ class Transcriber:
         kw = dict(quantization=cfg.get("quantization") or None,
                   providers=[cfg.get("provider") or "CPUExecutionProvider"], sess_options=so)
         t = time.time()
-        from huggingface_hub import snapshot_download
         q = cfg.get("quantization")
         choice = cfg.get("model_choice") if cfg.get("model_choice") in config.MODELS else "de"
         repo, rev = config.MODELS[choice]["repo"], config.MODELS[choice]["revision"]
@@ -307,14 +308,8 @@ class Transcriber:
         except Exception:
             pass
         files = ["config.json", "vocab.txt", "nemo128.onnx", f"*-model.{q}.onnx*" if q else "*-model.onnx*"]
-        try:
-            # schon geladen? Dann ohne Netzwerk starten.
-            path = snapshot_download(repo, revision=rev, allow_patterns=files, local_files_only=True)
-        except Exception:
-            log.info("Modell nicht im lokalen Cache, lade %s herunter", repo)
-            if notify:
-                notify("Sprachmodell wird einmalig heruntergeladen (650 MB) …")
-            path = snapshot_download(repo, revision=rev, allow_patterns=files)
+        # liegt das Modell schon auf dem Rechner, startet die App ohne Netzwerk
+        path = modelle.fetch(repo, rev, files, progress)
         model = onnx_asr.load_model(config.MODELS[choice].get("type", "nemo-conformer-tdt"), path, **kw)
         self.kw = {"language": config.MODELS[choice]["language"]} if config.MODELS[choice].get("language") else {}
         model.recognize(np.zeros(RATE, dtype=np.float32), sample_rate=RATE, **self.kw)  # aufwärmen
@@ -349,6 +344,14 @@ class Transcriber:
                     text = GAP
                 if text:
                     texts.append(text)
+                    if "pieces" in stats:       # Sprecher trennen: Stimmabdruck je Äußerung
+                        from . import sprecher
+                        try:
+                            voice = sprecher.embed(chunk) if text != GAP else None
+                        except Exception:
+                            log.exception("Stimmabdruck nicht berechenbar")
+                            voice = None
+                        stats["pieces"].append((text, voice, len(chunk) / RATE))
             if on_part:
                 on_part(join_parts(texts), done)
         return join_parts(texts)
@@ -364,8 +367,31 @@ class Transcriber:
         return " ".join(parts)
 
 
+LEADING = re.compile(r"^(?:hey|hello|hi|thank you|thanks)[!.]\s+(?=\S)", re.IGNORECASE)
+_UNIT = r"(?:mg|µg|g|ml|IE|I\.E\.|Einheiten|Hub|Hübe)"
+TIDY = [
+    # Einnahmeschema: „40 mg100“ -> „40 mg 1-0-0“ (nur Ziffern 0 bis 2, nur direkt nach Dosis und Einheit)
+    (re.compile(r"(\d\s?" + _UNIT + r")\s?([0-2])([0-2])([0-2])([0-2])?(?![\d,.]\d|\d|\s?(?:" + _UNIT + r"|%|l)\b)"),
+     lambda m: m.group(1) + " " + "-".join(g for g in m.groups()[1:] if g)),
+    (re.compile(r"\b(RR|HF|AF)(\d)"), r"\1 \2"),                               # „RR140“
+    (re.compile(r"\b0([0-9])(\d{2,3}) Grad\b"), r"0-\1-\2 Grad"),              # Neutral-Null: „0090 Grad“
+    (re.compile(r"\bHertz[, -]+[Ff]requenz"), "Herzfrequenz"),
+    (re.compile(r"\bQuadrat[ -]?m2\b"), "Quadratmeter"),
+    # „Patientin reduziertem Allgemeinzustand“: nach „Patientin“ kann kein Dativ auf -em stehen
+    (re.compile(r"\b(Patient)in (?=[a-zäöü]+em\b)"), r"\1 in "),
+]
+
+
+def tidy(text: str) -> str:
+    """Schreibweisen, die das Modell regelmäßig zusammenzieht (Dosierschema, Blutdruck, Gelenkmaße)."""
+    for rx, repl in TIDY:
+        text = rx.sub(repl, text)
+    return text
+
+
 def _phrase(key: str) -> str:
-    return r"(?<!\w)" + r"\s+".join(re.escape(w) for w in key.split()) + r"(?!\w)"
+    # zwischen den Wörtern darf auch ein Bindestrich stehen („Set-Implantation“)
+    return r"(?<!\w)" + r"[\s\-]+".join(re.escape(w) for w in key.split()) + r"(?!\w)"
 
 
 PHANTOMS = {"hey", "hello", "hi", "thank you", "thanks", "bye", "okay", "oh", "yeah", "you", "so"}
@@ -424,7 +450,7 @@ def postprocess(text: str, cfg: dict) -> str:
         text = re.sub(_phrase(wrong), lambda m, r=right: r, text, flags=re.IGNORECASE)
     if cfg.get("base_dictionary", True) and cfg.get("model_choice", "de") in config.GERMAN:
         # erst die bekannten Fehlschreibungen, dann alles, was wie ein Fachbegriff klingt
-        text = fach.correct(apply_base(text))
+        text = tidy(fach.correct(apply_base(text)))
     for key, snippet in (cfg.get("snippets") or {}).items():
         text = re.sub(_phrase(key) + r"[.,;:!?]?", lambda m, r=snippet: r, text, flags=re.IGNORECASE)
     for key, repl in (cfg.get("commands") or {}).items():

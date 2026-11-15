@@ -40,6 +40,7 @@ def steps(text):
     b = fach.correct(a, fuzzy=False)
     yield "+ Lautschlüssel, ß", b
     yield "+ ein Laut daneben", fach.correct(a)
+    yield "+ Schreibweisen", engine.tidy(fach.correct(a))
 
 
 terms = set(fach.load()[0])

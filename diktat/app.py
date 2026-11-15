@@ -30,6 +30,7 @@ class Diktat(QtCore.QObject):
     sig_stop, sig_cancel, sig_lock = Signal(), Signal(), Signal()
     sig_ready = Signal(str)
     sig_status = Signal(str)
+    sig_download = Signal(float, float)   # geladene Bytes, Gesamtgröße (Modell-Download)
     sig_heard = Signal(str, str)      # gehörter Text, Fehlermeldung (Wörterbuch: Wort einsprechen)
     sig_result = Signal(object)
 
@@ -43,6 +44,8 @@ class Diktat(QtCore.QObject):
         self.transcriber = engine.Transcriber(self.cfg)
         self.overlay = Overlay(self.recorder)
         self.ready = self.recording = False
+        self.listener = None              # Seite, die gerade ein eingesprochenes Wort erwartet
+        self.download = None              # Anteil des Modell-Downloads, solange er läuft
         self.pending = 0
         self.prompt = ""  # Prompt der laufenden Aufnahme
         self.jobs = queue.Queue()
@@ -56,6 +59,7 @@ class Diktat(QtCore.QObject):
         self.sig_tap.connect(self.on_tap)
         self.sig_ready.connect(self.on_ready)
         self.sig_status.connect(self.on_status)
+        self.sig_download.connect(self.on_download)
         self.sig_result.connect(self.on_result)
 
         self.hub = Hub(self)
@@ -110,8 +114,10 @@ class Diktat(QtCore.QObject):
             self.store.add(text, seconds, latency, raw, prompt)
             self.hub.refresh()
 
-    def listen_start(self) -> str:
-        """Aufnahme für „Wort einsprechen“ beginnen. Gibt eine Fehlermeldung zurück oder ""."""
+    def listen_start(self, who=None) -> str:
+        """Aufnahme für „Wort einsprechen“ und das Stimmtraining beginnen. who: die Seite, die zuhört.
+        Gibt eine Fehlermeldung zurück oder ""."""
+        self.listener = who
         if not self.ready:
             return "Das Sprachmodell lädt noch."
         if self.recording:
@@ -202,7 +208,7 @@ class Diktat(QtCore.QObject):
     # ---------- Modell und Arbeitsschlange ----------
     def _load(self):
         try:
-            self.transcriber.load(self.sig_status.emit)
+            self.transcriber.load(lambda done, total: self.sig_download.emit(float(done), float(total)))
             self.sig_ready.emit("")
         except Exception as e:
             log.exception("Modell konnte nicht geladen werden")
@@ -212,9 +218,25 @@ class Diktat(QtCore.QObject):
         self.set_status(text)
         self.overlay.set_mode("message", text)
 
+    def on_download(self, done, total):
+        """Erster Start: Das Sprachmodell wird geladen. Sichtbar im Fenster, in der Leiste und im Infobereich."""
+        mb = 1024 * 1024
+        if self.download is None and not self.hub.isVisible():
+            self.hub.open()              # auch beim stillen Start zeigen, warum es noch nicht losgeht
+        self.download = done / total if total else 0.0
+        text = f"Sprachmodell wird einmalig geladen · {self.download * 100:.0f} % ({done / mb:.0f} von {total / mb:.0f} MB)"
+        if done >= total > 0:
+            text = "Sprachmodell wird eingerichtet …"
+        self.set_status(text)
+        self.hub.set_download(self.download, text)
+        self.overlay.set_progress(text, self.download)
+
     def on_ready(self, error):
+        self.download = None
+        self.hub.set_download(None, "")
         if error:
             self.set_status("Modellfehler (siehe diktat.log)")
+            self.hub.set_download(None, error)
             self.overlay.flash("Modell konnte nicht geladen werden", 6000)
             return
         self.ready = True
@@ -264,7 +286,8 @@ class Diktat(QtCore.QObject):
             return
         if not self.ready:
             self.hotkey.reset()
-            self.overlay.flash("Modell lädt noch …")
+            self.overlay.flash("Modell lädt noch …" if self.download is None
+                               else f"Sprachmodell wird noch geladen ({self.download * 100:.0f} %) – gleich geht es los")
             return
         try:
             self.recorder.start()

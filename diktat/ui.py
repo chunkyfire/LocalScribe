@@ -89,6 +89,7 @@ class Overlay(QtWidgets.QWidget):
         self.setAttribute(Qt.WA_ShowWithoutActivating)
         self.recorder = recorder
         self.mode, self.text, self.phase, self.token = "idle", "", 0, 0
+        self.progress = None
         self.levels = [0.0] * self.BARS
         self.timer = QTimer(self, interval=33, timeout=self._tick)
         self.resize(460, 44)
@@ -99,8 +100,17 @@ class Overlay(QtWidgets.QWidget):
         g = QtGui.QGuiApplication.primaryScreen().availableGeometry()
         self.move(g.center().x() - self.width() // 2, g.bottom() - self.height() - 14)
 
+    def set_progress(self, text, fraction):
+        """Dauerhafte Meldung mit Balken (Download des Sprachmodells)."""
+        self.token += 1
+        self.mode, self.text, self.progress = "message", text, max(0.0, min(1.0, fraction))
+        self.place()
+        self.timer.start()
+        self.update()
+
     def set_mode(self, mode, text=""):
         self.token += 1
+        self.progress = None
         if mode in ("recording", "locked") and self.mode not in ("recording", "locked"):
             self.levels = [0.0] * self.BARS
         self.mode, self.text = mode, text
@@ -168,6 +178,13 @@ class Overlay(QtWidgets.QWidget):
         else:
             p.setPen(QtGui.QColor(232, 232, 232))
             p.drawText(r, Qt.AlignCenter, self.text)
+            if self.progress is not None:       # Fortschritt des Modell-Downloads
+                track = QtCore.QRectF(r.left() + 18, r.bottom() - 6, r.width() - 36, 3)
+                p.setPen(Qt.NoPen)
+                p.setBrush(QtGui.QColor(255, 255, 255, 40))
+                p.drawRoundedRect(track, 1.5, 1.5)
+                p.setBrush(ACCENT)
+                p.drawRoundedRect(QtCore.QRectF(track.left(), track.top(), track.width() * self.progress, 3), 1.5, 1.5)
 
 
 def private_mime(text: str) -> QtCore.QMimeData:

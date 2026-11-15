@@ -31,6 +31,58 @@ Wortfehlerrate nach Angleichen von Schreib- und Sprechform (`eigene.py`):
 Die ONNX-q4-Fassung von Whisper ließ im Tumorboard-Diktat sämtliche Dosierungen weg und ist deshalb
 nicht eingebaut. Canary lässt nichts weg. Einige Wörterbucheinträge stammen aus diesen Diktaten.
 
+## Fassung 0.8: Schreibweisen und Kernbegriffe
+
+Dieselben fünf Diktate, dieselbe Erkennung, neue Nachbearbeitung (`python werkzeug\messen\eigene.py`):
+
+| Modell | roh | 0.7 | 0.8 |
+|---|---|---|---|
+| primeline-Parakeet (Standard) | 27,7 % | 23,3 % | 18,0 % |
+| NVIDIA Canary 1B v2 int8 | 23,8 % | 20,6 % | 18,7 % |
+
+Was dazukam: Einnahmeschema („40 mg100“ → „40 mg 1-0-0“), „RR140“, „0090 Grad“, „Hertz, Frequenz“,
+„Patientin reduziertem“, englischer Einwurf am Diktatanfang, eingeschobener Vokal in langen Fachwörtern
+(Moxonoidin), 330 weitere Kernbegriffe. Diese Regeln sind an genau diesen Diktaten entstanden; die Zahl ist
+deshalb das günstigste Bild. Die beiden unabhängigen Prüfsätze oben ändern sich kaum (MultiMed 12,42 %,
+GraSCCo-Sätze 11,14 → 11,09 %, weiterhin eine falsche Ersetzung). Das Standardmodell liegt damit auf diesen
+Diktaten gleichauf mit dem langsameren Canary und mit Whisper large-v3-turbo (17,7 %).
+
+Von den verbleibenden 74 Fehlern (412 Wörter) sind etwa ein Drittel Zählweise (Zusammenschreibung, „IE“
+gegen „Einheiten“, „2x5“, Meier/Meyer, ein „äh“ in der Vorlage), ein Drittel Hörfehler bei Fachwörtern, die
+das Stimmtraining für diesen Sprecher lernen kann (Riba, Golb, Trimbo, Hydralacin, Semitendinosuszähne),
+und ein Drittel grobe Verhörer, bei denen ein echtes Wort dasteht (Set statt Stent, Kabel statt Cave,
+Zuschauer statt Zustand).
+
+## Lokales Sprachmodell als Korrektor: gemessen, nicht eingebaut
+
+`diktat/korrektor.py` lässt ein Sprachmodell Ersetzungen vorschlagen und übernimmt nur, was ein Türsteher
+durchlässt (Vorschlag ist ein bekanntes Wort oder Kernbegriff, klingt wie das Gehörte, ändert keine Zahl,
+ist keine Beugungsform). Gemessen über Ollama auf einer RTX 4070 Ti (`werkzeug\messen\korrektur.py`):
+
+| Modell | Zeit je Diktat | übernommen | davon richtig |
+|---|---|---|---|
+| Gemma 3 4B | 2,9 bis 3,6 s | 1 | 1 (Riba → RIVA) |
+| Llama 3.1 8B | 3,2 bis 4,4 s | 4 | 1 bis 2 |
+
+Die rohen Vorschläge sind überwiegend falsch („Nachstemi“ → „Nestgitter“, „Erdjobschema“ → „ERGO-Schema“,
+„Oberbauchschmerz“ → „Obere Bauchschmerz“). Ohne Grafikkarte dauert derselbe Schritt ein Vielfaches. Für
+„Text in wenigen Sekunden, auf der CPU“ taugt das nicht; die groben Verhörer brauchen ein stärkeres Modell
+(geplanter Cloud-Modus) oder ein nachtrainiertes Erkennungsmodell.
+
+## Was die anderen tun
+
+- Heidi hat nach eigener Darstellung NVIDIA Parakeet V2 mit NeMo auf 1 500 Stunden klinischer Aufnahmen
+  nachtrainiert, gezielt auf die Fachbegriffe, an denen das Grundmodell scheitert.
+- ID (ORPHEUS) nennt eigene, am UKE trainierte Modelle, ein Vokabular für eigene Schreibweisen, das ab der
+  nächsten Aufnahme gilt, automatische Satzzeichen und Sprechertrennung.
+- Tandem nennt Sprach- und Textmodelle, die auf medizinische Sprache abgestimmt sind, und ist als
+  Medizinprodukt der Klasse IIa zertifiziert.
+
+Gemeinsam ist allen: ein auf echten klinischen Aufnahmen nachtrainiertes Erkennungsmodell plus Vokabular.
+LocalScribe hat das Vokabular (Wörterbuch, Lautschlüssel, Stimmtraining), aber kein nachtrainiertes Modell.
+Der nächste große Schritt wäre ein deutsches medizinisches Parakeet (etwa Mediform/parakeet-medical-de) als
+ONNX-Fassung oder ein eigenes Nachtraining auf eigenen Diktaten.
+
 ## Was die Zahlen nicht zeigen
 
 - Echte medizinische Diktate. Öffentliche deutsche Aufnahmen mit Transkript gibt es nicht: PoCaP

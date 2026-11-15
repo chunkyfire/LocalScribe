@@ -15,11 +15,17 @@ In den Einstellungen stehen zwei weitere Modelle zur Wahl: ein genaueres, langsa
 2. Entpacken, zum Beispiel nach `Dokumente\LocalScribe`.
 3. `LocalScribe.exe` starten. Meldet Windows „Der Computer wurde geschützt“: **Weitere Informationen →
    Trotzdem ausführen** (die Datei ist nicht signiert).
-4. Beim ersten Start lädt die App einmalig das Sprachmodell (650 MB). Danach arbeitet sie ohne Internet.
+4. Beim ersten Start lädt die App einmalig das Sprachmodell (650 MB). Ein Balken im Fenster, in der
+   Statusleiste am unteren Bildschirmrand und im Infobereich zeigt, wie weit der Download ist; erst wenn er
+   voll ist, lässt sich diktieren. Das Modell bleibt danach dauerhaft unter
+   `%LOCALAPPDATA%\LocalScribe\modelle` liegen (ohne Adminrechte beschreibbar) und wird nie erneut geladen.
+   Ab dann arbeitet die App ohne Internet.
+   Rechner ohne Internet: den Ordner `modelle` von einem anderen Rechner neben `LocalScribe.exe` kopieren.
 5. Verknüpfungen für Desktop und Startmenü: im Fenster unter **Einstellungen**.
 
-Deinstallieren: Ordner löschen, dazu `%LOCALAPPDATA%\LocalScribe` (Einstellungen, Verlauf) und bei Bedarf
-`%USERPROFILE%\.cache\huggingface` (Sprachmodell).
+Deinstallieren: Ordner löschen, dazu `%LOCALAPPDATA%\LocalScribe` (Einstellungen, Verlauf, Sprachmodelle).
+Wer eine Fassung vor 0.8 benutzt hat, findet das Modell zusätzlich unter `%USERPROFILE%\.cache\huggingface`;
+LocalScribe verwendet es von dort weiter und lädt nichts doppelt.
 
 ## Bedienung
 
@@ -44,11 +50,17 @@ beendet sie nicht; sie bleibt im Infobereich (Rechtsklick → Beenden).
 - **Aufnahme** – einmal drücken startet, noch einmal drücken beendet, auch nach einer Stunde.
   Der Text läuft live mit: Nach jeder Sprechpause erscheint, was gerade gesagt wurde.
 - **Datei** – Audio- oder Videodatei hineinziehen (MP3, M4A, WAV, FLAC, OGG, MP4 …).
+- **Sprecher trennen** (Häkchen bei Aufnahme und Datei) – für Gespräche: Der Text bekommt Zeilen
+  „Sprecher 1: …“, „Sprecher 2: …“. Läuft auf der CPU dieses Rechners; beim ersten Einschalten wird einmalig
+  ein Stimmmodell geladen (26 MB). Siehe „Sprecher trennen“ unten.
 - **Wörterbuch** – falsch Erkanntes automatisch ersetzen. Mit **Wort einsprechen** lernt die App
   dazu: richtige Schreibweise eintippen, Knopf halten, Wort sprechen. Was die Erkennung daraus
   macht, wird künftig ersetzt. Übernommen wird nur, was dem richtigen Wort ähnlich ist.
   Mitgeliefert ist ein **medizinisches Basiswörterbuch** (abschaltbar): Fehlschreibungen von rund
   5 900 Wirkstoffen, Diagnosen, anatomischen und klinischen Begriffen. Siehe unten.
+- **Stimmtraining** – 152 medizinische Sätze aus zehn Themen zum Vorlesen. Die App vergleicht, was sie
+  verstanden hat, mit dem Satz und trägt deine Aussprache falsch erkannter Fachbegriffe ins Wörterbuch ein.
+  Freiwillig; je mehr Sätze, desto besser. Siehe „Stimmtraining“ unten.
 - **Textbausteine** – gesprochenes Stichwort → hinterlegter Text.
 - **KI-Nachbearbeitung** – Server-Adresse, API-Schlüssel, Modell und eigene Prompts.
   Spricht jede OpenAI-kompatible Schnittstelle (Ollama, LM Studio, vLLM, eigener Anbieter).
@@ -72,10 +84,29 @@ Dateien: `%LOCALAPPDATA%\LocalScribe\` (`config.json`, `verlauf.sqlite`, `diktat
   auf einen Server wandert.
 - **Zwischenablage.** Eingefügter Text wird vom Windows-Zwischenablageverlauf (Win+V) und von der
   Cloud-Zwischenablage ausgenommen.
-- **Netz.** Die App geht nur beim ersten Start ins Internet, um das Sprachmodell zu laden (feste
+- **Netz.** Die App geht nur ins Internet, um ein Modell zu laden: beim ersten Start das Sprachmodell,
+  beim Wechsel des Sprachmodells und beim ersten Einschalten von „Sprecher trennen“ (jeweils feste
   Fassung, Hugging Face). Danach arbeitet sie offline. Die KI-Nachbearbeitung ist ab Werk aus;
   ist dort eine Adresse außerhalb des eigenen Netzes eingetragen, zeigt die App das an.
+- **Stimmabdrücke.** „Sprecher trennen“ berechnet je Äußerung einen Stimmabdruck. Er lebt nur im
+  Arbeitsspeicher, solange die Transkription läuft, und wird nicht gespeichert. Im Text stehen Nummern,
+  keine Namen; die App erkennt niemanden wieder.
 - **Protokoll.** `diktat.log` enthält Zeiten und Zeichenzahlen, keine Inhalte.
+
+## Kein Medizinprodukt
+
+LocalScribe schreibt auf, was gesprochen wird. Es ist ein Dokumentationswerkzeug wie ein Diktiergerät mit
+Schreibkraft und trifft keine medizinische Aussage: keine Diagnose, keine Therapieempfehlung, keine
+Dosisberechnung, keine Triage. Es ist kein Medizinprodukt im Sinne der Verordnung (EU) 2017/745 (MDR), hat
+keine CE-Kennzeichnung und ist dafür nicht bestimmt.
+
+- Jeder Text muss vor der Übernahme in eine Akte gegengelesen werden, besonders Wirkstoffe, Dosierungen,
+  Seitenangaben und Verneinungen. Die Verantwortung für den Inhalt liegt bei der Person, die diktiert.
+- Die KI-Nachbearbeitung formt Text nach deinem Prompt um (Füllwörter, Gliederung, Stil). Wer dort ein
+  Sprachmodell nach Differenzialdiagnosen, Rückfragen oder Therapievorschlägen fragt, bekommt eine
+  Ausgabe, die **nur für Forschung, Lehre und den Vergleich von Modellen (Benchmarking)** gedacht ist –
+  nicht für Diagnostik oder Therapie eines Menschen.
+- Das gilt genauso für den geplanten Cloud-Modus mit Fragen und Vorschlägen aus einem Sprachmodell.
 
 ## Aus dem Quelltext starten oder selbst bauen
 
@@ -108,8 +139,9 @@ Verarbeitungskette. Ergebnis und Vergleich stehen in `tests/langzeit/ERGEBNIS.md
   zwei Prüfungen übereinstimmen (Silero hört keine Sprache, der Pegel hebt sich nicht vom
   Grundrauschen ab); im Zweifel wird erkannt.
 - Echtes Wort-Boosting im Modell gibt es nicht. Das Wörterbuch korrigiert nach der Erkennung.
-- Geprüft wurde mit einer synthetischen Stimme. Die Erkennungsgüte bei echten Stimmen, Dialekt
-  und Fachvokabular ist damit nicht belegt. Jeder Text muss vor der Übernahme gegengelesen werden.
+- Gemessen ist an einer synthetischen Stimme, an 221 echten Aufnahmen (MultiMed) und an fünf echten
+  ärztlichen Diktaten eines Sprechers (`werkzeug/messen/ERGEBNIS.md`). Dialekt, laute Umgebung und andere
+  Fachgebiete sind damit nicht belegt. Jeder Text muss vor der Übernahme gegengelesen werden.
 - In Fenster, die mit Adminrechten laufen, kann die App nicht einfügen.
 
 ## Das medizinische Basiswörterbuch
@@ -169,6 +201,32 @@ Die Nachbearbeitung repariert, was knapp daneben liegt. Was das Modell grob verh
 Öffentliche deutsche Aufnahmen echter medizinischer Diktate mit Transkript gibt es nicht. MultiMed
 (ACL 2025) ist der einzige frei zugängliche Datensatz mit echten Stimmen; sein deutscher Teil besteht
 überwiegend aus Lehrvideos für Sprachprüfungen und enthält kaum Fachbegriffe.
+
+## Stimmtraining
+
+Auf der Seite **Stimmtraining** steht ein Satz. Knopf halten, vorlesen, loslassen. Die App legt Wort für Wort
+daneben, was sie verstanden hat. Ein falsch erkanntes Wort kommt ins persönliche Wörterbuch, wenn
+
+- es dem richtigen Wort ähnlich klingt (Lautschlüssel, mindestens 55 % Übereinstimmung) und
+- es selbst kein echtes Wort ist. „Riba“ wird zu „RIVA“; „Kabel“ wird nicht zu „Cave“, weil sonst jedes
+  Kabel im Diktat ersetzt würde. Solche Fälle zeigt die App an, lernt sie aber nicht.
+
+Getrennt gehörte Zusammensetzungen werden als Paar gelernt („Set-Implantation“ → „Stentimplantation“).
+Das Material: 152 Sätze aus Kardiologie, Pneumologie, Gastroenterologie, Nephrologie, Neurologie,
+Notaufnahme, Chirurgie und Orthopädie, Onkologie und Hämatologie, Medikation, Befund und Verlauf
+(`diktat/lesetexte.json`, erweiterbar). Der Ton bleibt im Arbeitsspeicher. Alles Gelernte steht auf der Seite
+Wörterbuch und lässt sich dort ändern oder löschen.
+
+## Sprecher trennen
+
+Für Gespräche (Anamnese, Besprechung, Interview). Die Pausenerkennung zerlegt den Ton ohnehin in Äußerungen;
+jede bekommt einen Stimmabdruck (WeSpeaker ResNet34, ONNX, 26 MB, läuft auf der CPU). Ähnliche Abdrücke
+werden zu Sprechern gruppiert, aufeinanderfolgende Äußerungen desselben Sprechers bilden einen Absatz.
+
+Grenzen: Fällt jemand dem anderen ohne Pause ins Wort, landen beide in einer Äußerung. Einwürfe unter
+1,2 Sekunden („ja“, „genau“) tragen zu wenig Stimme und werden dem Sprecher davor zugeschlagen. Wer insgesamt
+weniger als acht Sekunden spricht, gilt nicht als eigener Sprecher. Geprüft ist die Trennung an echten
+Aufnahmen verschiedener Sprecher, nicht an einem echten Arzt-Patienten-Gespräch.
 
 ## Lizenz und Signatur
 

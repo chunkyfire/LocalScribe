@@ -18,7 +18,7 @@ import numpy as np
 from PySide6 import QtCore
 from PySide6.QtCore import Signal
 
-from . import config, engine
+from . import config, engine, sprecher
 
 log = logging.getLogger("diktat")
 
@@ -36,6 +36,7 @@ class LongJob(QtCore.QObject):
         self.wav_path = None        # Sicherungsdatei der laufenden oder letzten Aufnahme
         self.kept = None            # Sicherungsdatei, die wegen eines Problems liegen blieb
         self.failed = 0             # Stücke, die nicht erkannt werden konnten
+        self.speakers = 0           # erkannte Sprecher im letzten Lauf (nur mit „Sprecher trennen“)
         self.overflows = 0          # vom Audiotreiber gemeldete Aussetzer
         self.last_block = 0.0       # Zeitpunkt des letzten Mikrofon-Blocks (für die Überwachung)
         self._cancel = False
@@ -148,6 +149,9 @@ class LongJob(QtCore.QObject):
     def _run(self, open_source, backup):
         """open_source() -> (Dauer oder None, Blockstrom). backup: Datei, die nach Erfolg gelöscht wird."""
         text, error, done, stats = "", "", [0.0], {}
+        self.speakers = 0
+        if self.ctl.cfg.get("speakers"):
+            stats["pieces"] = []         # Sprecher trennen: Text, Stimmabdruck und Dauer je Äußerung
         try:
             total, blocks = open_source()
 
@@ -173,8 +177,19 @@ class LongJob(QtCore.QObject):
             else:
                 self.kept = Path(backup)
         if text:
-            text = engine.postprocess(text, {"dictionary": self.ctl.cfg.get("dictionary"),
-                                             "trailing_space": False})
+            cfg = {"dictionary": self.ctl.cfg.get("dictionary"), "trailing_space": False,
+                   "base_dictionary": self.ctl.cfg.get("base_dictionary", True),
+                   "model_choice": self.ctl.cfg.get("model_choice", "de")}
+            talk = ""
+            if stats.get("pieces") and not self._cancel:
+                try:
+                    pieces = stats["pieces"]
+                    labels = sprecher.cluster([p[1] for p in pieces], [p[2] for p in pieces])
+                    self.speakers = len(set(labels))
+                    talk = sprecher.dialogue([engine.postprocess(p[0], cfg).strip() for p in pieces], labels)
+                except Exception:
+                    log.exception("Sprecher konnten nicht getrennt werden")
+            text = talk or engine.postprocess(text, cfg)
         self.running = False
         self.finished.emit(text, done[0], "" if self._cancel and not error else error)
 

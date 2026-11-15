@@ -76,7 +76,11 @@ def _one_apart(a, b):
         diff = [i for i, (x, y) in enumerate(zip(a, b)) if x != y]
         return len(diff) == 1 and diff[0] < len(a) - 2 and a[diff[0]] in VOWELS and b[diff[0]] in VOWELS
     if len(a) > len(b):
-        return False                 # ein Laut zu viel: Klopfschmerz ist nicht Kopfschmerz
+        # ein Laut zu viel: Klopfschmerz ist nicht Kopfschmerz. Nur ein eingeschobener Vokal
+        # in einem langen Wort gilt als verhört (Moxonoidin).
+        if len(b) < NEAR:
+            return False
+        return any(a[i] in VOWELS and a[:i] + a[i + 1:] == b for i in range(1, len(a) - 2))
     for i in range(len(b) - 2):
         if a == b[:i] + b[i + 1:]:
             return b[i] != "s"

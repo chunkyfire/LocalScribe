@@ -43,6 +43,8 @@ DEFAULTS = {
     "model_choice": "de",
     # mitgeliefertes medizinisches Wörterbuch anwenden (nur mit dem deutschen Modell)
     "base_dictionary": True,
+    "speakers": False,            # Sprecher trennen bei Aufnahme und Datei
+    "training_done": [],          # Stimmtraining: schon gelesene Sätze
     "config_version": 3,
     "quantization": "int8",
     "provider": "CPUExecutionProvider",

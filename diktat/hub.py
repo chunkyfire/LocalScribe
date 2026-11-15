@@ -9,7 +9,8 @@ import time
 from PySide6 import QtGui, QtWidgets
 from PySide6.QtCore import Qt, QTimer, Signal
 
-from . import config, engine, fach, llm
+from . import config, engine, fach, llm, training
+from . import sprecher
 from .longform import LongJob
 from .ui import make_icon, make_pixmap, private_mime
 
@@ -450,6 +451,7 @@ class Transcript(QtWidgets.QWidget):
 
 class LongPage(Page):
     """Gemeinsames für Aufnahme- und Dateiseite."""
+    sig_voice = Signal(str)
 
     def __init__(self, ctl, title, subtitle, source):
         super().__init__(title, subtitle, scroll=False)
@@ -459,9 +461,35 @@ class LongPage(Page):
         self.job.finished.connect(self.on_finished)
         self.started = 0.0
         self.out = Transcript(ctl)
+        self.split = QtWidgets.QCheckBox("Sprecher trennen (Gespräche: „Sprecher 1: …“, „Sprecher 2: …“)")
+        self.split.setToolTip("Für Gespräche mit mehreren Personen. Jede Äußerung bekommt einen Stimmabdruck, "
+                              "ähnliche Stimmen werden zu einem Sprecher zusammengefasst. Läuft auf diesem Rechner.")
+        self.split.toggled.connect(self._split)
+        self.sig_voice.connect(lambda text: self.info(text))
+
+    def _split(self, on):
+        if on != bool(self.ctl.cfg.get("speakers")):
+            self.ctl.cfg["speakers"] = on
+            self.ctl.apply_cfg()
+        if on and not sprecher.ready():          # Stimmmodell einmalig holen, Fortschritt in der Statuszeile
+            def work():
+                try:
+                    sprecher.prepare(lambda done, total: self.sig_voice.emit(
+                        f"Stimmmodell wird einmalig geladen · {100 * done / max(1, total):.0f} % von {total / 1048576:.0f} MB"))
+                    self.sig_voice.emit("Stimmmodell geladen. Sprecher werden ab jetzt getrennt.")
+                except Exception as e:
+                    self.sig_voice.emit(f"Stimmmodell nicht ladbar: {e}")
+            threading.Thread(target=work, daemon=True).start()
 
     def refresh(self):
         self.out.refresh()
+        self.split.setChecked(bool(self.ctl.cfg.get("speakers")))
+
+    def speakers_note(self) -> str:
+        if not self.ctl.cfg.get("speakers"):
+            return ""
+        n = self.job.speakers
+        return f" {n} Sprecher erkannt." if n > 1 else " Nur eine Stimme erkannt, daher ohne Sprecherzeilen."
 
     def model_ready(self) -> bool:
         if self.ctl.ready:
@@ -511,7 +539,7 @@ class RecordPage(LongPage):
         col.addWidget(self.clock)
         col.addWidget(self.state)
         col.addStretch(1)
-        self.body.addWidget(card(hbox(self.btn, (self._wrap(col), 1), spacing=22)))
+        self.body.addWidget(card(hbox(self.btn, (self._wrap(col), 1), spacing=22), self.split))
 
         # Aufnahme, die beim letzten Mal nicht fertig wurde (Absturz, Stromausfall, Fehler)
         self.left_text = label("", wrap=True)
@@ -637,8 +665,8 @@ class RecordPage(LongPage):
             self.info(notes, bad=True)
         elif text.strip():
             where = " Der Text steht auch im Verlauf." if self.ctl.cfg.get("history_enabled", True) else ""
-            self.info(f"Fertig – {clock(seconds)} aufgenommen, {len(text.split())} Wörter. "
-                      f"Die Tonaufnahme ist gelöscht.{where}")
+            self.info(f"Fertig – {clock(seconds)} aufgenommen, {len(text.split())} Wörter."
+                      f"{self.speakers_note()} Die Tonaufnahme ist gelöscht.{where}")
         else:
             self.info("Kein Text erkannt. Die Tonaufnahme ist gelöscht.")
         self.refresh()
@@ -690,6 +718,7 @@ class FilePage(LongPage):
         lay.addLayout(hbox(self.title, None, self.pick, self.stop))
         lay.addWidget(self.state)
         lay.addWidget(self.bar)
+        lay.addWidget(self.split)
         self.body.addWidget(self.zone)
         self.body.addWidget(self.out, 1)
 
@@ -746,7 +775,8 @@ class FilePage(LongPage):
             self.state.setText(notes)
         elif text.strip():
             where = " Der Text steht auch im Verlauf." if self.ctl.cfg.get("history_enabled", True) else ""
-            self.state.setText(f"Fertig – {clock(seconds)} Audio in {clock(took)}, {len(text.split())} Wörter.{where}")
+            self.state.setText(f"Fertig – {clock(seconds)} Audio in {clock(took)}, {len(text.split())} Wörter."
+                               f"{self.speakers_note()}{where}")
         else:
             self.state.setText("Kein Text erkannt.")
 
@@ -858,11 +888,13 @@ class MapPage(Page):
         if not self.word.text().strip():
             restyle(self.heard, "bad")
             return self.heard.setText("Erst die richtige Schreibweise eintippen.")
-        error = self.ctl.listen_start()
+        error = self.ctl.listen_start(self)
         restyle(self.heard, "bad" if error else "muted")
         self.heard.setText(error or "Höre zu …")
 
     def _heard(self, text, error):
+        if self.ctl.listener is not self:
+            return
         target = self.word.text().strip()
         heard = re.sub(r"[.,;:!?…]+$", "", text.strip()).strip()
         note, wrong = learn_verdict(target, heard, error)
@@ -886,6 +918,108 @@ class MapPage(Page):
                 data[k] = v.replace("\\n", "\n")
         self.ctl.cfg[self.key] = data
         self.ctl.apply_cfg()
+
+
+# ---------------------------------------------------------------- Stimmtraining
+class TrainPage(Page):
+    """Sätze vorlesen; was die Erkennung dabei falsch schreibt, kommt ins persönliche Wörterbuch."""
+
+    def __init__(self, ctl):
+        super().__init__("Stimmtraining",
+                         "Lies medizinische Sätze vor. LocalScribe vergleicht, was es verstanden hat, mit dem, was "
+                         "dasteht, und merkt sich deine Aussprache der Fachbegriffe im Wörterbuch. Freiwillig, "
+                         "jederzeit unterbrechbar – je mehr Sätze, desto besser passt die Erkennung zu deiner Stimme. "
+                         "Der Ton bleibt im Arbeitsspeicher und wird nicht gespeichert.")
+        self.ctl = ctl
+        self.topic = QtWidgets.QComboBox()
+        self.topic.addItem("Alle Themen", "")
+        for name, sentences in training.material().items():
+            self.topic.addItem(f"{name} ({len(sentences)})", name)
+        self.topic.currentIndexChanged.connect(lambda _: self.next(0))
+        self.count = label("", "muted")
+        self.sentence = label("", "h2", wrap=True)
+        self.sentence.setMinimumHeight(74)
+        self.speak = button("Halten und vorlesen", name="primary")
+        self.speak.pressed.connect(self._listen)
+        self.speak.released.connect(self.ctl.listen_stop)
+        self.result = label("Knopf gedrückt halten, den Satz in deinem normalen Diktiertempo vorlesen, loslassen. "
+                            "Zahlen und Einheiten so sprechen, wie du es sonst auch tust.", "muted", wrap=True)
+        self.body.addWidget(card(hbox(label("Thema"), self.topic, None, self.count),
+                                 self.sentence,
+                                 hbox(self.speak, button("Überspringen", lambda: self.next(1)),
+                                      button("Zurück", lambda: self.next(-1)), None),
+                                 self.result))
+        self.learned = label("", "muted", wrap=True)
+        self.body.addWidget(card(label("Gelernt", "h2"), self.learned))
+        self.body.addStretch(1)
+        self.items, self.pos, self.session = [], 0, []
+        self.ctl.sig_heard.connect(self._heard)
+
+    def refresh(self):
+        self.next(0)
+
+    def _items(self):
+        topic = self.topic.currentData()
+        return [s for name, group in training.material().items() if not topic or name == topic for s in group]
+
+    def next(self, step):
+        self.items = self._items()
+        done = set(self.ctl.cfg.get("training_done") or [])
+        if step == 0:                               # beim Öffnen: erster noch nicht gelesener Satz
+            self.pos = next((i for i, s in enumerate(self.items) if s not in done), 0)
+        else:
+            self.pos = (self.pos + step) % len(self.items)
+        self.sentence.setText(self.items[self.pos])
+        read = sum(1 for s in self.items if s in done)
+        self.count.setText(f"{read} von {len(self.items)} gelesen")
+        if self.session:
+            self.learned.setText("In dieser Sitzung: " + ", ".join(f"„{w}“ → „{r}“" for w, r in self.session))
+        else:
+            n = len(self.ctl.cfg.get("dictionary") or {})
+            self.learned.setText(f"Im Wörterbuch stehen {n} Einträge. Neue erscheinen hier und auf der Seite Wörterbuch; "
+                                 "dort lassen sie sich ändern oder löschen.")
+
+    def _listen(self):
+        error = self.ctl.listen_start(self)
+        restyle(self.result, "bad" if error else "muted")
+        self.result.setText(error or "Höre zu …")
+
+    def _heard(self, text, error):
+        if self.ctl.listener is not self:
+            return
+        if error:
+            restyle(self.result, "bad")
+            return self.result.setText(f"Das hat nicht geklappt: {error}")
+        cfg = self.ctl.cfg
+        # so, wie der Text ohne persönliches Wörterbuch ankäme: gelernt wird nur, was dann noch falsch ist
+        heard = engine.postprocess(text, {"dictionary": {}, "trailing_space": False,
+                                          "base_dictionary": cfg.get("base_dictionary", True),
+                                          "model_choice": cfg.get("model_choice", "de")})
+        expected = self.items[self.pos]
+        read, learned, open_ = training.learn(expected, heard)
+        if not read:
+            restyle(self.result, "bad")
+            return self.result.setText(f"Verstanden: „{heard or 'nichts'}“. Das passt nicht zum Satz – bitte noch "
+                                       "einmal, Knopf erst drücken, dann sprechen.")
+        data = dict(cfg.get("dictionary") or {})
+        new = [(w, r) for w, r in learned if data.get(w) != r]
+        for w, r in new:
+            data[w] = r
+        cfg["dictionary"] = data
+        cfg["training_done"] = sorted(set(cfg.get("training_done") or []) | {expected})
+        self.ctl.apply_cfg()
+        self.session += new
+        parts = []
+        if new:
+            parts.append("Gelernt: " + ", ".join(f"„{w}“ → „{r}“" for w, r in new) + ".")
+        if open_:
+            parts.append("Nicht lernbar, weil das Verstandene selbst ein richtiges Wort ist: "
+                         + ", ".join(f"„{w}“ statt „{r}“" for w, r in open_) + ".")
+        if not parts:
+            parts.append("Alles richtig verstanden.")
+        restyle(self.result, "ok" if not open_ else "muted")
+        self.result.setText(" ".join(parts))
+        self.next(1)
 
 
 # ---------------------------------------------------------------- KI
@@ -1285,6 +1419,7 @@ class Hub(QtWidgets.QWidget):
                                    "Wörter, die falsch erkannt werden, automatisch ersetzen. "
                                    "Groß- und Kleinschreibung spielt beim Erkennen keine Rolle.",
                                    "dictionary", ["Erkannt wird", "Ersetzen durch"], learn=True)),
+            ("Stimmtraining", TrainPage(ctl)),
             ("Textbausteine", MapPage(ctl, "Textbausteine",
                                       "Ein gesprochenes Stichwort wird durch den hinterlegten Text ersetzt. "
                                       "Für einen Zeilenumbruch \\n schreiben.",
@@ -1303,12 +1438,42 @@ class Hub(QtWidgets.QWidget):
         nav.addStretch(1)
         self.status = label("", "muted", wrap=True)
         nav.addWidget(self.status)
+        self.loadbar = QtWidgets.QProgressBar(textVisible=False)
+        self.loadbar.setRange(0, 1000)
+        self.loadbar.hide()
+        nav.addWidget(self.loadbar)
+
+        # Erster Start: großes Band über den Seiten, solange das Sprachmodell geladen wird
+        self.banner = QtWidgets.QFrame(objectName="card")
+        self.banner_title = label("Das Sprachmodell wird einmalig heruntergeladen", "h2")
+        self.banner_text = label("", "muted", wrap=True)
+        self.banner_text.setMinimumHeight(36)
+        self.banner_bar = QtWidgets.QProgressBar(textVisible=False)
+        self.banner_bar.setRange(0, 1000)
+        bl = QtWidgets.QVBoxLayout(self.banner)
+        bl.setContentsMargins(22, 16, 22, 18)
+        bl.setSpacing(8)
+        bl.addWidget(self.banner_title)
+        bl.addWidget(self.banner_text)
+        bl.addWidget(self.banner_bar)
+        self.banner.hide()
+        right = QtWidgets.QVBoxLayout()
+        right.setContentsMargins(0, 0, 0, 0)
+        right.setSpacing(0)
+        wrap = QtWidgets.QVBoxLayout()
+        wrap.setContentsMargins(28, 18, 28, 0)
+        wrap.addWidget(self.banner)
+        self.banner_wrap = QtWidgets.QWidget()
+        self.banner_wrap.setLayout(wrap)
+        self.banner_wrap.hide()
+        right.addWidget(self.banner_wrap)
+        right.addWidget(self.stack, 1)
 
         lay = QtWidgets.QHBoxLayout(self)
         lay.setContentsMargins(0, 0, 0, 0)
         lay.setSpacing(0)
         lay.addWidget(side)
-        lay.addWidget(self.stack, 1)
+        lay.addLayout(right, 1)
         self.show_page(0)
 
     def show_page(self, i):
@@ -1323,6 +1488,18 @@ class Hub(QtWidgets.QWidget):
 
     def set_status(self, text):
         self.status.setText(text)
+
+    def set_download(self, fraction, text):
+        """fraction: Anteil 0..1, solange das Sprachmodell geladen wird; None, wenn nicht (mehr)."""
+        active = fraction is not None
+        self.loadbar.setVisible(active)
+        self.banner_wrap.setVisible(active)
+        self.banner.setVisible(active)
+        if active:
+            self.loadbar.setValue(int(fraction * 1000))
+            self.banner_bar.setValue(int(fraction * 1000))
+            self.banner_text.setText(text.split(" · ", 1)[-1] + ". Nur beim ersten Start – danach bleibt das Modell auf diesem "
+                                     "Rechner. Diktieren geht, sobald der Balken voll ist.")
 
     def busy(self) -> bool:
         """Läuft gerade eine lange Aufnahme oder Transkription?"""

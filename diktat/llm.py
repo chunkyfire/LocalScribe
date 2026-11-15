@@ -88,6 +88,21 @@ def list_models(llm: dict, key=None) -> list[str]:
     return sorted(m.get("id", "") for m in data.get("data", []) if m.get("id"))
 
 
+def chat(llm: dict, system: str, user: str, json_mode: bool = False, key=None) -> str:
+    """Eine einzelne Anfrage ohne den Nachbearbeitungs-Rahmen; für die Fachkorrektur."""
+    if not (llm.get("model") or "").strip():
+        raise LlmError("Kein Modell ausgewählt.")
+    body = {"model": llm["model"].strip(), "temperature": 0, "stream": False,
+            "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}]}
+    if json_mode:
+        body["response_format"] = {"type": "json_object"}
+    data = _request(llm, "/chat/completions", body, key=key)
+    try:
+        return data["choices"][0]["message"]["content"] or ""
+    except (KeyError, IndexError, TypeError) as e:
+        raise LlmError("Antwort des Servers hat ein unerwartetes Format.") from e
+
+
 def run(llm: dict, instruction: str, transcript: str, key=None) -> str:
     """Wendet die Anweisung auf das Transkript an und gibt den fertigen Text zurück."""
     if not (llm.get("model") or "").strip():
