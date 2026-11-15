@@ -40,7 +40,7 @@ class Diktat(QtCore.QObject):
         self.cfg = config.load()
         self.store = Store(config.DB)
         self.recorder = engine.Recorder()
-        self.recorder.device_name = self.cfg.get("microphone")
+        self.recorder.set_warm(self.cfg.get("mic_warm"), self.cfg.get("microphone"))
         self.transcriber = engine.Transcriber(self.cfg)
         self.overlay = Overlay(self.recorder)
         self.ready = self.recording = False
@@ -148,7 +148,7 @@ class Diktat(QtCore.QObject):
         """Geänderte Einstellungen speichern und sofort wirksam machen."""
         config.save(self.cfg)
         self.transcriber.cfg = self.cfg
-        self.recorder.device_name = self.cfg.get("microphone")
+        self.recorder.set_warm(self.cfg.get("mic_warm"), self.cfg.get("microphone"))
         self.cleanup()
         self.start_hotkey()
         if self.ready and self.cfg.get("model_choice", "de") != self.transcriber.loaded:
@@ -201,6 +201,7 @@ class Diktat(QtCore.QObject):
                 return
         winio.keep_awake(False)
         self.hotkey.stop()
+        self.recorder.warm = False           # Mikrofon beim Beenden sicher schließen
         self.recorder.stop()
         llm.release(self.cfg["llm"])       # lokales Sprachmodell aus dem Grafikspeicher nehmen
         self.tray.hide()
@@ -241,6 +242,7 @@ class Diktat(QtCore.QObject):
             self.overlay.flash("Modell konnte nicht geladen werden", 6000)
             return
         self.ready = True
+        self.recorder.set_warm(self.cfg.get("mic_warm"), self.cfg.get("microphone"))
         self.set_status(self.ready_text())
         self.overlay.flash(f"Bereit – {keys_text(self.cfg['hotkey_hold'])} halten und sprechen", 3500)
 

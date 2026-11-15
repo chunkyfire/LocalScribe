@@ -1,3 +1,12 @@
+## LocalScribe 0.9.3
+
+- **Mikrofon offen halten** (Einstellungen, ab Werk aus): Das Diktat startet ohne Verzögerung und nimmt die
+  Viertelsekunde vor dem Tastendruck mit, damit die erste Silbe nicht fehlt. Außerhalb eines Diktats wird nur
+  diese Viertelsekunde im Arbeitsspeicher gehalten. Windows zeigt dabei dauerhaft das Mikrofon-Symbol.
+
+Installation: ZIP entpacken, `LocalScribe.exe` starten. Keine Adminrechte nötig. Die Datei ist nicht
+signiert: Meldet Windows „Der Computer wurde geschützt“, auf **Weitere Informationen → Trotzdem ausführen**.
+
 ## LocalScribe 0.9.2
 
 - **Meine Begriffe** (Seite Wörterbuch): nur die richtige Schreibweise eintragen, durch Komma getrennt –

@@ -76,6 +76,8 @@ Dateien: `%LOCALAPPDATA%\LocalScribe\` (`config.json`, `verlauf.sqlite`, `diktat
 ## Was mit den Daten geschieht
 
 - **Ton.** Diktate per Taste bleiben im Arbeitsspeicher und werden nie auf die Platte geschrieben.
+  Ist „Mikrofon offen halten“ eingeschaltet (ab Werk aus), bleibt das Mikrofon geöffnet; außerhalb eines Diktats
+  wird nur die letzte Viertelsekunde im Arbeitsspeicher gehalten und laufend überschrieben.
   Lange Aufnahmen werden während des Sprechens in eine Sicherungsdatei geschrieben, damit bei
   einem Absturz nichts verloren ist. Diese Datei wird gelöscht, sobald der Text vollständig vorliegt.
   Bleibt sie liegen (Absturz, Fehler), bietet die App beim nächsten Öffnen das Nachholen an;

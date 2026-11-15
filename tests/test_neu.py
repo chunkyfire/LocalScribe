@@ -84,6 +84,42 @@ check("Korrektur übernimmt nur Geprüftes", text == "Zustand nach Stent-Implant
 text, done = korrektor.correct("Unverändert.", {}, lambda s, u: "kein JSON")
 check("Kaputte Antwort ändert nichts", text == "Unverändert." and not done)
 
+# ----- Mikrofon offen halten
+class _Stream:
+    def __init__(self, **kw):
+        self.kw, self.open = kw, False
+
+    def start(self):
+        self.open = True
+
+    def stop(self):
+        self.open = False
+
+    def close(self):
+        pass
+
+
+opened = []
+engine.sd.InputStream = lambda **kw: opened.append(_Stream(**kw)) or opened[-1]
+engine._device_index = lambda name: None
+rec = engine.Recorder()
+block = np.ones((1600, 1), dtype=np.float32)           # 0,1 s
+rec.set_warm(True)
+for _ in range(10):
+    rec._callback(block * 0.5, 1600, None, None)       # eine Sekunde vor dem Tastendruck
+rec.start()
+for _ in range(5):
+    rec._callback(block, 1600, None, None)
+audio = rec.stop()
+check("Offenes Mikrofon: Viertelsekunde Vorlauf, kein neuer Stream", len(opened) == 1 and opened[0].open
+      and 0.5 + 0.25 <= len(audio) / 16000 <= 0.5 + 0.4 and audio[0] == 0.5 and audio[-1] == 1.0, f"{len(audio) / 16000:.2f} s")
+rec.set_warm(False)
+check("Ausgeschaltet: Mikrofon ist zu", not opened[0].open)
+rec.start()
+rec._callback(block, 1600, None, None)
+audio = rec.stop()
+check("Ohne Dauerbetrieb: öffnen, aufnehmen, schließen", len(opened) == 2 and not opened[1].open and len(audio) == 1600)
+
 # ----- Modellordner
 with tempfile.TemporaryDirectory() as tmp:
     old = config.DIR

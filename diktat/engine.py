@@ -51,17 +51,50 @@ def _device_index(name):
 
 
 class Recorder:
+    """Mikrofon für das Diktat per Taste.
+
+    Normal wird das Mikrofon beim Drücken geöffnet und beim Loslassen geschlossen. Mit warm=True bleibt es
+    offen: Die Aufnahme beginnt ohne Verzögerung und nimmt die letzte Viertelsekunde vor dem Tastendruck
+    mit, damit die erste Silbe nicht fehlt. Außerhalb einer Aufnahme wird nur diese Viertelsekunde im
+    Arbeitsspeicher gehalten und laufend überschrieben.
+    """
+    PREROLL = 0.25
+
     def __init__(self):
         self.device_name = None
         self.level = 0.0
+        self.warm = False
         self._frames = []
+        self._pre = []
+        self._recording = False
         self._stream = None
         self._rate = RATE
 
+    def set_warm(self, on: bool, device_name=None):
+        """Dauerbetrieb ein- oder ausschalten (auch nach einem Gerätewechsel aufrufen)."""
+        changed = device_name != self.device_name
+        self.device_name = device_name
+        self.warm = bool(on)
+        if self._recording:
+            return
+        if (not self.warm or changed) and self._stream is not None:
+            self._close()
+        if self.warm and self._stream is None:
+            try:
+                self._open_any()
+            except Exception:
+                log.exception("Mikrofon lässt sich nicht dauerhaft öffnen")
+
     def start(self):
-        self.stop()
-        self._frames = []
+        if self._stream is None or not self.warm:
+            self._close()
+            self._pre = []
+            self._open_any()
         self.level = 0.0
+        self._frames = list(self._pre)          # die Viertelsekunde vor dem Tastendruck
+        self._recording = True
+
+    def _open_any(self):
         dev = _device_index(self.device_name)
         try:
             self._open(dev, RATE)
@@ -76,12 +109,7 @@ class Recorder:
                                       device=dev, blocksize=0, callback=self._callback)
         self._stream.start()
 
-    def _callback(self, indata, frames, t, status):
-        mono = indata[:, 0].copy()
-        self._frames.append(mono)
-        self.level = float(np.sqrt(np.mean(mono * mono))) if len(mono) else 0.0
-
-    def stop(self) -> np.ndarray:
+    def _close(self):
         s, self._stream = self._stream, None
         if s is not None:
             try:
@@ -89,6 +117,21 @@ class Recorder:
                 s.close()
             except Exception:
                 log.exception("Audiostream ließ sich nicht sauber schließen")
+
+    def _callback(self, indata, frames, t, status):
+        mono = indata[:, 0].copy()
+        if self._recording:
+            self._frames.append(mono)
+            self.level = float(np.sqrt(np.mean(mono * mono))) if len(mono) else 0.0
+        else:
+            self._pre.append(mono)
+            while len(self._pre) > 1 and sum(len(b) for b in self._pre[1:]) >= self.PREROLL * self._rate:
+                self._pre.pop(0)
+
+    def stop(self) -> np.ndarray:
+        self._recording = False
+        if not self.warm:
+            self._close()
         self.level = 0.0
         if not self._frames:
             return np.zeros(0, dtype=np.float32)

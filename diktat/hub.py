@@ -1332,6 +1332,9 @@ class SettingsPage(Page):
         self.mic = QtWidgets.QComboBox()
         self.sounds = QtWidgets.QCheckBox("Töne bei Start und Ende der Aufnahme")
         self.clip = QtWidgets.QCheckBox("Zwischenablage nach dem Einfügen wiederherstellen")
+        self.warm = QtWidgets.QCheckBox("Mikrofon offen halten: Diktat startet ohne Verzögerung, die erste Silbe geht nicht verloren")
+        self.warm.setToolTip("Das Mikrofon bleibt geöffnet, solange LocalScribe läuft (Windows zeigt das Mikrofon-Symbol). "
+                             "Außerhalb eines Diktats wird nur die letzte Viertelsekunde im Arbeitsspeicher gehalten.")
         self.auto = QtWidgets.QCheckBox("Mit Windows starten")
         self.history = QtWidgets.QCheckBox("Verlauf führen (auf gemeinsam genutzten Windows-Konten ausschalten)")
         self.days = QtWidgets.QSpinBox(minimum=0, maximum=3650, suffix=" Tage", specialValueText="nie löschen")
@@ -1354,7 +1357,7 @@ class SettingsPage(Page):
                   "nach kurzem Halten; Strg+C, Strg+Klick und andere Kürzel funktionieren weiter wie gewohnt. "
                   "Esc bricht eine laufende Aufnahme ab.", "muted", wrap=True)))
         self.body.addWidget(card(label("Aufnahme", "h2"), form(("Mikrofon", self.mic)),
-                                 self.sounds, self.clip))
+                                 self.sounds, self.clip, self.warm))
         self.body.addWidget(card(label("Verlauf und Start", "h2"),
                                  self.history, form(("Einträge löschen nach", hbox(self.days, None))),
                                  label("Tonaufnahmen werden nie aufbewahrt: Diktate per Taste bleiben im Arbeitsspeicher, "
@@ -1377,6 +1380,7 @@ class SettingsPage(Page):
         self.mic.setCurrentIndex(max(0, self.mic.findData(cfg.get("microphone"))))
         self.sounds.setChecked(bool(cfg.get("sounds")))
         self.clip.setChecked(bool(cfg.get("restore_clipboard", True)))
+        self.warm.setChecked(bool(cfg.get("mic_warm")))
         self.days.setValue(int(cfg.get("history_days") or 0))
         self.history.setChecked(bool(cfg.get("history_enabled", True)))
         self.auto.setChecked(self.ctl.autostart_enabled())
@@ -1401,7 +1405,8 @@ class SettingsPage(Page):
             self.ctl.cfg["model_choice"] = choice
         self.ctl.cfg.update(hotkey_hold=hold, hotkey_lock=lock[0] if lock else "", hotkey_paste_last=paste,
                             microphone=self.mic.currentData(), sounds=self.sounds.isChecked(),
-                            restore_clipboard=self.clip.isChecked(), history_days=self.days.value(),
+                            restore_clipboard=self.clip.isChecked(), mic_warm=self.warm.isChecked(),
+                            history_days=self.days.value(),
                             history_enabled=self.history.isChecked())
         try:
             self.ctl.set_autostart(self.auto.isChecked())
