@@ -1,0 +1,9 @@
+.venv/
+build/
+dist/
+__pycache__/
+*.pyc
+*.spec
+build_icon.ico
+tests/_*
+build.log

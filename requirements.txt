@@ -1,0 +1,7 @@
+onnx-asr[cpu,hub]
+sounddevice
+numpy
+PySide6
+pynput
+keyring
+av
