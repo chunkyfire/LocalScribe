@@ -41,7 +41,7 @@ check("Fachbegriffe werden am Klang erkannt",
 keep = "Pankreatitiden, Prozessus, Processus, Lied, Wahl, Mayer, Fischer, Organomegalie, Kolitis, Colitis."
 check("Beugungsformen, Schreibvarianten und Alltagswörter bleiben", engine.postprocess(keep, cfg) == keep, engine.postprocess(keep, cfg))
 check("Abschaltbar", engine.postprocess("Lipaase", dict(cfg, base_dictionary=False)) == "Lipaase")
-check("Gilt nur für das deutsche Modell", engine.postprocess("Lipaase", dict(cfg, model_choice="multi")) == "Lipaase")
+check("Gilt nicht für das mehrsprachige Modell", engine.postprocess("Lipaase", dict(cfg, model_choice="multi")) == "Lipaase")
 check("Eigenes Wörterbuch hat Vorrang", engine.postprocess("Lipaase", dict(cfg, dictionary={"Lipaase": "Lipase-Wert"})) == "Lipase-Wert")
 print("FEHLER:" if failed else "ALLES OK", failed or "")
 sys.exit(1 if failed else 0)

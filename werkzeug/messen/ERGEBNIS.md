@@ -5,7 +5,7 @@ Lautschlüssel gegen 39 461 Fachbegriffe, ß-Reparatur, ein Laut daneben.
 
 | Test | Wortfehlerrate roh | danach | Fachbegriffe richtig roh | danach | Ersetzungen richtig / falsch |
 |---|---|---|---|---|---|
-| 395 Arztbrief-Sätze (GraSCCo), Windows-Stimme, 44 min | 12,38 % | 10,99 % | 536/653 | 562/653 | 69 / 2 |
+| 395 Arztbrief-Sätze (GraSCCo), Windows-Stimme, 44 min | 12,38 % | 11,14 % | 536/653 | 561/653 | 60 / 2 |
 | 221 echte Aufnahmen (MultiMed deutsch, Testteil), 46 min | 13,06 % | 12,42 % | 306/349 | 311/349 | 40 / 0 |
 | mehrsprachiges Modell, dieselben 395 Sätze | 12,62 % | 12,3 % | 540/653 | 552/653 | – |
 
@@ -16,6 +16,20 @@ roh, 65 von 74 danach.
 
 Ersetzungen in korrekt geschriebenem Text: MultiMed (79.357 Wörter) 4. GraSCCo (30.872 Wörter) 50.
 Die Liste steht unten; es sind fast nur ß-Schreibungen und echte Tippfehler der Vorlage (Tropponin. Paracetmol).
+
+## Echte Diktate (fünf Aufnahmen eines Arztes, 4 Minuten)
+
+Wortfehlerrate nach Angleichen von Schreib- und Sprechform (`eigene.py`):
+
+| Modell | roh | mit Nachbearbeitung |
+|---|---|---|
+| primeline-Parakeet (Standard) | 27,7 % | 23,3 % |
+| NVIDIA Canary 1B v2 int8 | 23,8 % | 20,6 % |
+| Whisper large-v3-turbo German, ONNX q4, über onnx-asr | 20,9 % | 20,1 % |
+| Whisper large-v3-turbo German, extern gemessen | 17,7 % | – |
+
+Die ONNX-q4-Fassung von Whisper ließ im Tumorboard-Diktat sämtliche Dosierungen weg und ist deshalb
+nicht eingebaut. Canary lässt nichts weg. Einige Wörterbucheinträge stammen aus diesen Diktaten.
 
 ## Was die Zahlen nicht zeigen
 

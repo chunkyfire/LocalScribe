@@ -7,6 +7,7 @@ LocalScribe selbst steht unter der GPL-3.0-or-later (siehe `LICENSE`).
 | [primeline/parakeet-primeline](https://huggingface.co/primeline/parakeet-primeline) (primeline; Basis: NVIDIA parakeet-tdt-0.6b-v3) | Spracherkennung | CC-BY-4.0 | nein, wird beim ersten Start geladen |
 | [OpenVoiceOS/primeline-parakeet-onnx](https://huggingface.co/OpenVoiceOS/primeline-parakeet-onnx) | ONNX-Fassung des Modells | CC-BY-4.0 | nein |
 | [istupakov/parakeet-tdt-0.6b-v3-onnx](https://huggingface.co/istupakov/parakeet-tdt-0.6b-v3-onnx) (NVIDIA parakeet-tdt-0.6b-v3) | mehrsprachige Spracherkennung, wahlweise | CC-BY-4.0 | nein, wird bei Auswahl geladen |
+| [istupakov/canary-1b-v2-onnx](https://huggingface.co/istupakov/canary-1b-v2-onnx) (NVIDIA canary-1b-v2) | genaueres deutsches Modell, wahlweise | CC-BY-4.0 | nein, wird bei Auswahl geladen |
 | [Wikidata](https://www.wikidata.org/) | Fachbegriffe im medizinischen Basiswörterbuch | CC0 | ja (`diktat/basiswoerterbuch.json`) |
 | [ICD-10-GM, Alphabetisches Verzeichnis](https://www.bfarm.de/DE/Kodiersysteme/Klassifikationen/ICD/ICD-10-GM/_node.html) (BfArM) | Fachbegriffe im Fachlexikon | Nutzungsbedingungen des BfArM | ja, als Wortliste (`diktat/fachlexikon.json`) |
 | [Silero VAD](https://github.com/snakers4/silero-vad) | erkennt Sprechpausen | MIT | ja (`diktat/silero_vad.onnx`) |

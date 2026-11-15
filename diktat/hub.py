@@ -1185,10 +1185,11 @@ class SettingsPage(Page):
             self.model.addItem(m["label"], key)
         self.body.addWidget(card(
             label("Sprachmodell", "h2"), form(("Modell", self.model)),
-            label("Deutsch erkennt deutsche Diktate am genauesten. Mehrsprachig erkennt die gesprochene Sprache "
-                  "selbst, darunter Englisch, Französisch, Spanisch, Italienisch, Polnisch, Russisch und Ukrainisch. "
-                  "Beim ersten Wechsel werden einmalig 670 MB geladen. Das medizinische Basiswörterbuch gilt nur "
-                  "für das deutsche Modell.", "muted", wrap=True)))
+            label("Deutsch ist das schnellste Modell. Das genauere deutsche Modell macht bei medizinischen Diktaten "
+                  "weniger Fehler, braucht aber etwa doppelt so lange und beim ersten Wechsel einmalig 1 GB. "
+                  "Mehrsprachig erkennt die gesprochene Sprache selbst, darunter Englisch, Französisch und "
+                  "Spanisch (670 MB). Das medizinische Basiswörterbuch gilt für beide deutschen Modelle.",
+                  "muted", wrap=True)))
         self.body.addWidget(card(
             label("Tasten", "h2"),
             form(("Diktieren (halten)", self.hold), ("Freihand (dazu drücken)", self.lock),

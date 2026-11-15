@@ -3,8 +3,8 @@
 Lokales Diktieren per Tastenkürzel für Windows: Taste halten, sprechen, loslassen – der Text
 landet im gerade aktiven Textfeld. Die Spracherkennung läuft vollständig auf dem eigenen Rechner
 (primeline-Parakeet, 600 Mio. Parameter, int8-ONNX, nur CPU, rund 850 MB Arbeitsspeicher).
-Für andere Sprachen lässt sich in den Einstellungen ein mehrsprachiges Modell wählen
-(NVIDIA Parakeet v3, 25 europäische Sprachen, erkennt die Sprache selbst).
+In den Einstellungen stehen zwei weitere Modelle zur Wahl: ein genaueres, langsameres deutsches
+(NVIDIA Canary 1B v2) und ein mehrsprachiges (NVIDIA Parakeet v3, 25 europäische Sprachen).
 
 **Handbuch mit Bildern:** [docs/LocalScribe-Handbuch.pdf](docs/LocalScribe-Handbuch.pdf) – Installieren, Starten, Diktieren und alle Funktionen auf neun Seiten.
 
@@ -25,15 +25,15 @@ Deinstallieren: Ordner löschen, dazu `%LOCALAPPDATA%\LocalScribe` (Einstellunge
 
 | Aktion | Taste |
 |---|---|
-| Diktieren | **Strg** halten, nach dem Ton sprechen, loslassen |
-| Freihand | während des Haltens **Leertaste**, dann loslassen und weiterreden; **Strg** beendet |
+| Diktieren | **Strg + Win** halten, sprechen, loslassen |
+| Freihand | während des Haltens **Leertaste**, dann loslassen und weiterreden; **Strg + Win** beendet |
 | Abbrechen | **Esc** oder eine andere Taste während der Aufnahme |
 | Letzten Text noch einmal einfügen | **Umschalt + F7** |
 | Diktieren mit Prompt | Halte-Taste des Prompts, z. B. **F8** für „Glätten“ |
 
 Gesprochene Befehle: „neue Zeile“, „neuer Absatz“. Alle Tasten lassen sich ändern.
-Strg allein startet erst nach 0,3 Sekunden Halten; Strg+C, Strg+Klick und AltGr lösen nichts aus.
-Wer lieber eine eigene Taste hat, trägt in den Einstellungen zum Beispiel `f7` oder `ctrl+win` ein.
+Wer lieber eine einzelne Taste hat, trägt in den Einstellungen zum Beispiel `f7` ein. Eine einzelne
+Modifikatortaste wie `ctrl` startet erst nach 0,3 Sekunden Halten.
 Läuft die App schon, holt ein zweiter Start nur ihr Fenster nach vorn. Schließen des Fensters
 beendet sie nicht; sie bleibt im Infobereich (Rechtsklick → Beenden).
 
@@ -142,14 +142,26 @@ Abwehspannung). Außerdem wird ss zu ß, wo es die ss-Schreibung nicht gibt (ans
 Gemessen (`werkzeug/messen/`, Ergebnisse in `werkzeug/messen/ERGEBNIS.md`):
 
 - 395 Arztbrief-Sätze aus GraSCCo (öffentlicher deutscher Klinikkorpus), vorgelesen von der
-  Windows-Stimme: Wortfehlerrate 12,4 % roh, 11,0 % mit Nachbearbeitung; Fachbegriffe richtig
-  82 % roh, 86 % danach; 69 richtige Ersetzungen, 2 falsche.
+  Windows-Stimme: Wortfehlerrate 12,4 % roh, 11,1 % mit Nachbearbeitung; Fachbegriffe richtig
+  82 % roh, 86 % danach; 60 richtige Ersetzungen, 2 falsche.
 - 221 echte Aufnahmen aus MultiMed: Wortfehlerrate 13,1 % roh, 12,4 % danach; 40 richtige Ersetzungen,
   keine falsche.
 - 5 928 einzeln vorgelesene Fachbegriffe: richtig geschrieben 45 % roh, 60 % allein über den Klang,
   79 % mit der Liste bekannter Fehlschreibungen (die aus genau diesen Aufnahmen stammt).
 - 110 000 Wörter korrekt geschriebener Text (MultiMed, GraSCCo): Ersetzt wurden fast nur echte
   Tippfehler der Vorlagen.
+
+Fünf echte Diktate eines Arztes (Arztbrief, Tumorboard, OP-Bericht, Übergabe, Fallvignetten; 4 Minuten),
+Wortfehlerrate nach Angleichen von Schreib- und Sprechform:
+
+| Modell | roh | mit Nachbearbeitung |
+|---|---|---|
+| primeline-Parakeet (Standard) | 27,7 % | 23,3 % |
+| NVIDIA Canary 1B v2 („genauer“) | 23,8 % | 20,6 % |
+| Whisper large-v3-turbo German (primeline), zum Vergleich extern gemessen | 17,7 % | – |
+
+Einige Einträge des Wörterbuchs stammen aus genau diesen Diktaten; die Werte mit Nachbearbeitung
+sind deshalb etwas zu günstig.
 
 Die Nachbearbeitung repariert, was knapp daneben liegt. Was das Modell grob verhört
 („Aorten V Etium“), bleibt falsch; dafür bräuchte es Wort-Boosting im Modell oder Nachtraining.

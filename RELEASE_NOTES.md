@@ -1,11 +1,11 @@
-## LocalScribe 0.6.0
+## LocalScribe 0.7.0
 
-- **Fachbegriffe werden am Klang erkannt:** Jedes unbekannte Wort wird gegen ein Fachlexikon mit rund
-  39 000 Begriffen geprüft. „Tachükardie“ wird Tachykardie, „Flegmone“ wird Phlegmone. Bekannte Wörter,
-  Beugungsformen und Schreibvarianten bleiben unberührt.
-- ss wird zu ß, wo es die ss-Schreibung nicht gibt (anschliessend, mässig).
-- Gemessen an 395 vorgelesenen Arztbrief-Sätzen: Wortfehlerrate 12,4 % → 11,1 %, Fachbegriffe richtig
-  82 % → 86 %, 60 richtige und 2 falsche Ersetzungen. Messwerkzeuge unter `werkzeug/messen/`.
+- **Strg + Win ist die Standardtaste.** Strg allein hat bei längerem Halten gestört; wer sie unverändert
+  hatte, wird umgestellt.
+- **Drittes Sprachmodell: „Deutsch, genauer und langsamer“** (NVIDIA Canary 1B v2). An fünf echten ärztlichen
+  Diktaten 20,6 % Wortfehler statt 23,3 % mit dem Standardmodell, bei etwa doppelter Rechenzeit.
+- Einwürfe wie „Hey!“ oder „Hello.“, die das Modell aus einem Atemzug macht, werden verworfen.
+- Wörterbuch um Fehlschreibungen aus echten Diktaten ergänzt.
 
 Installation: ZIP entpacken, `LocalScribe.exe` starten. Keine Adminrechte nötig. Die Datei ist nicht
 signiert: Meldet Windows „Der Computer wurde geschützt“, auf **Weitere Informationen → Trotzdem ausführen**.

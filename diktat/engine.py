@@ -276,6 +276,16 @@ class Transcriber:
         self.cfg = cfg
         self.model = None
         self.loaded = None       # Schlüssel des geladenen Modells aus config.MODELS
+        self.kw = {}             # Zusatzangaben für das Modell (Sprache)
+
+    def recognize(self, chunk: np.ndarray) -> str:
+        """Ein Stück erkennen. Kurze englische Einwürfe verwirft die deutsche Erkennung: Aus einem
+        Atemzug oder Räuspern vor dem ersten Wort macht das Modell gelegentlich „Hey!“ oder „Hello.“"""
+        text = (self.model.recognize(chunk, sample_rate=RATE, **self.kw) or "").strip()
+        if (self.loaded in config.GERMAN and len(chunk) < 2.5 * RATE
+                and text.strip(" .!?,").lower() in PHANTOMS):
+            return ""
+        return text
 
     def load(self, notify=None):
         import onnx_asr
@@ -305,8 +315,9 @@ class Transcriber:
             if notify:
                 notify("Sprachmodell wird einmalig heruntergeladen (650 MB) …")
             path = snapshot_download(repo, revision=rev, allow_patterns=files)
-        model = onnx_asr.load_model("nemo-conformer-tdt", path, **kw)
-        model.recognize(np.zeros(RATE, dtype=np.float32), sample_rate=RATE)  # aufwärmen
+        model = onnx_asr.load_model(config.MODELS[choice].get("type", "nemo-conformer-tdt"), path, **kw)
+        self.kw = {"language": config.MODELS[choice]["language"]} if config.MODELS[choice].get("language") else {}
+        model.recognize(np.zeros(RATE, dtype=np.float32), sample_rate=RATE, **self.kw)  # aufwärmen
         fach.near()                      # Fachlexikon jetzt laden, nicht erst beim ersten Diktat
         self.model = model
         self.loaded = choice
@@ -331,7 +342,7 @@ class Transcriber:
             stats["chunks"] += 1
             if not still and len(chunk) >= 0.2 * RATE:
                 try:
-                    text = (self.model.recognize(chunk, sample_rate=RATE) or "").strip()
+                    text = self.recognize(chunk)
                 except Exception:
                     log.exception("Stück bei %.0f s nicht erkannt", done)
                     stats["failed"] += 1
@@ -347,9 +358,9 @@ class Transcriber:
         for chunk in split_long(audio):
             if len(chunk) < 0.1 * RATE:
                 continue
-            text = self.model.recognize(chunk, sample_rate=RATE)
-            if text and text.strip():
-                parts.append(text.strip())
+            text = self.recognize(chunk)
+            if text:
+                parts.append(text)
         return " ".join(parts)
 
 
@@ -357,6 +368,7 @@ def _phrase(key: str) -> str:
     return r"(?<!\w)" + r"\s+".join(re.escape(w) for w in key.split()) + r"(?!\w)"
 
 
+PHANTOMS = {"hey", "hello", "hi", "thank you", "thanks", "bye", "okay", "oh", "yeah", "you", "so"}
 BASE_FILE = Path(__file__).with_name("basiswoerterbuch.json")
 _WORD = re.compile(r"[A-Za-zÄÖÜäöüß]+")
 _base = None
@@ -396,6 +408,8 @@ def apply_base(text: str) -> str:
                 end, i = words[i + 1].end(), i + 1
         right = right or base.get(m.group().lower())
         if right:
+            if right[0].islower() and m.group()[0].isupper():
+                right = right[0].upper() + right[1:]       # Satzanfang bleibt groß
             out.append(text[pos:m.start()] + right)
             pos = end
         i += 1
@@ -408,7 +422,7 @@ def postprocess(text: str, cfg: dict) -> str:
         return ""
     for wrong, right in (cfg.get("dictionary") or {}).items():
         text = re.sub(_phrase(wrong), lambda m, r=right: r, text, flags=re.IGNORECASE)
-    if cfg.get("base_dictionary", True) and cfg.get("model_choice", "de") == "de":
+    if cfg.get("base_dictionary", True) and cfg.get("model_choice", "de") in config.GERMAN:
         # erst die bekannten Fehlschreibungen, dann alles, was wie ein Fachbegriff klingt
         text = fach.correct(apply_base(text))
     for key, snippet in (cfg.get("snippets") or {}).items():

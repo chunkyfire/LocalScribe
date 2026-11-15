@@ -1,3 +1,84 @@
-{"Deziliter": ["dziliter", "dezilieter"], "Lipase": ["lipaase", "lipaze"], "Furosemid": ["forosemit", "furosemit"],
- "Metformin": ["medvormin", "metvormin"], "Prednisolon": ["pretnisolon"], "Kreatinin": ["kreatinien", "creatinin"],
- "Apixaban": ["apikzaban", "apiksaban"], "Keppra": ["kepra"], "Milligramm": ["miligramm"], "Mikrogramm": ["microgramm"]}
+{
+ "Deziliter": [
+  "dziliter",
+  "dezilieter"
+ ],
+ "Lipase": [
+  "lipaase",
+  "lipaze"
+ ],
+ "Furosemid": [
+  "forosemit",
+  "furosemit"
+ ],
+ "Metformin": [
+  "medvormin",
+  "metvormin"
+ ],
+ "Prednisolon": [
+  "pretnisolon"
+ ],
+ "Kreatinin": [
+  "kreatinien",
+  "creatinin"
+ ],
+ "Apixaban": [
+  "apikzaban",
+  "apiksaban"
+ ],
+ "Keppra": [
+  "kepra"
+ ],
+ "Milligramm": [
+  "miligramm"
+ ],
+ "Mikrogramm": [
+  "microgramm"
+ ],
+ "Belastungsdyspnoe": [
+  "belastungsdyspnü",
+  "belastungsdyspne",
+  "belastungsdespneu"
+ ],
+ "Vincristin": [
+  "winkristin",
+  "venkristin"
+ ],
+ "Rituximab": [
+  "retoximat"
+ ],
+ "Pembrolizumab": [
+  "pempolizumab"
+ ],
+ "Metoprololsuccinat": [
+  "methoprololsoxinat"
+ ],
+ "Synkope": [
+  "synchrope"
+ ],
+ "interkondylären": [
+  "interkondulären"
+ ],
+ "arthroskopische": [
+  "artroskopische"
+ ],
+ "pectoris": [
+  "pekturis",
+  "pekturist"
+ ],
+ "Tumorboard": [
+  "tumorbord"
+ ],
+ "Cyclophosphamid": [
+  "zyklophosphramid"
+ ],
+ "exazerbierte": [
+  "exzerbierte",
+  "exerzervierte",
+  "exerzerbierte"
+ ],
+ "auskultatorisch": [
+  "ausskultatorisch",
+  "ausgultatorisch"
+ ]
+}

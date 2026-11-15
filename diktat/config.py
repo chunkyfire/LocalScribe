@@ -19,17 +19,21 @@ LOG = DIR / "diktat.log"
 DB = DIR / "verlauf.sqlite"
 ICON = DIR / "diktat.ico"
 
+GERMAN = ("de", "genau")      # Modelle, bei denen die deutsche Nachbearbeitung gilt
+
 # Sprachmodelle zur Auswahl. Die Fassung ist festgeschrieben: Es wird nie stillschweigend eine andere geladen.
 MODELS = {
     "de": {"label": "Deutsch (primeline-Parakeet)",
            "repo": "OpenVoiceOS/primeline-parakeet-onnx", "revision": "411093fba73540a11c451841a8e7922c13b0fb00"},
+    "genau": {"label": "Deutsch, genauer und langsamer (NVIDIA Canary 1B v2)", "type": "nemo-canary-1b-v2", "language": "de",
+              "repo": "istupakov/canary-1b-v2-onnx", "revision": "5ebc1520cef7b6b318b3526ad17adbfe00bc1bfc"},
     "multi": {"label": "Mehrsprachig: 25 europäische Sprachen (NVIDIA Parakeet v3)",
               "repo": "istupakov/parakeet-tdt-0.6b-v3-onnx", "revision": "8f23f0c03c8761650bdb5b40aaf3e40d2c15f1ce"},
 }
 
 DEFAULTS = {
     # Tasten gedrückt halten = aufnehmen, loslassen = einfügen
-    "hotkey_hold": ["ctrl"],
+    "hotkey_hold": ["ctrl", "win"],
     # während des Haltens zusätzlich drücken = Freihand (weiterreden ohne Halten);
     # beenden mit erneutem Druck der Halte-Tasten, abbrechen mit Esc
     "hotkey_lock": "space",
@@ -39,7 +43,7 @@ DEFAULTS = {
     "model_choice": "de",
     # mitgeliefertes medizinisches Wörterbuch anwenden (nur mit dem deutschen Modell)
     "base_dictionary": True,
-    "config_version": 2,
+    "config_version": 3,
     "quantization": "int8",
     "provider": "CPUExecutionProvider",
     "threads": 0,
@@ -131,11 +135,11 @@ def load() -> dict:
             llm = {**cfg["llm"], **(stored.get("llm") or {})}
             cfg.update(stored)
             cfg["llm"] = llm
-            if int(stored.get("config_version") or 1) < 2:
-                # Wer die alte Standardtaste F7 nie geändert hat, bekommt die neue Standardtaste Strg.
-                if stored.get("hotkey_hold") == ["f7"]:
-                    cfg["hotkey_hold"] = ["ctrl"]
-                cfg["config_version"] = 2
+            if int(stored.get("config_version") or 1) < 3:
+                # Wer eine frühere Standardtaste (F7, dann Strg allein) nie geändert hat, bekommt Strg + Win.
+                if stored.get("hotkey_hold") in (["f7"], ["ctrl"]):
+                    cfg["hotkey_hold"] = ["ctrl", "win"]
+                cfg["config_version"] = 3
             cfg.pop("model", None)
             cfg.pop("model_revision", None)
         except Exception:
