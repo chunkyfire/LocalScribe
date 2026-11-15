@@ -101,3 +101,60 @@ def _pairs(exp, got):
             out.append(pair)
         i, j = pi, pj
     return out[::-1]
+
+
+# ---- Aufnahmen aufheben (freiwillig): Ton und Satz als Material für ein späteres Nachtraining ----
+def store() -> Path:
+    from . import config
+    return config.DIR / "training"
+
+
+def keep(audio, text: str, rate: int = 16000) -> Path:
+    """Eine vorgelesene Aufnahme mit ihrem Satz ablegen (WAV, 16 kHz) und im Verzeichnis index.jsonl vermerken."""
+    import time
+    import wave
+
+    import numpy as np
+    folder = store()
+    folder.mkdir(parents=True, exist_ok=True)
+    stem, n = time.strftime("%Y%m%d-%H%M%S"), 1
+    path = folder / f"{stem}.wav"
+    while path.exists():
+        n += 1
+        path = folder / f"{stem}-{n}.wav"
+    data = (np.clip(np.asarray(audio, dtype=np.float32), -1, 1) * 32767).astype("<i2")
+    with wave.open(str(path), "wb") as w:
+        w.setnchannels(1)
+        w.setsampwidth(2)
+        w.setframerate(rate)
+        w.writeframes(data.tobytes())
+    with open(folder / "index.jsonl", "a", encoding="utf-8") as f:
+        f.write(json.dumps({"audio": path.name, "text": text, "sec": round(len(data) / rate, 2)}, ensure_ascii=False) + "\n")
+    return path
+
+
+def kept():
+    """(Anzahl, Sekunden) der aufgehobenen Aufnahmen."""
+    n, sec = 0, 0.0
+    try:
+        for line in open(store() / "index.jsonl", encoding="utf-8"):
+            r = json.loads(line)
+            if (store() / r["audio"]).exists():
+                n, sec = n + 1, sec + r.get("sec", 0.0)
+    except (OSError, ValueError):
+        pass
+    return n, sec
+
+
+def clear() -> int:
+    """Alle aufgehobenen Aufnahmen löschen. Gibt die Zahl der gelöschten Dateien zurück."""
+    n = 0
+    folder = store()
+    if folder.is_dir():
+        for path in list(folder.glob("*.wav")) + [folder / "index.jsonl"]:
+            try:
+                path.unlink()
+                n += path.suffix == ".wav"
+            except OSError:
+                pass
+    return n

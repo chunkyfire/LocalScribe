@@ -45,6 +45,7 @@ class Diktat(QtCore.QObject):
         self.overlay = Overlay(self.recorder)
         self.ready = self.recording = False
         self.listener = None              # Seite, die gerade ein eingesprochenes Wort erwartet
+        self.heard_audio = None
         self.download = None              # Anteil des Modell-Downloads, solange er läuft
         self.pending = 0
         self.prompt = ""  # Prompt der laufenden Aufnahme
@@ -135,6 +136,7 @@ class Diktat(QtCore.QObject):
             return
         audio = self.recorder.stop()
         self.recording = False
+        self.heard_audio = audio          # für das Stimmtraining, falls Aufnahmen aufgehoben werden sollen
 
         def work():
             try:

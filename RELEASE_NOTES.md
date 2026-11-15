@@ -1,3 +1,15 @@
+## LocalScribe 0.9.5
+
+- **Stimmtraining kann Aufnahmen aufheben** (Seite Stimmtraining, ab Werk aus): Ton und vorgelesener Satz bleiben als
+  WAV mit Verzeichnis auf diesem Rechner (`%LOCALAPPDATA%\LocalScribe\training`). Das ist das Material, aus dem
+  ein Nachtraining des Sprachmodells auf die eigene Stimme werden kann; die Seite zeigt die gesammelten Minuten,
+  öffnet den Ordner und löscht auf Wunsch alles. Ohne Häkchen wird wie bisher nichts gespeichert.
+- Wirkstoffnamen werden auch mit falschem Anlaut erkannt („Chiprofloxacin“).
+- Sprechertrennung an einem deutschen Arzt-Patienten-Gespräch geprüft (zwei Stimmen, 64 Sekunden): alles richtig zugeordnet.
+
+Installation: ZIP entpacken, `LocalScribe.exe` starten. Keine Adminrechte nötig. Die Datei ist nicht
+signiert: Meldet Windows „Der Computer wurde geschützt“, auf **Weitere Informationen → Trotzdem ausführen**.
+
 ## LocalScribe 0.9.4
 
 - **Vergleich mit Tandem und Heidi gemessen**: dieselben fünf Diktate, digital eingespielt. Wortfehler: Tandem 8,3 %,

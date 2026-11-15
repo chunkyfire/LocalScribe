@@ -224,6 +224,11 @@ Notaufnahme, Chirurgie und Orthopädie, Onkologie und Hämatologie, Medikation, 
 (`diktat/lesetexte.json`, erweiterbar). Der Ton bleibt im Arbeitsspeicher. Alles Gelernte steht auf der Seite
 Wörterbuch und lässt sich dort ändern oder löschen.
 
+Mit dem Häkchen **Aufnahmen aufheben** (ab Werk aus) bleiben Ton und Satz jeder gelesenen Aufnahme auf dem Rechner
+(`%LOCALAPPDATA%\LocalScribe\training`, WAV und `index.jsonl`). Das ist Material für ein späteres Nachtraining des
+Sprachmodells auf die eigene Stimme; dafür braucht es etwa eine Stunde. Die Seite zeigt die gesammelten Minuten,
+öffnet den Ordner und löscht auf Wunsch alles. Das Nachtraining selbst ist noch nicht eingebaut.
+
 ## Sprecher trennen
 
 Für Gespräche (Anamnese, Besprechung, Interview). Die Pausenerkennung zerlegt den Ton ohnehin in Äußerungen;

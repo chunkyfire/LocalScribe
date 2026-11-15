@@ -182,5 +182,23 @@ for word in ["Hautturgor", "Mundspatel", "Wiedervorstellung", "Stauungsbedingt",
              "Processus", "Carcinom", "Frakturspalt", "Beatmungsschwierigkeiten"]:
     got = fach.correct("Befund: " + word + " heute.")
     check(f"{word} bleibt", word in got, got)
+
+# ---- 0.9.5: Aufnahmen aus dem Stimmtraining aufheben ----
+with tempfile.TemporaryDirectory() as tmp:
+    old = config.DIR
+    config.DIR = pathlib.Path(tmp)
+    check("Ohne Aufnahmen ist der Zähler null", training.kept() == (0, 0.0))
+    path = training.keep(np.sin(np.arange(32000) / 9).astype(np.float32) * 0.4, "Der Patient ist kardiopulmonal stabil.")
+    training.keep(np.zeros(16000, dtype=np.float32), "Zweiter Satz.")
+    import wave as _wave
+    w = _wave.open(str(path))
+    check("Aufnahme liegt als WAV mit 16 kHz vor", w.getframerate() == 16000 and w.getnframes() == 32000 and w.getnchannels() == 1)
+    w.close()
+    rows = [json.loads(l) for l in open(training.store() / "index.jsonl", encoding="utf-8")]
+    check("Verzeichnis nennt Datei, Satz und Dauer", rows[0]["text"] == "Der Patient ist kardiopulmonal stabil." and rows[0]["sec"] == 2.0
+          and rows[0]["audio"] == path.name, str(rows[0]))
+    check("Zähler stimmt", training.kept() == (2, 3.0), str(training.kept()))
+    check("Löschen entfernt alles", training.clear() == 2 and training.kept() == (0, 0.0) and not list(training.store().glob("*")))
+    config.DIR = old
 print("FEHLER:" if failed else "ALLES OK", failed or "")
 sys.exit(1 if failed else 0)

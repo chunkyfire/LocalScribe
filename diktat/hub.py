@@ -1,18 +1,21 @@
 """Das App-Fenster: Verlauf, Wörterbuch, Textbausteine, KI-Nachbearbeitung, Einstellungen."""
 import copy
 import difflib
+import logging
 import os
 import re
 import threading
 import time
 
-from PySide6 import QtGui, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 from PySide6.QtCore import Qt, QTimer, Signal
 
 from . import config, engine, fach, llm, training
 from . import sprecher
 from .longform import LongJob
 from .ui import make_icon, make_pixmap, private_mime
+
+log = logging.getLogger("diktat")
 
 STYLE = """
 QWidget { background: #0B0B0B; color: #EDEDED; font-family: "Segoe UI"; font-size: 10pt; }
@@ -944,7 +947,7 @@ class TrainPage(Page):
                          "Lies medizinische Sätze vor. LocalScribe vergleicht, was es verstanden hat, mit dem, was "
                          "dasteht, und merkt sich deine Aussprache der Fachbegriffe im Wörterbuch. Freiwillig, "
                          "jederzeit unterbrechbar – je mehr Sätze, desto besser passt die Erkennung zu deiner Stimme. "
-                         "Der Ton bleibt im Arbeitsspeicher und wird nicht gespeichert.")
+                         "Der Ton bleibt im Arbeitsspeicher und wird nur gespeichert, wenn du es unten einschaltest.")
         self.ctl = ctl
         self.topic = QtWidgets.QComboBox()
         self.topic.addItem("Alle Themen", "")
@@ -966,12 +969,19 @@ class TrainPage(Page):
                                  self.result))
         self.learned = label("", "muted", wrap=True)
         self.body.addWidget(card(label("Gelernt", "h2"), self.learned))
+        self.keep = QtWidgets.QCheckBox("Aufnahmen aufheben: Ton und Satz bleiben auf diesem Rechner, als Material für ein Nachtraining auf deine Stimme")
+        self.keep.setChecked(bool(self.ctl.cfg.get("training_keep")))
+        self.keep.toggled.connect(self._keep)
+        self.kept = label("", "muted", wrap=True)
+        self.body.addWidget(card(label("Aufnahmen", "h2"), self.keep, self.kept,
+                                 hbox(button("Ordner öffnen", self._open), button("Alle löschen", self._clear), None)))
         self.body.addStretch(1)
         self.items, self.pos, self.session = [], 0, []
         self.ctl.sig_heard.connect(self._heard)
 
     def refresh(self):
         self.next(0)
+        self._kept()
 
     def _items(self):
         topic = self.topic.currentData()
@@ -993,6 +1003,35 @@ class TrainPage(Page):
             n = len(self.ctl.cfg.get("dictionary") or {})
             self.learned.setText(f"Im Wörterbuch stehen {n} Einträge. Neue erscheinen hier und auf der Seite Wörterbuch; "
                                  "dort lassen sie sich ändern oder löschen.")
+
+    def _keep(self, on):
+        self.ctl.cfg["training_keep"] = bool(on)
+        self.ctl.apply_cfg()
+
+    def _kept(self):
+        n, sec = training.kept()
+        self.kept.setText(f"{n} Aufnahme{'n' if n != 1 else ''}, {sec / 60:.1f} Minuten. Sie verlassen diesen Rechner nicht. Für ein Nachtraining "
+                          "des Sprachmodells braucht es etwa eine Stunde." if n else
+                          "Noch keine Aufnahmen. Aus, solange das Häkchen nicht gesetzt ist.")
+
+    def _open(self):
+        folder = training.store()
+        folder.mkdir(parents=True, exist_ok=True)
+        QtGui.QDesktopServices.openUrl(QtCore.QUrl.fromLocalFile(str(folder)))
+
+    def _clear(self):
+        n, _ = training.kept()
+        if not n:
+            return
+        box = QtWidgets.QMessageBox(self)
+        box.setWindowTitle("Aufnahmen löschen")
+        box.setText(f"{n} Aufnahmen aus dem Stimmtraining endgültig löschen?")
+        yes = box.addButton("Löschen", QtWidgets.QMessageBox.DestructiveRole)
+        box.addButton("Abbrechen", QtWidgets.QMessageBox.RejectRole)
+        box.exec()
+        if box.clickedButton() is yes:
+            training.clear()
+            self._kept()
 
     def _listen(self):
         error = self.ctl.listen_start(self)
@@ -1023,6 +1062,13 @@ class TrainPage(Page):
         cfg["dictionary"] = data
         cfg["training_done"] = sorted(set(cfg.get("training_done") or []) | {expected})
         self.ctl.apply_cfg()
+        audio = getattr(self.ctl, "heard_audio", None)
+        if cfg.get("training_keep") and audio is not None and len(audio):
+            try:
+                training.keep(audio, expected)
+            except OSError:
+                log.exception("Aufnahme ließ sich nicht aufheben")
+            self._kept()
         self.session += new
         parts = []
         if new:
