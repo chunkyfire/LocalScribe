@@ -969,7 +969,7 @@ class TrainPage(Page):
                                  self.result))
         self.learned = label("", "muted", wrap=True)
         self.body.addWidget(card(label("Gelernt", "h2"), self.learned))
-        self.keep = QtWidgets.QCheckBox("Aufnahmen aufheben: Ton und Satz bleiben auf diesem Rechner, als Material für ein Nachtraining auf deine Stimme")
+        self.keep = QtWidgets.QCheckBox("Aufnahmen aufheben: Ton und Satz bleiben auf diesem Rechner")
         self.keep.setChecked(bool(self.ctl.cfg.get("training_keep")))
         self.keep.toggled.connect(self._keep)
         self.kept = label("", "muted", wrap=True)
@@ -1011,8 +1011,8 @@ class TrainPage(Page):
     def _kept(self):
         n, sec = training.kept()
         self.kept.setText(f"{n} Aufnahme{'n' if n != 1 else ''}, {sec / 60:.1f} Minuten. Sie verlassen diesen Rechner nicht. Für ein Nachtraining "
-                          "des Sprachmodells braucht es etwa eine Stunde." if n else
-                          "Noch keine Aufnahmen. Aus, solange das Häkchen nicht gesetzt ist.")
+                          "des Sprachmodells auf deine Stimme braucht es etwa eine Stunde." if n else
+                          "Noch keine Aufnahmen. Sie wären das Material für ein Nachtraining des Sprachmodells auf deine Stimme.")
 
     def _open(self):
         folder = training.store()

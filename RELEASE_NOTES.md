@@ -1,3 +1,12 @@
+## LocalScribe 0.9.6
+
+- **Handbuch auf dem Stand der App**: Meine Begriffe, Wirkstoffnamen, Fachkorrektur, Mikrofon offen halten, Hinweis zur
+  Tonqualität, Aufnahmen im Stimmtraining und die gemessene Genauigkeit im Vergleich zu Tandem und Heidi.
+- Seite Stimmtraining: Der Text am neuen Häkchen war zu lang und hat die Seite bei schmalem Fenster rechts abgeschnitten.
+
+Installation: ZIP entpacken, `LocalScribe.exe` starten. Keine Adminrechte nötig. Die Datei ist nicht
+signiert: Meldet Windows „Der Computer wurde geschützt“, auf **Weitere Informationen → Trotzdem ausführen**.
+
 ## LocalScribe 0.9.5
 
 - **Stimmtraining kann Aufnahmen aufheben** (Seite Stimmtraining, ab Werk aus): Ton und vorgelesener Satz bleiben als
