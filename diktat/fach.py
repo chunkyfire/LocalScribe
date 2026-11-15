@@ -171,9 +171,11 @@ def wide(low: str):
     # Wirkstoffe: auch mit anderem Anlaut (Chiprofloxacin), dann aber so streng wie sonst
     pool = (c for cs in _wide.values() for c in cs if c.endswith(stem)) if stem else _wide.get(k[0], ())
     for c in pool:
-        if abs(len(c) - len(k)) > 2 or (not stem and c[:2] != k[:2]):
+        if abs(len(c) - len(k)) > 2:
             continue
         floor = need if c[0] == k[0] else RATIO
+        if not stem and c[:2] != k[:2]:
+            floor = 0.92                    # zweiter Laut anders (Settimplantation): nur bei sehr großer Ähnlichkeit
         m = difflib.SequenceMatcher(None, k, c, autojunk=False)
         if m.real_quick_ratio() < floor or m.quick_ratio() < floor:
             continue
@@ -193,6 +195,34 @@ def wide(low: str):
         elif keys[c] != term and r > second:
             second = r
     return term if term and best - second >= 0.05 else None
+
+
+_corekeys = None
+
+
+def _core(low: str):
+    """Kurzes unbekanntes Wort, das fast wie genau ein Begriff der Kernliste klingt (Handelsnamen, Abkürzungen)."""
+    global _corekeys
+    if low in near()[0]:
+        return None
+    if _corekeys is None:
+        load()
+        _corekeys = {key(t.lower()): t for t in _kern}
+    k = key(low)
+    if not 5 <= len(k) < NEAR:
+        return None
+    if k in _corekeys:
+        return _corekeys[k]
+    best, second, term = 0.0, 0.0, None
+    for c, t in _corekeys.items():
+        if c[0] != k[0] or abs(len(c) - len(k)) > 1 or k.startswith(c):
+            continue
+        r = difflib.SequenceMatcher(None, k, c, autojunk=False).ratio()
+        if r > best:
+            best, second, term = r, best, t
+        elif r > second:
+            second = r
+    return term if best >= 0.8 and best - second >= 0.05 else None
 
 
 def _ending(low: str, term: str) -> str:
@@ -275,7 +305,13 @@ def correct(text: str, fuzzy: bool = True, vocabulary=None, far: bool = True, re
                          and difflib.SequenceMatcher(None, k, ok).ratio() >= 0.75}
                 if len(close) == 1:
                     return next(iter(close))
-        if len(low) < MIN or low in terms or low in protected:
+        if low in terms or low in protected:
+            return word
+        if fuzzy and far and len(low) >= 5:
+            term = _core(low)               # kurze Namen aus der Kernliste: Trimbo -> Trimbow, Nabik -> Nabic
+            if term:
+                return term if term.isupper() else cased(word, term)
+        if len(low) < MIN:
             return word
         found = {keys[k] for k in alternates(low) if k in keys}
         if len(found) == 1:
@@ -295,4 +331,48 @@ def correct(text: str, fuzzy: bool = True, vocabulary=None, far: bool = True, re
             if term:
                 return term[0].lower() + term[1:] if word[0].islower() else term
         return word
-    return WORD.sub(fix, text)
+    out = WORD.sub(fix, text)
+    if not (fuzzy and far):
+        return out
+    pos, parts = 0, []
+    while True:
+        m = PAIR.search(out, pos)
+        if not m:
+            break
+        joined = _pair(m, terms, protected)
+        if joined == m.group():
+            parts.append(out[pos:m.start(2)])       # das zweite Wort kann das erste des nächsten Paars sein
+            pos = m.start(2)
+        else:
+            parts.append(out[pos:m.start()] + joined)
+            pos = m.end()
+    return "".join(parts) + out[pos:]
+
+
+PAIR = re.compile(r"(?<![\wÄÖÜäöüß-])([A-ZÄÖÜ][a-zäöüß]{3,})[ -]([A-Za-zÄÖÜäöüß]{3,})(?![\wÄÖÜäöüß-])")
+
+
+def _pair(m, terms, protected):
+    """Ein Fachbegriff, den das Modell in zwei Wörter zerlegt hat: „Dosier Aerosol“, „Sevilla mehr“ (Sevelamer)."""
+    a, b = m.group(1), m.group(2)
+    whole = (a + b).lower()
+    known = near()[0]
+    if whole in terms and a.lower() not in terms and (a.lower() not in known or terms[whole] in _kern):
+        return terms[whole]                 # der erste Teil ist allein kein Wort, oder das Ganze steht in der Kernliste
+    if a.lower() in terms or b.lower() in terms or len(whole) < 8:
+        return m.group()
+    global _corekeys
+    if _corekeys is None:
+        load()
+        _corekeys = {key(t.lower()): t for t in _kern}
+    k = key(whole)
+    best, second, term = 0.0, 0.0, None
+    for c, t in _corekeys.items():
+        if c[0] != k[0] or abs(len(c) - len(k)) > 1:
+            continue
+        r = difflib.SequenceMatcher(None, k, c, autojunk=False).ratio()
+        if r > best:
+            best, second, term = r, best, t
+        elif r > second:
+            second = r
+    return term if best >= 0.88 and best - second >= 0.05 else m.group()

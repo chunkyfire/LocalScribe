@@ -1,3 +1,17 @@
+## LocalScribe 0.9.7
+
+- **Wortfehler an den fünf eigenen Diktaten: 9,0 %** (0.9.6: 11,2 %; Tandem 8,3 %, Heidi 9,7 %). Gleiche
+  Geschwindigkeit, weiter ohne Cloud. Auf den unabhängigen Prüfsätzen 10,15 % statt 10,30 % und 11,98 % statt 12,00 %.
+- **Kurze Handelsnamen und Abkürzungen**: Unbekannte kurze Wörter werden mit der Kernliste verglichen
+  („Trimbo“ wird Trimbow, „Trossiba“ Tresiba, „Nabik“ Nabic, „Sdemi“ STEMI).
+- **Zerlegte Begriffe**: Was die Erkennung in zwei Wörter teilt, wird wieder eines („Dosier Aerosol“,
+  „Sevilla mehr“ wird Sevelamer, „Pleurer Gauss“ wird Pleuraerguss).
+- Schreibweisen: „Dreißiger Regel“ wird 30er-Regel, ein abgebrochenes „Grad Celsi“ wird ergänzt.
+- Ein Teil dieser Regeln ist an den fünf Diktaten entstanden; dort ist der Gewinn deshalb größer als anderswo.
+
+Installation: ZIP entpacken, `LocalScribe.exe` starten. Keine Adminrechte nötig. Die Datei ist nicht
+signiert: Meldet Windows „Der Computer wurde geschützt“, auf **Weitere Informationen → Trotzdem ausführen**.
+
 ## LocalScribe 0.9.6
 
 - **Handbuch auf dem Stand der App**: Meine Begriffe, Wirkstoffnamen, Fachkorrektur, Mikrofon offen halten, Hinweis zur

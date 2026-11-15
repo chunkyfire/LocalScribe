@@ -1,2 +1,2 @@
 """LocalScribe – lokales Diktieren per Tastenkürzel (Parakeet, läuft auf der CPU)."""
-__version__ = "0.9.6"
+__version__ = "0.9.7"

@@ -200,5 +200,18 @@ with tempfile.TemporaryDirectory() as tmp:
     check("Zähler stimmt", training.kept() == (2, 3.0), str(training.kept()))
     check("Löschen entfernt alles", training.clear() == 2 and training.kept() == (0, 0.0) and not list(training.store().glob("*")))
     config.DIR = old
+
+# ---- 0.9.7: kurze Namen aus der Kernliste, zerlegte Begriffe, Schreibweisen ----
+for heard, want in [("Trimbo", "Trimbow"), ("Trossiba", "Tresiba"), ("Nabik", "Nabic"), ("Sdemi", "STEMI"),
+                    ("Metoprololsoxinat", "Metoprololsuccinat"), ("Settimplantation", "Stentimplantation"),
+                    ("Sevilla mehr", "Sevelamer"), ("Dosier Aerosol", "Dosieraerosol"), ("Pleurer Gauss", "Pleuraerguss"),
+                    ("Semitendinosus Szene", "Semitendinosussehne")]:
+    got = fach.correct("Befund: " + heard + " heute.")
+    check(f"{heard} -> {want}", want in got, got)
+for text in ["Der Patient kommt aus Sevilla.", "Herr Meyer und Frau Bergmann.", "Hallo Kowalski, bitte Kalium geben.",
+             "Wir sehen mehr davon.", "Trimbow und Tresiba wie bisher."]:
+    check(f"bleibt: {text}", fach.correct(text) == text, fach.correct(text))
+check("30er-Regel", engine.tidy("Actrapid nach Dreißiger Regel") == "Actrapid nach 30er-Regel")
+check("Grad Celsius ergänzt", engine.tidy("38 Grad Celsi Fieber, 37 Grad Celsius") == "38 Grad Celsius Fieber, 37 Grad Celsius")
 print("FEHLER:" if failed else "ALLES OK", failed or "")
 sys.exit(1 if failed else 0)

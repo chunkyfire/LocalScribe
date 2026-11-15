@@ -457,6 +457,9 @@ class Transcriber:
 LEADING = re.compile(r"^(?:hey|hello|hi|thank you|thanks)[!.]\s+(?=\S)", re.IGNORECASE)
 _UNIT = r"(?:mg|µg|g|ml|IE|I\.E\.|Einheiten|Hub|Hübe)"
 TIDY = [
+    (re.compile(r"\b([Zz]wanziger|[Dd]reißiger|[Vv]ierziger|[Ff]ünfziger)[- ]Regel\b"),
+     lambda m: {"z": "20", "d": "30", "v": "40", "f": "50"}[m.group(1)[0].lower()] + "er-Regel"),   # Insulinschema
+    (re.compile(r"\bGrad Celsi\b(?!us)"), "Grad Celsius"),      # das Modell bricht das Wort gelegentlich ab
     # Einnahmeschema: „40 mg100“ -> „40 mg 1-0-0“ (nur Ziffern 0 bis 2, nur direkt nach Dosis und Einheit)
     (re.compile(r"(\d\s?" + _UNIT + r")\s?([0-2])([0-2])([0-2])([0-2])?(?![\d,.]\d|\d|\s?(?:" + _UNIT + r"|%|l)\b)"),
      lambda m: m.group(1) + " " + "-".join(g for g in m.groups()[1:] if g)),
