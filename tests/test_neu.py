@@ -174,7 +174,8 @@ check("Echtes Standardmikrofon bleibt Standard", _real_device_index(None) is Non
 _sd.query_devices, _sd.default = _keep
 for heard, want in [("Coronare", "Koronare"), ("exacerbierte", "exazerbierte"), ("Hydralacin", "Hydralazin"),
                     ("Lymphardenopathie", "Lymphadenopathie"), ("Lungfunktion", "Lungenfunktion"),
-                    ("inhaltiger", "inhalativer")]:
+                    ("inhaltiger", "inhalativer"), ("Pempolyzomap", "Pembrolizumab"), ("Retroximab", "Rituximab"),
+                    ("Chiprofloxacin", "Ciprofloxacin"), ("Kandesartan", "Candesartan"), ("viseralen", "viszeralen")]:
     got = fach.correct("Befund: " + heard + " heute.")
     check(f"{heard} -> {want}", want in got, got)
 for word in ["Hautturgor", "Mundspatel", "Wiedervorstellung", "Stauungsbedingt", "Pulmonalvenösen", "Organomegalie",

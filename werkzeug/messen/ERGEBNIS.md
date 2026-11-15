@@ -187,6 +187,17 @@ Was man an den Ausgaben sieht:
 
 Orpheus ist noch nicht gemessen.
 
+## Sprechertrennung an einem deutschen Arzt-Patienten-Gespräch (16.11.2026)
+
+Ein Anamnesegespräch aus zehn Redebeiträgen (64 s, Nierenbeckenentzündung), gesprochen von zwei deutschen
+Frauenstimmen von ElevenLabs, also künstlich erzeugt und ohne Durcheinanderreden. Zwei Sprecherinnen erkannt,
+100 % der Sprechzeit richtig zugeordnet, 8,3 s Rechenzeit auf der CPU. Erkennungsfehler: „Ramipil“.
+
+    python werkzeug\messen\dialog.py <Ordner mit 01.mp3 ...> ABABABABAB
+
+Ein echtes Gespräch mit Unterbrechungen, Nebengeräuschen und ähnlichen Stimmen ist schwerer; dazu die Werte
+oben (VoxConverse 88,6 %, CallHome 75,4 %).
+
 ## Was die Zahlen nicht zeigen
 
 - Echte medizinische Diktate. Öffentliche deutsche Aufnahmen mit Transkript gibt es nicht: PoCaP

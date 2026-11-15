@@ -168,14 +168,17 @@ def wide(low: str):
                 _wide.setdefault(c[0], []).append(c)
     need = LOOSE if stem else RATIO
     best, second, term = 0.0, 0.0, None
-    for c in _wide.get(k[0], ()):
-        if abs(len(c) - len(k)) > 2 or (stem and not c.endswith(stem)) or (not stem and c[:2] != k[:2]):
+    # Wirkstoffe: auch mit anderem Anlaut (Chiprofloxacin), dann aber so streng wie sonst
+    pool = (c for cs in _wide.values() for c in cs if c.endswith(stem)) if stem else _wide.get(k[0], ())
+    for c in pool:
+        if abs(len(c) - len(k)) > 2 or (not stem and c[:2] != k[:2]):
             continue
+        floor = need if c[0] == k[0] else RATIO
         m = difflib.SequenceMatcher(None, k, c, autojunk=False)
-        if m.real_quick_ratio() < need or m.quick_ratio() < need:
+        if m.real_quick_ratio() < floor or m.quick_ratio() < floor:
             continue
         r = m.ratio()
-        if r < need:
+        if r < floor:
             continue
         if not stem:
             same = 0
