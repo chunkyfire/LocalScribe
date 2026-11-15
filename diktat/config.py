@@ -1,12 +1,19 @@
-"""Einstellungen: %APPDATA%\\LocalScribe\\config.json (wird beim ersten Start angelegt)."""
+"""Einstellungen und Daten liegen unter %LOCALAPPDATA%\\LocalScribe.
+
+Bewusst nicht unter %APPDATA% (Roaming): Dort würden Verlauf und Aufnahmen in Firmennetzen
+mit dem Benutzerprofil auf einen Server wandern.
+"""
 import copy
 import json
 import logging
 import os
+import shutil
+import time
 from pathlib import Path
 
 APP = "LocalScribe"
-DIR = Path(os.environ.get("APPDATA", str(Path.home()))) / APP
+DIR = Path(os.environ.get("LOCALAPPDATA") or os.environ.get("APPDATA") or str(Path.home())) / APP
+RECORDINGS = "aufnahmen"
 FILE = DIR / "config.json"
 LOG = DIR / "diktat.log"
 DB = DIR / "verlauf.sqlite"
@@ -21,6 +28,8 @@ DEFAULTS = {
     # letzten Text noch einmal einfügen (falls das falsche Fenster aktiv war)
     "hotkey_paste_last": ["shift", "f7"],
     "model": "OpenVoiceOS/primeline-parakeet-onnx",
+    # feste Fassung des Modells: es wird nie stillschweigend eine andere geladen
+    "model_revision": "411093fba73540a11c451841a8e7922c13b0fb00",
     "quantization": "int8",
     "provider": "CPUExecutionProvider",
     "threads": 0,
@@ -29,6 +38,8 @@ DEFAULTS = {
     "restore_clipboard": True,
     "trailing_space": True,
     "min_seconds": 0.3,
+    # Verlauf führen? Auf gemeinsam genutzten Windows-Konten ausschalten.
+    "history_enabled": True,
     # Verlauf nach so vielen Tagen löschen (0 = nie)
     "history_days": 30,
     # gesprochene Befehle -> Text
@@ -64,13 +75,40 @@ DEFAULTS = {
 
 
 def migrate() -> None:
-    """Daten aus der Zeit vor der Umbenennung (Ordner „Diktat“) übernehmen."""
-    old = DIR.with_name("Diktat")
-    if old.is_dir() and not DIR.exists():
+    """Daten früherer Fassungen übernehmen (%APPDATA%\\LocalScribe, davor %APPDATA%\\Diktat)."""
+    if FILE.exists() or not os.environ.get("APPDATA"):
+        return
+    for old in (Path(os.environ["APPDATA"]) / APP, Path(os.environ["APPDATA"]) / "Diktat"):
+        if not old.is_dir() or old == DIR:
+            continue
         try:
-            old.rename(DIR)
+            DIR.mkdir(parents=True, exist_ok=True)
+            for item in old.iterdir():
+                if not (DIR / item.name).exists():
+                    shutil.move(str(item), str(DIR / item.name))
+            shutil.rmtree(old, ignore_errors=True)
+            return
         except OSError:
             logging.exception("Alter Datenordner nicht übernehmbar")
+
+
+def leftover_recordings() -> list:
+    """Sicherungsdateien von Aufnahmen, die nicht zu Ende transkribiert wurden."""
+    folder = DIR / RECORDINGS
+    return sorted(folder.glob("*.wav")) if folder.is_dir() else []
+
+
+def purge_recordings(days) -> int:
+    """Liegengebliebene Tonaufnahmen nach der Aufbewahrungsfrist löschen (ohne Frist: nach 30 Tagen)."""
+    limit, n = time.time() - (days or 30) * 86400, 0
+    for path in leftover_recordings():
+        try:
+            if path.stat().st_mtime < limit:
+                path.unlink()
+                n += 1
+        except OSError:
+            logging.exception("Aufnahme %s nicht löschbar", path)
+    return n
 
 
 def load() -> dict:

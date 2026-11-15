@@ -1,4 +1,5 @@
 """Aufnahme, Spracherkennung und Textnachbearbeitung."""
+import collections
 import logging
 import re
 import time
@@ -6,12 +7,17 @@ import time
 import numpy as np
 import sounddevice as sd
 
-RATE = 16000
-# Das Modell verliert ab etwa 23 s Länge Text (gemessen: 22,7 s vollständig, 24,2 s nur noch die
-# Hälfte, 35 s leer). Deshalb wird alles in Stücke von 10 bis 18 s geschnitten, jeweils an der
-# leisesten Stelle zwischen Sekunde 10 und 18.
-TARGET, SEARCH = 10.0, 8.0
 log = logging.getLogger("diktat")
+RATE = 16000
+# Was die Messungen an diesem Modell ergeben haben (tests/langzeit):
+# 1. Ab etwa 23 s Länge verliert es Text (22,7 s vollständig, 24,2 s nur noch die Hälfte, 35 s leer).
+# 2. Enthält ein Stück eine Sprechpause, lässt es danach oder davor öfter ganze Satzteile weg –
+#    bei 10 bis 18 s langen Stücken fehlten in einer Stunde Diktat rund 8 % der Wörter.
+# Deshalb bekommt das Modell immer nur eine zusammenhängende Äußerung: Geschnitten wird an jeder
+# Sprechpause ab MIN_PAUSE, und kein Stück wird länger als MAX_LEN.
+MIN_PAUSE, MAX_LEN, PAD = 0.3, 12.0, 0.2
+QUIET_TRUST = 0.01   # Grundrauschen darüber (lauter Raum): Stille wird nicht mehr aussortiert
+GAP = "[Stelle nicht erkannt]"
 
 
 def input_devices() -> list[str]:
@@ -89,7 +95,7 @@ class Recorder:
         return audio
 
 
-def quiet_cut(audio: np.ndarray, target=TARGET, search=SEARCH) -> int:
+def quiet_cut(audio: np.ndarray, target, search) -> int:
     """Index der leisesten Stelle zwischen target und target+search Sekunden."""
     lo, hi = int(target * RATE), int((target + search) * RATE)
     win = int(0.05 * RATE)
@@ -101,34 +107,147 @@ def quiet_cut(audio: np.ndarray, target=TARGET, search=SEARCH) -> int:
     return lo + int(np.argmin(rms)) * win + win // 2
 
 
-def split_long(audio: np.ndarray, target=TARGET, search=SEARCH) -> list[np.ndarray]:
-    """Aufnahmen über 18 s an Sprechpausen teilen (siehe TARGET)."""
-    chunks = []
-    while len(audio) > (target + search) * RATE:
-        cut = quiet_cut(audio, target, search)
-        chunks.append(audio[:cut])
-        audio = audio[cut:]
-    chunks.append(audio)
-    return chunks
+class Segmenter:
+    """Zerlegt einen Audiostrom an Sprechpausen in einzelne Äußerungen.
+
+    feed(block) nimmt beliebig große Blöcke (float32, 16 kHz) und gibt fertige Stücke als
+    (audio, still) zurück, flush() den Rest. Alle Stücke zusammen ergeben wieder exakt den
+    Eingang. „still“ heißt: In dem Stück lag kein einziger Rahmen über dem Grundrauschen.
+    Solche Stücke werden nicht erkannt, weil das Modell aus reiner Stille gelegentlich Wörter
+    erfindet (gemessen: „Thank you.“ bei stummgeschaltetem Mikrofon). Ist das Grundrauschen
+    ungewöhnlich hoch (über QUIET_TRUST), gilt nichts als still: Dann wird lieber alles erkannt.
+
+    Sprache wird am Pegel relativ zum Grundrauschen erkannt; das Grundrauschen wird laufend aus
+    den letzten 30 s geschätzt, eine feste Lautstärke-Schwelle gibt es nicht.
+    """
+    FRAME = 320  # 20 ms
+
+    def __init__(self, min_pause=MIN_PAUSE, max_len=MAX_LEN, pad=PAD, floor=None):
+        self.min_pause = int(round(min_pause * RATE / self.FRAME))
+        self.max_frames = int(round(max_len * RATE / self.FRAME))
+        self.pad = int(round(pad * RATE / self.FRAME))
+        self.max_len = max_len
+        self.fixed_floor = floor
+        self.floor = floor
+        self.history = collections.deque(maxlen=1500)   # 30 s Pegelwerte
+        self.rest = np.zeros(0, np.float32)
+        self.cur = []            # Rahmen des laufenden Stücks
+        self.speech = True       # Anfang zählt als Sprache, bis das Grundrauschen bekannt ist
+        self.quiet = 0           # leise Rahmen in Folge (im Sprach-Stück)
+        self.onset = 0           # laute Rahmen in Folge (im Stille-Stück)
+        self.loud = 0            # laute Rahmen im laufenden Stück
+        self.count = 0
+        self.noisy = False       # Grundrauschen über QUIET_TRUST
+        self.noisy_frames = int(round(min(max_len, 8.0) * RATE / self.FRAME))
+
+    def _loud(self, rms, inside):
+        if rms < 1e-7:
+            return False       # digitale Stille (stummes Mikrofon) ist nie Sprache
+        if self.floor is None:
+            return True
+        return rms > max(self.floor * (3.0 if inside else 4.0), 1e-6)
+
+    def _emit(self, out, frames_or_audio, loud):
+        audio = frames_or_audio if isinstance(frames_or_audio, np.ndarray) else np.concatenate(frames_or_audio)
+        trusted = self.floor is not None and self.floor <= QUIET_TRUST
+        still = loud == 0 and (trusted or not audio.any())
+        out.append((audio, still))
+
+    def feed(self, block):
+        out = []
+        data = np.concatenate([self.rest, block]) if len(self.rest) else block
+        n = len(data) // self.FRAME
+        self.rest = data[n * self.FRAME:]
+        for k in range(n):
+            frame = data[k * self.FRAME:(k + 1) * self.FRAME]
+            rms = float(np.sqrt(np.mean(frame * frame)))
+            if self.fixed_floor is None:
+                self.history.append(rms)
+                self.count += 1
+                if self.count >= 50 and self.count % 25 == 0:
+                    self.floor = float(np.percentile(self.history, 10))
+            self.cur.append(frame)
+            self.noisy = self.floor is not None and self.floor > QUIET_TRUST
+            if self.noisy:
+                # Lauter Raum: Pausen sind am Pegel nicht mehr zu erkennen. Dann nichts aussortieren
+                # und in kürzeren Abständen an der jeweils leisesten Stelle teilen.
+                self.speech, self.quiet, self.loud = True, 0, self.loud + 1
+                limit = self.noisy_frames
+            else:
+                limit = self.max_frames
+            if self.noisy:
+                pass
+            elif self.speech:
+                if self._loud(rms, True):
+                    self.quiet = 0
+                    self.loud += 1
+                else:
+                    self.quiet += 1
+                if self.quiet >= self.min_pause:
+                    # Pause erkannt: Äußerung samt kurzem Nachlauf abschließen
+                    keep = len(self.cur) - self.quiet + self.pad
+                    self._emit(out, self.cur[:keep], self.loud)
+                    self.cur, self.speech, self.onset, self.loud = self.cur[keep:], False, 0, 0
+                    continue
+            else:
+                self.onset = self.onset + 1 if self._loud(rms, False) else 0
+                if self.onset >= 2:
+                    # Sprache setzt ein: Stille abschließen, kurzer Vorlauf gehört zur Äußerung
+                    keep = max(0, len(self.cur) - self.onset - self.pad)
+                    if keep:
+                        self._emit(out, self.cur[:keep], 0)
+                    self.cur, self.speech, self.quiet, self.loud = self.cur[keep:], True, 0, self.onset
+                    continue
+            if len(self.cur) >= limit:
+                # keine Pause gefunden: an der leisesten Stelle der zweiten Hälfte teilen
+                audio = np.concatenate(self.cur)
+                half = len(self.cur) * self.FRAME / RATE / 2
+                cut = quiet_cut(audio, half, half)
+                cut = max(self.FRAME, cut - cut % self.FRAME)
+                self._emit(out, audio[:cut], self.loud)
+                tail = audio[cut:]
+                self.cur = [tail[i:i + self.FRAME] for i in range(0, len(tail), self.FRAME)]
+                self.quiet = min(self.quiet, len(self.cur))
+                # im Sprach-Stück vorsichtshalber weiter als Sprache werten
+                self.loud = len(self.cur) if self.speech and self.loud else 0
+        return out
+
+    def flush(self):
+        out = []
+        parts = self.cur + ([self.rest] if len(self.rest) else [])
+        if parts:
+            self._emit(out, np.concatenate(parts), self.loud if self.speech else self.onset)
+        self.cur, self.rest, self.quiet, self.onset, self.loud = [], np.zeros(0, np.float32), 0, 0, 0
+        return out
 
 
-def stream_chunks(blocks, target=TARGET, search=SEARCH):
-    """Aus einem Strom von Audioblöcken (float32, 16 kHz) Stücke von 10 bis 18 s schneiden,
-    jeweils an einer Sprechpause. Hält nie mehr als ein Stück im Speicher."""
-    parts, n = [], 0
-    limit = int((target + search) * RATE)
+def noise_floor(audio: np.ndarray):
+    """Grundrauschen einer fertigen Aufnahme (für kurze Diktate, bei denen sofort gesprochen wird)."""
+    n = len(audio) // Segmenter.FRAME
+    if n < 10:
+        return None
+    rms = np.sqrt(np.mean(audio[: n * Segmenter.FRAME].reshape(n, Segmenter.FRAME) ** 2, axis=1))
+    return float(np.percentile(rms, 10))
+
+
+def split_long(audio: np.ndarray) -> list[np.ndarray]:
+    """Fertige Aufnahme (Diktat per Taste) in einzelne Äußerungen zerlegen."""
+    seg = Segmenter(floor=noise_floor(audio))
+    return [c for c, still in seg.feed(audio) + seg.flush() if len(c) and not still]
+
+
+def stream_chunks(blocks, stats=None):
+    """Aus einem Strom von Audioblöcken (float32, 16 kHz) einzelne Äußerungen schneiden.
+    Hält nie mehr als ein Stück im Speicher. Gibt (audio, still) zurück; alle Stücke zusammen
+    ergeben wieder exakt den Eingang."""
+    seg = Segmenter()
     for block in blocks:
         if block is None or not len(block):
             continue
-        parts.append(block)
-        n += len(block)
-        while n > limit:
-            buf = np.concatenate(parts)
-            cut = quiet_cut(buf, target, search)
-            yield buf[:cut]
-            parts, n = [buf[cut:]], len(buf) - cut
-    if n:
-        yield np.concatenate(parts)
+        yield from seg.feed(block)
+        if stats is not None and seg.noisy:
+            stats["noisy"] = True
+    yield from seg.flush()
 
 
 def decode_file(path):
@@ -151,6 +270,21 @@ def decode_file(path):
         finally:
             container.close()
     return duration, blocks()
+
+
+def recover_wav(path, block=RATE):
+    """Sicherungsdatei einer abgebrochenen Aufnahme lesen.
+
+    Nach einem Absturz steht im Dateikopf die Länge null; die Tondaten dahinter sind aber da.
+    Deshalb wird der Kopf (44 Bytes) übersprungen und der Rest als 16-Bit-Mono gelesen.
+    """
+    with open(path, "rb") as f:
+        f.seek(44)
+        while True:
+            raw = f.read(block * 2)
+            if len(raw) < 2:
+                return
+            yield np.frombuffer(raw[: len(raw) // 2 * 2], dtype=np.int16).astype(np.float32) / 32768
 
 
 def join_parts(texts) -> str:
@@ -187,32 +321,49 @@ class Transcriber:
         t = time.time()
         from huggingface_hub import snapshot_download
         q = cfg.get("quantization")
+        rev = cfg.get("model_revision") or None
+        try:
+            ort.disable_telemetry_events()
+        except Exception:
+            pass
         files = ["config.json", "vocab.txt", f"*-model.{q}.onnx*" if q else "*-model.onnx*"]
         try:
             # schon geladen? Dann ohne Netzwerk starten.
-            path = snapshot_download(cfg["model"], allow_patterns=files, local_files_only=True)
+            path = snapshot_download(cfg["model"], revision=rev, allow_patterns=files, local_files_only=True)
         except Exception:
             log.info("Modell nicht im lokalen Cache, lade %s herunter", cfg["model"])
             if notify:
                 notify("Sprachmodell wird einmalig heruntergeladen (650 MB) …")
-            path = snapshot_download(cfg["model"], allow_patterns=files)
+            path = snapshot_download(cfg["model"], revision=rev, allow_patterns=files)
         model = onnx_asr.load_model("nemo-conformer-tdt", path, **kw)
         model.recognize(np.zeros(RATE, dtype=np.float32), sample_rate=RATE)  # aufwärmen
         self.model = model
         log.info("Modell bereit nach %.1f s", time.time() - t)
 
-    def transcribe_stream(self, blocks, on_part=None, cancelled=lambda: False) -> str:
+    def transcribe_stream(self, blocks, on_part=None, cancelled=lambda: False, stats=None) -> str:
         """Beliebig langen Audiostrom stückweise erkennen.
 
         on_part(bisheriger_text, sekunden_fertig) wird nach jedem Stück aufgerufen.
+        Scheitert ein einzelnes Stück, läuft der Rest weiter; an der Stelle steht dann GAP im Text
+        und stats["failed"] zählt mit – die Tonaufnahme darf in dem Fall nicht gelöscht werden.
+        Es gibt bewusst keine feste Lautstärke-Schwelle: Auch sehr leise Sprache wird erkannt.
         """
         texts, done = [], 0.0
-        for chunk in stream_chunks(blocks):
+        stats = stats if stats is not None else {}
+        stats.setdefault("failed", 0)
+        stats.setdefault("chunks", 0)
+        for chunk, still in stream_chunks(blocks, stats):
             if cancelled():
                 break
             done += len(chunk) / RATE
-            if len(chunk) >= 0.2 * RATE and float(np.abs(chunk).max()) >= 0.004:
-                text = (self.model.recognize(chunk, sample_rate=RATE) or "").strip()
+            stats["chunks"] += 1
+            if not still and len(chunk) >= 0.2 * RATE:
+                try:
+                    text = (self.model.recognize(chunk, sample_rate=RATE) or "").strip()
+                except Exception:
+                    log.exception("Stück bei %.0f s nicht erkannt", done)
+                    stats["failed"] += 1
+                    text = GAP
                 if text:
                     texts.append(text)
             if on_part:

@@ -1,4 +1,4 @@
-"""Startet LocalScribe. Stürzt der Start ab, steht der Grund in %APPDATA%\\LocalScribe\\absturz.log."""
+"""Startet LocalScribe. Stürzt der Start ab, steht der Grund in %LOCALAPPDATA%\\LocalScribe\\absturz.log."""
 import os
 import pathlib
 import sys
@@ -11,7 +11,7 @@ try:
 except SystemExit:
     raise
 except BaseException:
-    folder = pathlib.Path(os.environ.get("APPDATA", str(pathlib.Path.home()))) / "LocalScribe"
+    folder = pathlib.Path(os.environ.get("LOCALAPPDATA") or os.environ.get("APPDATA") or str(pathlib.Path.home())) / "LocalScribe"
     folder.mkdir(parents=True, exist_ok=True)
     (folder / "absturz.log").write_text(traceback.format_exc(), encoding="utf-8")
     raise

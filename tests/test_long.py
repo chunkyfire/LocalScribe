@@ -45,12 +45,14 @@ with av.open(str(m4a), "w") as out:
     for packet in stream.encode(None):
         out.mux(packet)
 
-pieces = list(engine.stream_chunks(iter([long_audio[i:i + 1600].astype(np.float32) / 32768
-                                         for i in range(0, len(long_audio), 1600)])))
-check("Kein Stück länger als 18 s (darüber verliert das Modell Text)",
-      max(len(p) for p in pieces) <= 18.1 * 16000 and sum(len(p) for p in pieces) == len(long_audio))
-check("Auch ein einzelnes Diktat wird ab 18 s geteilt",
-      max(len(p) for p in engine.split_long(long_audio[:30 * 16000].astype(np.float32) / 32768)) <= 18.1 * 16000)
+as_float = long_audio.astype(np.float32) / 32768
+pieces = [c for c, _ in engine.stream_chunks(iter([as_float[i:i + 1600] for i in range(0, len(as_float), 1600)]))]
+check("Schneiden verliert kein einziges Sample", np.array_equal(np.concatenate(pieces), as_float))
+check(f"Kein Stück länger als {engine.MAX_LEN:.0f} s", max(len(p) for p in pieces) <= (engine.MAX_LEN + 0.1) * 16000)
+whole = engine.split_long(as_float[:30 * 16000])
+check("Auch ein einzelnes Diktat wird an Pausen geteilt (nur reine Stille fällt weg)",
+      len(whole) > 1 and max(len(p) for p in whole) <= (engine.MAX_LEN + 0.1) * 16000
+      and sum(len(p) for p in whole) >= 24 * 16000)
 duration, blocks = engine.decode_file(m4a)
 check("M4A wird gelesen", abs(duration - len(long_audio) / 16000) < 1.0, f"({duration:.1f} s)")
 
@@ -66,14 +68,14 @@ qa = QtWidgets.QApplication(sys.argv)
 parts, result = [], {}
 
 
-def wait(cond, then, t0=None):
+def wait(cond, then, *args, t0=None):
     t0 = t0 or time.time()
     if cond():
-        return then()
+        return then(*args)
     if time.time() - t0 > 120:
         check("Zeitüberschreitung vor " + then.__name__, False)
         return finish()
-    QTimer.singleShot(100, lambda: wait(cond, then, t0))
+    QTimer.singleShot(100, lambda: wait(cond, then, *args, t0=t0))
 
 
 job = LongJob(ctl)
@@ -103,19 +105,23 @@ def after_file():
 def after_missing():
     check("Fehlende Datei: verständlicher Fehler, kein Absturz", result["err"] != "" and result["text"] == "")
     result.clear()
-    # Aufnahme: Mikrofon durch eine Warteschlange ersetzen und 10-ms-Blöcke einspeisen
+    record("test.wav")
+    wait(lambda: "text" in result, after_rec)
+
+
+def record(name):
+    """Mikrofon durch eine Warteschlange ersetzen und 10-ms-Blöcke einspeisen."""
     import queue
     import threading
     job._begin()
     job._queue = queue.Queue()
     (config.DIR / "aufnahmen").mkdir(exist_ok=True)
-    job.wav_path = config.DIR / "aufnahmen" / "test.wav"
-    threading.Thread(target=job._run_recording, daemon=True).start()
+    job.wav_path = config.DIR / "aufnahmen" / name
+    threading.Thread(target=job._run, args=(lambda: (None, job._mic_blocks()), job.wav_path), daemon=True).start()
     audio = long_audio.astype(np.float32) / 32768
     for i in range(0, len(audio), 160):
         job._queue.put(audio[i:i + 160])
     QTimer.singleShot(500, job.stop_recording)
-    wait(lambda: "text" in result, after_rec)
 
 
 def after_rec():
@@ -123,6 +129,65 @@ def after_rec():
           and len(result["text"].split()) >= 136, f"({len(result['text'].split())} Wörter)")
     check("Aufnahme: Dauer stimmt", abs(result["secs"] - len(long_audio) / 16000) < 0.5, f"({result['secs']:.1f} s)")
     check("Aufnahme: Sicherungsdatei danach gelöscht", not (config.DIR / "aufnahmen" / "test.wav").exists())
+    # Ein Stück scheitert: Rest läuft weiter, Stelle ist markiert, Ton bleibt liegen
+    result.clear()
+    real = ctl.transcriber.model.recognize
+    calls = []
+
+    def flaky(chunk, **kw):
+        calls.append(1)
+        if len(calls) == 2:
+            raise RuntimeError("Testfehler")
+        return real(chunk, **kw)
+    ctl.transcriber.model.recognize = flaky
+    record("kaputt.wav")
+    wait(lambda: "text" in result, after_flaky, real)
+
+
+def after_flaky(real):
+    ctl.transcriber.model.recognize = real
+    kept = config.DIR / "aufnahmen" / "kaputt.wav"
+    check("Fehler in einem Stück: Rest wird trotzdem erkannt", result["err"] == "" and len(result["text"].split()) > 90)
+    check("Fehler in einem Stück: Stelle markiert und gezählt", engine.GAP in result["text"] and job.failed == 1)
+    check("Fehler in einem Stück: Tonaufnahme bleibt erhalten", kept.exists() and job.kept == kept)
+    check("Liegengebliebene Aufnahme wird gefunden", config.leftover_recordings() == [kept])
+    # Absturz nachstellen: Dateikopf meldet Länge null
+    raw = bytearray(kept.read_bytes())
+    raw[4:8] = (36).to_bytes(4, "little")
+    raw[40:44] = (0).to_bytes(4, "little")
+    kept.write_bytes(raw)
+    result.clear()
+    job.start_recovery(kept)
+    wait(lambda: "text" in result, after_recovery, kept)
+
+
+def after_recovery(kept):
+    check("Nach Absturz: Aufnahme vollständig nachgeholt",
+          result["err"] == "" and result["text"].count("Oberbauchschmerzen") == 4 and len(result["text"].split()) >= 136,
+          f"({len(result['text'].split())} Wörter)")
+    check("Nach Absturz: Tonaufnahme danach gelöscht", not kept.exists() and config.leftover_recordings() == [])
+    old = config.DIR / "aufnahmen" / "alt.wav"
+    old.write_bytes(b"0" * 100)
+    os.utime(old, (time.time() - 40 * 86400,) * 2)
+    check("Vergessene Aufnahmen werden nach der Frist gelöscht", config.purge_recordings(30) == 1 and not old.exists())
+    single = ctl.transcriber.transcribe(as_float[:len(speech)])
+    check("Diktat per Taste (17,7 s mit Pausen): vollständig",
+          single.startswith("Der Patient") and "morgen früh" in single and 33 <= len(single.split()) <= 39,
+          f"({len(single.split())} Wörter)")
+    quiet = ctl.transcriber.transcribe_stream(iter([long_audio[:18 * 16000].astype(np.float32) / 32768 * 0.003]))
+    check("Sehr leise Sprache wird nicht verworfen", quiet.count("Oberbauchschmerzen") == 1, f"({len(quiet.split())} Wörter)")
+    silence = ctl.transcriber.transcribe_stream(iter([np.zeros(16000 * 40, np.float32)]))
+    check("Stummgeschaltetes Mikrofon ergibt leeren Text (keine erfundenen Wörter)", silence == "", repr(silence))
+    rng = np.random.default_rng(5)
+    hiss = ctl.transcriber.transcribe_stream(iter([(rng.standard_normal(16000 * 40) * 0.001).astype(np.float32)]))
+    check("Raumrauschen ohne Sprache ergibt leeren Text", hiss == "", repr(hiss))
+    mixed = np.concatenate([np.zeros(16000 * 20, np.float32), long_audio[:18 * 16000].astype(np.float32) / 32768,
+                            np.zeros(16000 * 20, np.float32)])
+    mixed += (rng.standard_normal(len(mixed)) * 0.0008).astype(np.float32)
+    both = ctl.transcriber.transcribe_stream(iter([mixed[i:i + 160] for i in range(0, len(mixed), 160)]))
+    check("Lange Stille vor und nach dem Sprechen: Text vollständig, nichts erfunden",
+          both.count("Oberbauchschmerzen") == 1 and both.count("morgen früh") == 1 and 33 <= len(both.split()) <= 39,
+          f"({len(both.split())} Wörter)")
     finish()
 
 

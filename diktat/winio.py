@@ -170,6 +170,17 @@ def send_paste():
         _kb.release("v")
 
 
+def keep_awake(on: bool):
+    """Verhindert, dass Windows während einer langen Aufnahme in den Ruhezustand geht.
+    Muss aus demselben Thread ein- und ausgeschaltet werden."""
+    ES_CONTINUOUS, ES_SYSTEM_REQUIRED = 0x80000000, 0x00000001
+    try:
+        ctypes.windll.kernel32.SetThreadExecutionState(
+            ES_CONTINUOUS | (ES_SYSTEM_REQUIRED if on else 0))
+    except Exception:
+        log.debug("Ruhezustand nicht steuerbar", exc_info=True)
+
+
 def foreground_title() -> str:
     try:
         hwnd = user32.GetForegroundWindow()

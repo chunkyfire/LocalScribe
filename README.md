@@ -13,7 +13,7 @@ landet im gerade aktiven Textfeld. Die Spracherkennung läuft vollständig auf d
 4. Beim ersten Start lädt die App einmalig das Sprachmodell (650 MB). Danach arbeitet sie ohne Internet.
 5. Verknüpfungen für Desktop und Startmenü: im Fenster unter **Einstellungen**.
 
-Deinstallieren: Ordner löschen, dazu `%APPDATA%\LocalScribe` (Einstellungen, Verlauf) und bei Bedarf
+Deinstallieren: Ordner löschen, dazu `%LOCALAPPDATA%\LocalScribe` (Einstellungen, Verlauf) und bei Bedarf
 `%USERPROFILE%\.cache\huggingface` (Sprachmodell).
 
 ## Bedienung
@@ -45,7 +45,26 @@ beendet sie nicht; sie bleibt im Infobereich (Rechtsklick → Beenden).
   Ist der Server nicht erreichbar, wird der unbearbeitete Text eingefügt.
 - **Einstellungen** – Tasten, Mikrofon, Töne, Autostart, Aufbewahrung, Verknüpfungen.
 
-Dateien: `%APPDATA%\LocalScribe\` (`config.json`, `verlauf.sqlite`, `diktat.log`).
+Dateien: `%LOCALAPPDATA%\LocalScribe\` (`config.json`, `verlauf.sqlite`, `diktat.log`).
+
+## Was mit den Daten geschieht
+
+- **Ton.** Diktate per Taste bleiben im Arbeitsspeicher und werden nie auf die Platte geschrieben.
+  Lange Aufnahmen werden während des Sprechens in eine Sicherungsdatei geschrieben, damit bei
+  einem Absturz nichts verloren ist. Diese Datei wird gelöscht, sobald der Text vollständig vorliegt.
+  Bleibt sie liegen (Absturz, Fehler), bietet die App beim nächsten Öffnen das Nachholen an;
+  spätestens nach der Aufbewahrungsfrist wird sie gelöscht.
+- **Text.** Der Verlauf speichert Text, Zeitpunkt und Dauer – keinen Ton und keinen Fenstertitel.
+  Er wird nach 30 Tagen gelöscht (einstellbar) und lässt sich ganz abschalten, etwa auf gemeinsam
+  genutzten Windows-Konten. Gelöschte Einträge werden in der Datei überschrieben.
+- **Ort.** Alles liegt unter `%LOCALAPPDATA%`, also nicht im Roaming-Profil, das in Firmennetzen
+  auf einen Server wandert.
+- **Zwischenablage.** Eingefügter Text wird vom Windows-Zwischenablageverlauf (Win+V) und von der
+  Cloud-Zwischenablage ausgenommen.
+- **Netz.** Die App geht nur beim ersten Start ins Internet, um das Sprachmodell zu laden (feste
+  Fassung, Hugging Face). Danach arbeitet sie offline. Die KI-Nachbearbeitung ist ab Werk aus;
+  ist dort eine Adresse außerhalb des eigenen Netzes eingetragen, zeigt die App das an.
+- **Protokoll.** `diktat.log` enthält Zeiten und Zeichenzahlen, keine Inhalte.
 
 ## Aus dem Quelltext starten oder selbst bauen
 
@@ -62,11 +81,21 @@ Tests:
     .venv\Scripts\python.exe tests\test_llm.py
     .venv\Scripts\python.exe tests\test_flow.py
     .venv\Scripts\python.exe tests\test_long.py
+    # Langzeittest (rund 25 Minuten): siehe Kopf von tests\langzeit\stunde.py
 
-## Technische Hinweise
+## Was gemessen ist und wo die Grenzen liegen
 
-- Das Modell verliert bei Stücken über etwa 23 Sekunden Text. Die App schneidet deshalb alles
-  an Sprechpausen in Stücke von 10 bis 18 Sekunden.
+Langzeittest (`tests/langzeit`): eine Stunde vorgelesenes Diktat, 370 Sätze, durch die echte
+Verarbeitungskette. Ergebnis und Vergleich stehen in `tests/langzeit/ERGEBNIS.md`.
+
+- Das Modell erkennt zuverlässig nur einzelne Äußerungen. Enthält ein Stück eine Sprechpause oder
+  ist es länger als etwa 23 Sekunden, lässt es Satzteile weg. Die App schneidet deshalb an jeder
+  Sprechpause ab 0,3 Sekunden und nie später als nach 12 Sekunden.
+- Reine Stille wird nicht erkannt, weil das Modell daraus gelegentlich Wörter erfindet.
+- In sehr lauter Umgebung sind Pausen nicht mehr zu erkennen; dann sinkt die Vollständigkeit und
+  die App weist darauf hin. Ein Headset hilft.
+- Geprüft wurde mit einer synthetischen Stimme. Die Erkennungsgüte bei echten Stimmen, Dialekt
+  und Fachvokabular ist damit nicht belegt. Jeder Text muss vor der Übernahme gegengelesen werden.
 - In Fenster, die mit Adminrechten laufen, kann die App nicht einfügen.
 
 ## Herkunft

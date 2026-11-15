@@ -12,10 +12,15 @@ EDGE = QtGui.QColor(58, 58, 58)
 
 
 class Store:
-    """Verlauf in SQLite; wird nur aus dem Hauptthread benutzt."""
+    """Verlauf in SQLite; wird nur aus dem Hauptthread benutzt.
+
+    Gespeichert werden Text, Zeitpunkt, Dauer und der Name des Prompts – kein Ton und kein
+    Fenstertitel (der könnte einen Patientennamen tragen). Gelöschtes wird überschrieben.
+    """
 
     def __init__(self, path):
         self.db = sqlite3.connect(str(path))
+        self.db.execute("PRAGMA secure_delete = ON")
         self.db.execute("CREATE TABLE IF NOT EXISTS verlauf (id INTEGER PRIMARY KEY, zeit REAL, text TEXT,"
                         " sekunden REAL, latenz REAL, fenster TEXT)")
         have = {row[1] for row in self.db.execute("PRAGMA table_info(verlauf)")}
@@ -24,16 +29,21 @@ class Store:
                 self.db.execute(f"ALTER TABLE verlauf ADD COLUMN {col} {kind}")
         for ident, text in self.db.execute("SELECT id, text FROM verlauf WHERE woerter IS NULL").fetchall():
             self.db.execute("UPDATE verlauf SET woerter=? WHERE id=?", (len(text.split()), ident))
+        # Fenstertitel aus früheren Fassungen entfernen
+        if self.db.execute("SELECT 1 FROM verlauf WHERE fenster <> '' LIMIT 1").fetchone():
+            self.db.execute("UPDATE verlauf SET fenster = ''")
+            self.db.commit()
+            self.db.execute("VACUUM")
         self.db.commit()
 
-    def add(self, text, seconds, latency, window, raw="", prompt=""):
+    def add(self, text, seconds, latency, raw="", prompt=""):
         self.db.execute("INSERT INTO verlauf (zeit, text, sekunden, latenz, fenster, roh, prompt, woerter)"
-                        " VALUES (?,?,?,?,?,?,?,?)",
-                        (time.time(), text, seconds, latency, window, raw, prompt, len(text.split())))
+                        " VALUES (?,?,?,?,'',?,?,?)",
+                        (time.time(), text, seconds, latency, raw, prompt, len(text.split())))
         self.db.commit()
 
     def recent(self, query="", limit=200):
-        return self.db.execute("SELECT id, zeit, text, fenster, prompt FROM verlauf WHERE text LIKE ?"
+        return self.db.execute("SELECT id, zeit, text, prompt FROM verlauf WHERE text LIKE ?"
                                " ORDER BY id DESC LIMIT ?", (f"%{query}%", limit)).fetchall()
 
     def last(self):
@@ -47,11 +57,14 @@ class Store:
     def clear(self):
         self.db.execute("DELETE FROM verlauf")
         self.db.commit()
+        self.db.execute("VACUUM")
 
-    def prune(self, days):
-        if days and days > 0:
-            self.db.execute("DELETE FROM verlauf WHERE zeit < ?", (time.time() - days * 86400,))
-            self.db.commit()
+    def prune(self, days) -> int:
+        if not days or days <= 0:
+            return 0
+        n = self.db.execute("DELETE FROM verlauf WHERE zeit < ?", (time.time() - days * 86400,)).rowcount
+        self.db.commit()
+        return n
 
     def stats(self):
         """(Wörter gesamt, Wörter pro Minute, Wörter heute)"""
@@ -155,6 +168,18 @@ class Overlay(QtWidgets.QWidget):
         else:
             p.setPen(QtGui.QColor(232, 232, 232))
             p.drawText(r, Qt.AlignCenter, self.text)
+
+
+def private_mime(text: str) -> QtCore.QMimeData:
+    """Text für die Zwischenablage, den Windows weder in den Zwischenablageverlauf (Win+V)
+    aufnimmt noch über die Cloud-Zwischenablage auf andere Geräte überträgt."""
+    mime = QtCore.QMimeData()
+    mime.setText(text)
+    zero = (0).to_bytes(4, "little")
+    for name in ("ExcludeClipboardContentFromMonitorProcessing", "CanIncludeInClipboardHistory",
+                 "CanUploadToCloudClipboard"):
+        mime.setData(f'application/x-qt-windows-mime;value="{name}"', zero)
+    return mime
 
 
 def make_pixmap(size=64) -> QtGui.QPixmap:

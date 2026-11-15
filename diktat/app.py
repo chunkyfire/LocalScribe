@@ -11,14 +11,15 @@ if sys.stderr is None:  # pythonw hat keine Konsole
     sys.stdout = sys.stderr = open(os.devnull, "w")
 os.environ.setdefault("HF_HUB_DISABLE_PROGRESS_BARS", "1")
 os.environ.setdefault("HF_HUB_DISABLE_SYMLINKS_WARNING", "1")
+os.environ.setdefault("HF_HUB_DISABLE_TELEMETRY", "1")
+os.environ.setdefault("DO_NOT_TRACK", "1")
 
-import numpy as np
 from PySide6 import QtCore, QtGui, QtNetwork, QtWidgets
 from PySide6.QtCore import QTimer, Signal
 
 from . import config, engine, llm, winio
 from .hub import Hub, keys_text
-from .ui import Overlay, Store, make_icon, make_pixmap
+from .ui import Overlay, Store, make_icon, make_pixmap, private_mime
 
 log = logging.getLogger("diktat")
 INSTANCE = "LocalScribe-instanz"
@@ -36,7 +37,6 @@ class Diktat(QtCore.QObject):
         self.app = app
         self.cfg = config.load()
         self.store = Store(config.DB)
-        self.store.prune(self.cfg.get("history_days"))
         self.recorder = engine.Recorder()
         self.recorder.device_name = self.cfg.get("microphone")
         self.transcriber = engine.Transcriber(self.cfg)
@@ -62,7 +62,7 @@ class Diktat(QtCore.QObject):
         self.menu = QtWidgets.QMenu()
         self.menu.addAction("LocalScribe öffnen", self.hub.open)
         self.menu.addAction("Letzten Text kopieren",
-                            lambda: QtGui.QGuiApplication.clipboard().setText(self.store.last()))
+                            lambda: QtGui.QGuiApplication.clipboard().setMimeData(private_mime(self.store.last())))
         self.menu.addSeparator()
         self.menu.addAction("Beenden", self.quit)
         self.tray.setContextMenu(self.menu)
@@ -70,6 +70,9 @@ class Diktat(QtCore.QObject):
                                     if why == QtWidgets.QSystemTrayIcon.Trigger else None)
         self.tray.show()
 
+        self.cleanup()
+        self._cleanup = QTimer(self, interval=3600_000, timeout=self.cleanup)
+        self._cleanup.start()
         self.hotkey = None
         self.start_hotkey()
         self.set_status("Modell lädt …")
@@ -82,17 +85,36 @@ class Diktat(QtCore.QObject):
     input_devices = staticmethod(engine.input_devices)
     autostart_enabled = staticmethod(winio.autostart_enabled)
     set_autostart = staticmethod(winio.set_autostart)
+    keep_awake = staticmethod(winio.keep_awake)
 
     @staticmethod
     def create_shortcuts():
         winio.create_shortcuts(str(config.ICON))
+
+    def cleanup(self):
+        """Aufbewahrungsfrist durchsetzen: alte Verlaufseinträge und liegengebliebene Aufnahmen löschen."""
+        try:
+            if not self.cfg.get("history_enabled", True):
+                self.store.clear()
+            gone = self.store.prune(self.cfg.get("history_days"))
+            audio = config.purge_recordings(self.cfg.get("history_days"))
+            if gone or audio:
+                log.info("Aufgeräumt: %d Verlaufseinträge, %d Aufnahmen gelöscht", gone, audio)
+        except Exception:
+            log.exception("Aufräumen fehlgeschlagen")
+
+    def remember(self, text, seconds, latency, raw="", prompt=""):
+        """In den Verlauf schreiben – nur, wenn er eingeschaltet ist."""
+        if self.cfg.get("history_enabled", True):
+            self.store.add(text, seconds, latency, raw, prompt)
+            self.hub.refresh()
 
     def apply_cfg(self):
         """Geänderte Einstellungen speichern und sofort wirksam machen."""
         config.save(self.cfg)
         self.transcriber.cfg = self.cfg
         self.recorder.device_name = self.cfg.get("microphone")
-        self.store.prune(self.cfg.get("history_days"))
+        self.cleanup()
         self.start_hotkey()
         if self.ready:
             self.set_status(self.ready_text())
@@ -101,7 +123,7 @@ class Diktat(QtCore.QObject):
         """Einen Verlaufseintrag mit einem Prompt nachbearbeiten; Ergebnis landet in der Zwischenablage."""
         self.pending += 1
         self.overlay.set_mode("processing")
-        self.jobs.put({"kind": "rework", "text": text, "prompt": prompt_name, "seconds": 0.0, "window": ""})
+        self.jobs.put({"kind": "rework", "text": text, "prompt": prompt_name, "seconds": 0.0})
 
     # ---------- Tasten ----------
     def start_hotkey(self):
@@ -126,6 +148,18 @@ class Diktat(QtCore.QObject):
         self.hub.set_status(text)
 
     def quit(self):
+        if self.hub.busy():
+            box = QtWidgets.QMessageBox(self.hub)
+            box.setWindowTitle("LocalScribe beenden")
+            box.setText("Es läuft noch eine Aufnahme oder Transkription. Beim Beenden geht der noch nicht "
+                        "erkannte Teil nicht verloren: Die Tonaufnahme bleibt liegen und wird beim nächsten "
+                        "Start angeboten.")
+            yes = box.addButton("Trotzdem beenden", QtWidgets.QMessageBox.DestructiveRole)
+            box.addButton("Weiterlaufen lassen", QtWidgets.QMessageBox.RejectRole)
+            box.exec()
+            if box.clickedButton() is not yes:
+                return
+        winio.keep_awake(False)
         self.hotkey.stop()
         self.recorder.stop()
         self.tray.hide()
@@ -235,14 +269,10 @@ class Diktat(QtCore.QObject):
         if seconds < float(self.cfg.get("min_seconds", 0.3)):
             self._settle()
             return
-        if float(np.abs(audio).max()) < 0.004:
-            self.overlay.flash("Nichts gehört – Mikrofon prüfen")
-            return
         self.beep(880, 660)
         self.pending += 1
         self.overlay.set_mode("processing")
-        self.jobs.put({"kind": "dictation", "audio": audio, "seconds": seconds,
-                       "window": winio.foreground_title(), "prompt": self.prompt})
+        self.jobs.put({"kind": "dictation", "audio": audio, "seconds": seconds, "prompt": self.prompt})
 
     def on_tap(self, ident):
         if ident == "paste_last":
@@ -262,19 +292,17 @@ class Diktat(QtCore.QObject):
             if out["warn"]:
                 self.overlay.flash(f"KI: {out['warn']}"[:90], 6000)
                 return
-            self.store.add(text, 0.0, out["latency"], "", out["raw"], out["prompt"])
-            QtGui.QGuiApplication.clipboard().setText(text)
-            self.hub.refresh()
+            self.remember(text, 0.0, out["latency"], out["raw"], out["prompt"])
+            QtGui.QGuiApplication.clipboard().setMimeData(private_mime(text))
             self.overlay.flash("Ergebnis kopiert")
             return
         log.info("%.1f s Audio in %.2f s verarbeitet (%d Zeichen%s)", out["seconds"], out["latency"],
                  len(text), ", Prompt " + out["prompt"] if out["prompt"] else "")
         if not text.strip():
             if not self.recording:
-                self.overlay.flash("Kein Text erkannt")
+                self.overlay.flash("Kein Text erkannt – Mikrofon prüfen")
             return
-        self.store.add(text, out["seconds"], out["latency"], out["window"], out["raw"], out["prompt"])
-        self.hub.refresh()
+        self.remember(text, out["seconds"], out["latency"], out["raw"], out["prompt"])
         self.paste(text)
         if out["warn"] and not self.recording:
             self.overlay.flash("KI nicht erreichbar – unbearbeiteter Text eingefügt", 5000)
@@ -300,7 +328,7 @@ class Diktat(QtCore.QObject):
                 log.exception("Zwischenablage nicht sicherbar")
                 self._clip_backup = None
         self._restore.stop()
-        cb.setText(text)
+        cb.setMimeData(private_mime(text))
         self._send_when_free(0)
 
     def _send_when_free(self, tries):

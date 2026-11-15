@@ -7,9 +7,9 @@ import time
 from PySide6 import QtGui, QtWidgets
 from PySide6.QtCore import Qt, QTimer, Signal
 
-from . import llm
+from . import config, llm
 from .longform import LongJob
-from .ui import make_icon, make_pixmap
+from .ui import make_icon, make_pixmap, private_mime
 
 STYLE = """
 QWidget { background: #0B0B0B; color: #EDEDED; font-family: "Segoe UI"; font-size: 10pt; }
@@ -205,11 +205,11 @@ class Page(QtWidgets.QWidget):
 
 # ---------------------------------------------------------------- Verlauf
 class Row(QtWidgets.QFrame):
-    def __init__(self, page, ident, zeit, text, window, prompt):
+    def __init__(self, page, ident, zeit, text, prompt):
         super().__init__(objectName="row")
         self.page, self.ident, self.text = page, ident, text
         self.setCursor(Qt.PointingHandCursor)
-        self.setToolTip("Klicken kopiert" + (f"  ·  diktiert in: {window}" if window else ""))
+        self.setToolTip("Klicken kopiert")
         self.stamp = time.strftime("%H:%M", time.localtime(zeit))
         self.time = label(self.stamp, "time")
         self.time.setFixedWidth(58)
@@ -242,7 +242,7 @@ class Row(QtWidgets.QFrame):
 
     def mousePressEvent(self, e):
         if e.button() == Qt.LeftButton:
-            QtGui.QGuiApplication.clipboard().setText(self.text)
+            QtGui.QGuiApplication.clipboard().setMimeData(private_mime(self.text))
             restyle(self.time, "ok")
             self.time.setText("Kopiert")
             QTimer.singleShot(1300, self._reset)
@@ -307,13 +307,16 @@ class HistoryPage(Page):
             num.setText(f"{value:,}".replace(",", "."))
         rows = self.ctl.store.recent(self.search.text())
         last_day = None
-        for ident, zeit, text, window, prompt in rows:
+        for ident, zeit, text, prompt in rows:
             day = self._day(zeit)
             if day != last_day:
                 self.list.addWidget(label(day, "day"))
                 last_day = day
-            self.list.addWidget(Row(self, ident, zeit, text, window, prompt))
-        if not rows:
+            self.list.addWidget(Row(self, ident, zeit, text, prompt))
+        if not self.ctl.cfg.get("history_enabled", True):
+            self.list.addWidget(label("Der Verlauf ist ausgeschaltet (Einstellungen). Diktate werden nicht gespeichert.",
+                                      "muted", wrap=True))
+        elif not rows:
             empty = "Keine Treffer." if self.search.text() else \
                 f"Noch nichts diktiert. {keys_text(self.ctl.cfg['hotkey_hold'])} halten und sprechen."
             self.list.addWidget(label(empty, "muted"))
@@ -398,7 +401,7 @@ class Transcript(QtWidgets.QWidget):
         self.text.verticalScrollBar().setValue(self.text.verticalScrollBar().maximum())
 
     def _copy(self):
-        QtGui.QGuiApplication.clipboard().setText(self.text.toPlainText())
+        QtGui.QGuiApplication.clipboard().setMimeData(private_mime(self.text.toPlainText()))
         self.note.setText("Kopiert")
         QTimer.singleShot(1500, lambda: self.note.setText(""))
 
@@ -466,14 +469,30 @@ class LongPage(Page):
         self.out.set_text(text)
         self.out.set_busy(False)
         if text.strip():
-            self.ctl.store.add(text, seconds, time.time() - self.started, self.source)
+            self.ctl.remember(text, seconds, time.time() - self.started)
+
+    def problems(self) -> str:
+        """Hinweise nach einem Lauf, bei dem nicht alles glatt ging."""
+        notes = []
+        if self.job.failed:
+            notes.append(f"Achtung: {self.job.failed} Stelle(n) konnten nicht erkannt werden und sind im Text "
+                         "markiert.")
+        if self.job.overflows:
+            notes.append(f"Der Audiotreiber meldete {self.job.overflows} Aussetzer.")
+        if self.job.noisy:
+            notes.append("Die Umgebung war sehr laut. Bitte den Text besonders sorgfältig gegenlesen; "
+                         "ein Headset hilft.")
+        if self.job.kept:
+            notes.append(f"Die Tonaufnahme wurde deshalb nicht gelöscht: {self.job.kept}")
+        return " ".join(notes)
 
 
 class RecordPage(LongPage):
     def __init__(self, ctl):
         super().__init__(ctl, "Aufnahme",
                          "Einmal drücken startet, noch einmal drücken beendet – auch nach einer Stunde. "
-                         "Der Text entsteht schon während du sprichst und bleibt auf diesem Rechner.",
+                         "Der Text entsteht schon während du sprichst. Der Ton wird nebenbei gesichert und "
+                         "gelöscht, sobald der Text vollständig ist.",
                          "Aufnahme")
         self.btn = button("Start", self.toggle, "rec")
         self.btn.setFixedSize(96, 96)
@@ -486,8 +505,16 @@ class RecordPage(LongPage):
         col.addWidget(self.state)
         col.addStretch(1)
         self.body.addWidget(card(hbox(self.btn, (self._wrap(col), 1), spacing=22)))
+
+        # Aufnahme, die beim letzten Mal nicht fertig wurde (Absturz, Stromausfall, Fehler)
+        self.left_text = label("", wrap=True)
+        self.left_card = card(hbox((self.left_text, 1), button("Jetzt transkribieren", self.recover, "primary"),
+                                   button("Löschen", self.discard)))
+        self.left_card.hide()
+        self.body.addWidget(self.left_card)
         self.body.addWidget(self.out, 1)
-        self.recording = False
+        self.recording = self.warned = False
+        self.leftover = None
         self.tick = QTimer(self, interval=250, timeout=self._tick)
 
     @staticmethod
@@ -497,50 +524,112 @@ class RecordPage(LongPage):
         w.setLayout(layout)
         return w
 
-    def info(self, text):
+    def info(self, text, bad=False):
+        restyle(self.state, "bad" if bad else "muted")
         self.state.setText(text)
+
+    def refresh(self):
+        super().refresh()
+        current = self.job.wav_path if self.job.running else None
+        rest = [p for p in config.leftover_recordings() if p != current]
+        self.leftover = rest[0] if rest else None
+        if self.leftover and not self.job.running:
+            minutes = max(0, self.leftover.stat().st_size - 44) / 2 / 16000 / 60
+            when = time.strftime("%d.%m. um %H:%M", time.localtime(self.leftover.stat().st_mtime))
+            more = f" ({len(rest)} Aufnahmen warten.)" if len(rest) > 1 else ""
+            self.left_text.setText(f"Eine Aufnahme vom {when} ({minutes:.0f} Minuten) wurde nicht fertig "
+                                   f"transkribiert. Der Ton ist noch da.{more}")
+            self.left_card.show()
+        else:
+            self.left_card.hide()
+
+    def recover(self):
+        if self.job.running or not self.leftover or not self.model_ready():
+            return
+        self.left_card.hide()
+        self.started = time.time()
+        self.out.set_text("")
+        self.out.set_busy(True)
+        self.btn.setEnabled(False)
+        self.info("Hole die Aufnahme nach …")
+        self.job.start_recovery(self.leftover)
+
+    def discard(self):
+        if self.leftover:
+            try:
+                self.leftover.unlink()
+            except OSError as e:
+                return self.info(f"Nicht löschbar: {e}", bad=True)
+        self.refresh()
 
     def toggle(self):
         if self.recording:
             self.recording = False
             self.tick.stop()
+            self.ctl.keep_awake(False)
             self.job.stop_recording()
             self.btn.setEnabled(False)
             restyle(self.btn, "rec")
             self.btn.setText("Start")
-            self.state.setText("Schreibe den Rest fertig …")
+            self.info("Schreibe den Rest fertig …")
             return
         if self.job.running or not self.model_ready():
             return
         try:
             self.job.start_recording()
         except Exception as e:
-            return self.info(f"Mikrofon nicht verfügbar: {e}")
-        self.recording, self.started = True, time.time()
+            return self.info(f"Mikrofon nicht verfügbar: {e}", bad=True)
+        self.ctl.keep_awake(True)   # kein Ruhezustand mitten in der Aufnahme
+        self.recording, self.warned, self.started = True, False, time.time()
+        self.left_card.hide()
         self.out.set_text("")
         self.out.set_busy(True)
         restyle(self.btn, "recOn")
         self.btn.setText("Stopp")
-        self.state.setText("Nimmt auf …")
+        self.info("Nimmt auf …")
         self.tick.start()
 
     def _tick(self):
         self.clock.setText(clock(time.time() - self.started))
+        if not self.job.mic_alive():
+            if not self.warned:
+                self.warned = True
+                QtWidgets.QApplication.beep()
+            return self.info("Das Mikrofon liefert keinen Ton mehr! Aufnahme beenden und Mikrofon prüfen – "
+                             "alles bisher Gesprochene bleibt erhalten.", bad=True)
+        self.warned = False
         loud = self.job.level > 0.01
-        self.state.setText("Nimmt auf …" if loud or time.time() - self.started < 3
-                           else "Nimmt auf – gerade ist nichts zu hören")
+        self.info("Nimmt auf …" if loud or time.time() - self.started < 3
+                  else "Nimmt auf – gerade ist nichts zu hören")
+
+    def on_part(self, text, done, total):
+        super().on_part(text, done, total)
+        if not self.recording and total > 0:   # Nachholen einer alten Aufnahme
+            self.clock.setText(clock(done))
+            self.info(f"Hole die Aufnahme nach … {clock(done)} von {clock(total)}")
 
     def on_finished(self, text, seconds, error):
         super().on_finished(text, seconds, error)
+        if self.recording:                      # Abbruch durch einen Fehler mitten in der Aufnahme
+            self.recording = False
+            self.tick.stop()
+            self.ctl.keep_awake(False)
+            self.job.stop_recording()
+            restyle(self.btn, "rec")
+            self.btn.setText("Start")
         self.btn.setEnabled(True)
+        notes = self.problems()
         if error:
-            keep = f" Die Tonaufnahme liegt unter {self.job.wav_path}." if self.job.wav_path else ""
-            self.state.setText(f"Fehler: {error}.{keep}")
+            self.info(f"Fehler: {error}. {notes}", bad=True)
+        elif notes:
+            self.info(notes, bad=True)
         elif text.strip():
-            self.state.setText(f"Fertig – {clock(seconds)} aufgenommen, {len(text.split())} Wörter. "
-                               "Der Text steht auch im Verlauf.")
+            where = " Der Text steht auch im Verlauf." if self.ctl.cfg.get("history_enabled", True) else ""
+            self.info(f"Fertig – {clock(seconds)} aufgenommen, {len(text.split())} Wörter. "
+                      f"Die Tonaufnahme ist gelöscht.{where}")
         else:
-            self.state.setText("Kein Text erkannt.")
+            self.info("Kein Text erkannt. Die Tonaufnahme ist gelöscht.")
+        self.refresh()
 
 
 class DropZone(QtWidgets.QFrame):
@@ -638,11 +727,14 @@ class FilePage(LongPage):
         self.stop.hide()
         self.pick.show()
         took = time.time() - self.started
+        notes = self.problems()
         if error:
             self.state.setText(f"Das hat nicht geklappt: {error}")
+        elif notes:
+            self.state.setText(notes)
         elif text.strip():
-            self.state.setText(f"Fertig – {clock(seconds)} Audio in {clock(took)}, {len(text.split())} Wörter. "
-                               "Der Text steht auch im Verlauf.")
+            where = " Der Text steht auch im Verlauf." if self.ctl.cfg.get("history_enabled", True) else ""
+            self.state.setText(f"Fertig – {clock(seconds)} Audio in {clock(took)}, {len(text.split())} Wörter.{where}")
         else:
             self.state.setText("Kein Text erkannt.")
 
@@ -734,6 +826,8 @@ class LlmPage(Page):
         self.preset.activated.connect(self._preset)
         self.url = QtWidgets.QLineEdit(placeholderText="https://…/v1")
         self.url.textEdited.connect(lambda: self.preset.setCurrentIndex(len(PRESETS) - 1))
+        self.url.textChanged.connect(self._where)
+        self.where = label("", "muted", wrap=True)
         self.key = QtWidgets.QLineEdit()
         self.key.setEchoMode(QtWidgets.QLineEdit.Password)
         self.model = QtWidgets.QComboBox(editable=True)
@@ -746,7 +840,7 @@ class LlmPage(Page):
             form(("Server", hbox(self.preset, (self.url, 1))),
                  ("API-Schlüssel", hbox((self.key, 1), button("Entfernen", self.drop_key, "ghost"))),
                  ("Modell", hbox((self.model, 1), self.fetch))),
-            self.status))
+            self.where, self.status))
 
         # Prompts
         self.list = QtWidgets.QListWidget()
@@ -853,6 +947,18 @@ class LlmPage(Page):
         llm.set_key("")
         self.key.clear()
         self.key.setPlaceholderText("bei lokalen Servern meist leer")
+
+    def _where(self, url):
+        url = url.strip()
+        if not url:
+            return self.where.setText("")
+        if llm._is_local(url):
+            restyle(self.where, "muted")
+            self.where.setText("Dieser Server steht auf diesem Rechner oder im eigenen Netz.")
+        else:
+            host = llm.urllib.parse.urlsplit(url).hostname or url
+            restyle(self.where, "bad")
+            self.where.setText(f"Mit dieser Adresse verlassen die Texte diesen Rechner und gehen an {host}.")
 
     def _preset(self, i):
         if PRESETS[i][1]:
@@ -985,6 +1091,7 @@ class SettingsPage(Page):
         self.sounds = QtWidgets.QCheckBox("Töne bei Start und Ende der Aufnahme")
         self.clip = QtWidgets.QCheckBox("Zwischenablage nach dem Einfügen wiederherstellen")
         self.auto = QtWidgets.QCheckBox("Mit Windows starten")
+        self.history = QtWidgets.QCheckBox("Verlauf führen (auf gemeinsam genutzten Windows-Konten ausschalten)")
         self.days = QtWidgets.QSpinBox(minimum=0, maximum=3650, suffix=" Tage", specialValueText="nie löschen")
         self.days.setFixedWidth(150)
         self.body.addWidget(card(
@@ -996,7 +1103,10 @@ class SettingsPage(Page):
         self.body.addWidget(card(label("Aufnahme", "h2"), form(("Mikrofon", self.mic)),
                                  self.sounds, self.clip))
         self.body.addWidget(card(label("Verlauf und Start", "h2"),
-                                 form(("Einträge löschen nach", hbox(self.days, None))), self.auto,
+                                 self.history, form(("Einträge löschen nach", hbox(self.days, None))),
+                                 label("Tonaufnahmen werden nie aufbewahrt: Diktate per Taste bleiben im Arbeitsspeicher, "
+                                       "lange Aufnahmen werden nach dem Transkribieren gelöscht.", "muted", wrap=True),
+                                 self.auto,
                                  hbox(button("Verknüpfungen auf Desktop und im Startmenü anlegen", self.shortcuts),
                                       None)))
         self.body.addStretch(1)
@@ -1014,6 +1124,7 @@ class SettingsPage(Page):
         self.sounds.setChecked(bool(cfg.get("sounds")))
         self.clip.setChecked(bool(cfg.get("restore_clipboard", True)))
         self.days.setValue(int(cfg.get("history_days") or 0))
+        self.history.setChecked(bool(cfg.get("history_enabled", True)))
         self.auto.setChecked(self.ctl.autostart_enabled())
 
     def shortcuts(self):
@@ -1031,7 +1142,8 @@ class SettingsPage(Page):
             return self.saved(self.note, "Eine Taste ist unbekannt oder das Diktier-Kürzel fehlt.", ok=False)
         self.ctl.cfg.update(hotkey_hold=hold, hotkey_lock=lock[0] if lock else "", hotkey_paste_last=paste,
                             microphone=self.mic.currentData(), sounds=self.sounds.isChecked(),
-                            restore_clipboard=self.clip.isChecked(), history_days=self.days.value())
+                            restore_clipboard=self.clip.isChecked(), history_days=self.days.value(),
+                            history_enabled=self.history.isChecked())
         try:
             self.ctl.set_autostart(self.auto.isChecked())
         except Exception as e:
@@ -1108,6 +1220,10 @@ class Hub(QtWidgets.QWidget):
 
     def set_status(self, text):
         self.status.setText(text)
+
+    def busy(self) -> bool:
+        """Läuft gerade eine lange Aufnahme oder Transkription?"""
+        return any(getattr(page, "job", None) is not None and page.job.running for _, page in self.pages)
 
     def open(self):
         self.pages[self.stack.currentIndex()][1].refresh()

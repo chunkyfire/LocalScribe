@@ -60,7 +60,7 @@ def check(name, ok):
 
 def dictate(prompt):
     d.pending += 1
-    d.jobs.put({"kind": "dictation", "audio": audio, "seconds": len(audio) / 16000, "window": "Test", "prompt": prompt})
+    d.jobs.put({"kind": "dictation", "audio": audio, "seconds": len(audio) / 16000, "prompt": prompt})
 
 
 def wait(cond, then, t0=None, limit=90):
@@ -74,7 +74,7 @@ def wait(cond, then, t0=None, limit=90):
 
 
 def rows():
-    return d.store.db.execute("SELECT text, roh, prompt, woerter FROM verlauf ORDER BY id").fetchall()
+    return d.store.db.execute("SELECT text, roh, prompt, woerter, fenster FROM verlauf ORDER BY id").fetchall()
 
 
 def step1():
@@ -127,10 +127,33 @@ def step5():
         d.hub.show_page(i)
         qa.processEvents()
         d.hub.grab().save(str(shots / f"{i}.png"))
+    check("Kein Fenstertitel im Verlauf", all(r[4] == "" for r in rows()))
+    from diktat.ui import private_mime
+    fmts = private_mime("x").formats()
+    check("Zwischenablage: vom Windows-Verlauf und der Cloud ausgenommen",
+          sum(("CanIncludeInClipboardHistory" in f) or ("CanUploadToCloudClipboard" in f)
+              or ("ExcludeClipboardContentFromMonitorProcessing" in f) for f in fmts) == 3)
+    d.store.add("GEHEIMWORT-XYZ", 1.0, 0.1)
+    d.store.delete(d.store.db.execute("SELECT MAX(id) FROM verlauf").fetchone()[0])
+    check("Gelöschtes steht nicht mehr in der Verlaufsdatei", b"GEHEIMWORT-XYZ" not in config.DB.read_bytes())
+    d.cfg["history_enabled"] = False
+    d.apply_cfg()
+    n = len(rows())
+    dictate("")
+    wait(lambda: len(pasted) == 5, lambda: after_off(n, stored_check))
+
+
+def stored_check():
     stored = json.loads(config.FILE.read_text(encoding="utf-8"))
     check("Einstellungen gespeichert, kein Schlüssel in der Datei",
           stored["llm"]["enabled"] is True and "key" not in json.dumps(stored["llm"]).lower())
     finish()
+
+
+def after_off(n, then):
+    check("Verlauf ausgeschaltet: wird geleert, neues Diktat wird eingefügt, aber nicht gespeichert",
+          n == 0 and len(rows()) == 0 and pasted[-1].startswith("Der Patient"))
+    then()
 
 
 def finish():
