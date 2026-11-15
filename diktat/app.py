@@ -333,10 +333,15 @@ class Diktat(QtCore.QObject):
         if seconds < float(self.cfg.get("min_seconds", 0.3)):
             self._settle()
             return
+        note = engine.audio_note(audio)
+        if note == "stumm":
+            self._settle()
+            self.overlay.flash(engine.NOTES[note], 6000)
+            return
         self.beep(880, 660)
         self.pending += 1
         self.overlay.set_mode("processing")
-        self.jobs.put({"kind": "dictation", "audio": audio, "seconds": seconds, "prompt": self.prompt})
+        self.jobs.put({"kind": "dictation", "audio": audio, "seconds": seconds, "prompt": self.prompt, "note": note})
 
     def on_tap(self, ident):
         if ident == "paste_last":
@@ -370,6 +375,9 @@ class Diktat(QtCore.QObject):
         self.paste(text)
         if out["warn"] and not self.recording:
             self.overlay.flash("KI nicht erreichbar – unbearbeiteter Text eingefügt", 5000)
+        elif out.get("note") and not self.recording:
+            self._settle()
+            self.overlay.flash(engine.NOTES[out["note"]], 5000)
         else:
             self._settle()
 

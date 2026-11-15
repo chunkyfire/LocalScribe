@@ -156,6 +156,37 @@ LocalScribe hat das Vokabular (Wörterbuch, Lautschlüssel, Stimmtraining), aber
 Der nächste große Schritt wäre ein deutsches medizinisches Parakeet (etwa Mediform/parakeet-medical-de) als
 ONNX-Fassung oder ein eigenes Nachtraining auf eigenen Diktaten.
 
+## Vergleich mit Tandem und Heidi (16.11.2026)
+
+Fünf eigene Diktate (412 Wörter, 4 min), als 16-kHz-Datei digital in den Browser eingespielt: Die Seite bekommt
+statt des Mikrofons einen Tonstrom aus der Datei, ohne Lautsprecher und Raum. Beide Programme im Diktiermodus,
+ohne eigenes Vokabular. Gezählt wie in `eigene.py`, für alle gleich.
+
+| Programm | KHK | Tumorboard | OP | Übergabe | Fälle | gesamt |
+|---|---|---|---|---|---|---|
+| Tandem, Diktat | 10,3 % | 10,9 % | 13,7 % | 6,2 % | 5,4 % | **8,3 %** |
+| Heidi, Rohtranskript | 11,8 % | 25,0 % | 11,8 % | 2,5 % | 4,7 % | 9,5 % |
+| Heidi, fertiger Text | 10,3 % | 17,2 % | 15,7 % | 13,6 % | 2,0 % | **9,7 %** |
+| LocalScribe 0.9.4 | 11,8 % | 18,8 % | 13,7 % | 9,9 % | 7,4 % | **11,2 %** |
+| LocalScribe 0.9.3 | | | | | | 12,6 % |
+
+Rund fünf der Fehler je Programm stammen aus der Vorlage (dort steht „Tumorkonferenz“, gesprochen wird
+„Tumorboard“; „distal“ wird nicht gesprochen), die Untergrenze liegt also bei etwa 1 %.
+
+Was man an den Ausgaben sieht:
+
+- Heidi arbeitet zweistufig. Das Rohtranskript enthält dieselben Verhörer wie LocalScribe („Kabel“ für Cave,
+  „Schon nach SET-Implantation“). Ein Sprachmodell macht daraus den fertigen Text, bessert vieles aus
+  („Z. n. Stent-Implantation“), lässt aber auch Gesprochenes weg („im RIVA“, „Nabic“) und fügt Überschriften
+  ein, die niemand diktiert hat („Diagnose:“, „Eingriff:“).
+- Tandem schreibt schon während des Sprechens fertig formatierten Text (Z.n., i.v., mg/m², 1-0-0) und trifft fast
+  alle Wirkstoffnamen. Fehler: „SET-Implantation“, „linker Sprung“ statt „linkes Sprunggelenk“, „Krea“ statt Cave.
+- LocalScribe verliert vor allem bei Wirkstoff- und Handelsnamen (Ondansetron, Trimbow, Tresiba, Nabic,
+  Sevelamer) und bei kurzen Alltagswörtern, die nur der Zusammenhang klärt (Sehne/Szene, Bohren/Born, Cave/Kabel).
+  Das Erste lösen eigene Begriffe, das Zweite nur ein Sprachmodell als Korrektor.
+
+Orpheus ist noch nicht gemessen.
+
 ## Was die Zahlen nicht zeigen
 
 - Echte medizinische Diktate. Öffentliche deutsche Aufnahmen mit Transkript gibt es nicht: PoCaP

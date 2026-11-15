@@ -101,6 +101,7 @@ class _Stream:
 
 opened = []
 engine.sd.InputStream = lambda **kw: opened.append(_Stream(**kw)) or opened[-1]
+_real_device_index = engine._device_index
 engine._device_index = lambda name: None
 rec = engine.Recorder()
 block = np.ones((1600, 1), dtype=np.float32)           # 0,1 s
@@ -151,5 +152,34 @@ with tempfile.TemporaryDirectory() as tmp:
         check("Beschädigte Datei wird verworfen", modelle.find_release(bad) is None
               and not (modelle.folder() / "test-2" / "b.txt").exists())
     config.DIR = old
+
+# ---- 0.9.4: Tonqualität, virtuelles Standardmikrofon, weite Lautsuche, c/k/z ----
+from diktat import fach
+check("Stumme Aufnahme wird erkannt", engine.audio_note(np.zeros(16000, dtype=np.float32)) == "stumm")
+check("Leise Aufnahme wird erkannt", engine.audio_note(np.full(16000, 0.005, dtype=np.float32)) == "leise")
+loud = np.sin(np.arange(16000) / 5).astype(np.float32) * 3
+check("Übersteuerte Aufnahme wird erkannt", engine.audio_note(np.clip(loud, -1, 1)) == "laut")
+check("Normale Aufnahme bleibt ohne Hinweis", engine.audio_note(np.sin(np.arange(16000) / 5).astype(np.float32) * 0.3) == "")
+_devs = [{"name": "Microsoft Soundmapper - Input", "max_input_channels": 2, "hostapi": 0},
+         {"name": "Line 1 (Virtual Audio Cable)", "max_input_channels": 2, "hostapi": 0},
+         {"name": "Mikrofon (USB Microphone)", "max_input_channels": 1, "hostapi": 0}]
+_sd = engine.sd
+_keep = (getattr(_sd, "query_devices", None), getattr(_sd, "default", None))
+_sd.default = type("D", (), {"hostapi": 0})()
+_sd.query_devices = lambda *a, kind=None, **k: _devs[1] if kind == "input" else _devs
+check("Virtuelles Standardmikrofon wird übersprungen", _real_device_index(None) == 2, str(_real_device_index(None)))
+check("Gewähltes Mikrofon gilt weiter", _real_device_index("Line 1 (Virtual Audio Cable)") == 1)
+_sd.query_devices = lambda *a, kind=None, **k: _devs[2] if kind == "input" else _devs
+check("Echtes Standardmikrofon bleibt Standard", _real_device_index(None) is None)
+_sd.query_devices, _sd.default = _keep
+for heard, want in [("Coronare", "Koronare"), ("exacerbierte", "exazerbierte"), ("Hydralacin", "Hydralazin"),
+                    ("Lymphardenopathie", "Lymphadenopathie"), ("Lungfunktion", "Lungenfunktion"),
+                    ("inhaltiger", "inhalativer")]:
+    got = fach.correct("Befund: " + heard + " heute.")
+    check(f"{heard} -> {want}", want in got, got)
+for word in ["Hautturgor", "Mundspatel", "Wiedervorstellung", "Stauungsbedingt", "Pulmonalvenösen", "Organomegalie",
+             "Processus", "Carcinom", "Frakturspalt", "Beatmungsschwierigkeiten"]:
+    got = fach.correct("Befund: " + word + " heute.")
+    check(f"{word} bleibt", word in got, got)
 print("FEHLER:" if failed else "ALLES OK", failed or "")
 sys.exit(1 if failed else 0)

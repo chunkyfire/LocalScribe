@@ -1,3 +1,21 @@
+## LocalScribe 0.9.4
+
+- **Vergleich mit Tandem und Heidi gemessen**: dieselben fünf Diktate, digital eingespielt. Wortfehler: Tandem 8,3 %,
+  Heidi 9,7 %, LocalScribe 11,2 % (0.9.3: 12,6 %). Beide laufen in der Cloud; Heidi korrigiert das Rohtranskript
+  mit einem Sprachmodell nach.
+- **Wirkstoffnamen am Wortstamm**: Wer auf -mab, -sartan, -prazol und ähnlich endet und kein bekanntes Wort ist, wird
+  mit den Wirkstoffen desselben Stamms verglichen („Pempolyzomap“ wird Pembrolizumab, „Retroximab“ Rituximab).
+- **Weite Lautsuche**: Unbekannte Wörter, die deutlich nach genau einem Fachbegriff klingen, werden ersetzt
+  („Lymphardenopathie“), die Beugung bleibt erhalten. Auf 395 unabhängigen Sätzen elf richtige Ersetzungen, eine falsche.
+- **Eingedeutschte Schreibweise**: „Coronare“ und „exacerbierte“ werden zu „Koronare“ und „exazerbierte“, wenn nur
+  diese Form im Lexikon steht.
+- **Hinweis zur Tonqualität**: Liefert das Mikrofon keinen Ton, ist die Aufnahme sehr leise oder übersteuert, sagt
+  LocalScribe das, statt still einen leeren oder schlechten Text zu liefern.
+- Ist das Windows-Standardmikrofon ein virtuelles Audiokabel, nimmt LocalScribe das erste echte Mikrofon.
+
+Installation: ZIP entpacken, `LocalScribe.exe` starten. Keine Adminrechte nötig. Die Datei ist nicht
+signiert: Meldet Windows „Der Computer wurde geschützt“, auf **Weitere Informationen → Trotzdem ausführen**.
+
 ## LocalScribe 0.9.3
 
 - **Mikrofon offen halten** (Einstellungen, ab Werk aus): Das Diktat startet ohne Verzögerung und nimmt die

@@ -37,9 +37,11 @@ def steps(text):
     yield "roh", text
     a = engine.apply_base(text)
     yield "+ Basiswörterbuch", a
-    b = fach.correct(a, fuzzy=False)
+    b = fach.correct(a, fuzzy=False, respell=False)
     yield "+ Lautschlüssel, ß", b
-    yield "+ ein Laut daneben", fach.correct(a)
+    yield "+ ein Laut daneben", fach.correct(a, far=False, respell=False)
+    yield "+ c, k und z", fach.correct(a, far=False)
+    yield "+ weit daneben", fach.correct(a)
     yield "+ Schreibweisen", engine.tidy(fach.correct(a))
 
 

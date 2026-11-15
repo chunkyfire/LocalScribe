@@ -39,15 +39,48 @@ def input_devices() -> list[str]:
         return []
 
 
+VIRTUAL = re.compile(r"virtual|vb-audio|\bcable\b|voicemeeter|stereo ?mix|soundmapper|loopback", re.I)
+
+
 def _device_index(name):
-    if not name:
-        return None
     host = sd.default.hostapi
-    for i, d in enumerate(sd.query_devices()):
-        if d["max_input_channels"] > 0 and d["hostapi"] == host and d["name"] == name:
-            return i
-    log.warning("Mikrofon %r nicht gefunden, nutze Standardgerät", name)
+    devices = list(enumerate(sd.query_devices()))
+    if name:
+        for i, d in devices:
+            if d["max_input_channels"] > 0 and d["hostapi"] == host and d["name"] == name:
+                return i
+        log.warning("Mikrofon %r nicht gefunden, nutze Standardgerät", name)
+    # Standardgerät: Ist es ein virtuelles Kabel (liefert ohne Zuspieler nur Stille), das erste echte Mikrofon nehmen
+    try:
+        default = sd.query_devices(kind="input")
+    except Exception:
+        return None
+    if VIRTUAL.search(default["name"]):
+        for i, d in devices:
+            if d["max_input_channels"] > 0 and d["hostapi"] == default["hostapi"] and not VIRTUAL.search(d["name"]):
+                log.info("Standardmikrofon %r ist ein virtuelles Gerät, nutze %r", default["name"], d["name"])
+                return i
     return None
+
+
+def audio_note(audio):
+    """Hinweis zur Tonqualität einer Aufnahme: "stumm", "leise", "laut" oder "" (alles in Ordnung)."""
+    if not len(audio):
+        return ""
+    a = np.abs(np.asarray(audio, dtype=np.float32))
+    peak = float(a.max())
+    if peak < 1e-4:
+        return "stumm"                      # das Gerät liefert nichts: falsches Mikrofon, stummgeschaltet, Kabel ab
+    if float(np.mean(a >= 0.985)) > 0.002:
+        return "laut"                       # übersteuert: Silben werden abgeschnitten
+    if peak < 0.02:
+        return "leise"
+    return ""
+
+
+NOTES = {"stumm": "Das Mikrofon liefert keinen Ton – in den Einstellungen ein anderes wählen",
+         "leise": "Sehr leise Aufnahme – näher ans Mikrofon oder Pegel erhöhen",
+         "laut": "Aufnahme übersteuert – etwas Abstand zum Mikrofon oder Pegel senken"}
 
 
 class Recorder:

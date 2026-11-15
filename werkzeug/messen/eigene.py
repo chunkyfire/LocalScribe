@@ -21,6 +21,8 @@ NUM = {"null": 0, "eins": 1, "ein": 1, "zwei": 2, "drei": 3, "vier": 4, "fünf":
 SUBS = [(r"(?m)^\s*\d+\.\s+", " "), (r"z\.\s?n\.", "zustand nach"), (r"\bi\.\s?v\.?", "iv"), (r"mg/m²", "mg pro quadratmeter"),
         (r"ml/min", "ml pro minute"), (r"%", " prozent "), (r"\bhf\b", "herzfrequenz"), (r"milligramm", "mg"), (r"milliliter", "ml"),
         (r"(\d)-(\d)-(\d+)", r"\1 \2 \3"), (r"(\d),(\d)", r"\1komma\2"), (r"\biii\b", "3"), (r"\bii\b", "2"), (r"spo\s?2", "spo2"),
+        (r"(\d)\.(\d{3})\b", r"\1\2"), (r"\bie\b", "einheiten"), (r"\blz\b", "langzeit"), (r"×", "x"), (r"(\d)\s?x\s?(\d)", r"\1 x \2"),
+        (r"°\s?c\b", " grad celsius "), (r"°", " grad "), (r"(\d)/(\d)", r"\1 \2"), (r"(\d) zu (\d)", r"\1 \2"),
         (r"-", " ")]
 
 
@@ -57,12 +59,15 @@ for name, models in bench["modelle"].items():
         key = re.sub(r"\s*[\d,.]+\s*s$", "", model).strip()
         table.setdefault(key, {})[name] = errors(gt[name], norm(text))
 for path in sys.argv[2:]:
-    label = "LocalScribe " + pathlib.Path(path).stem
+    label = pathlib.Path(path).stem
     for line in open(path, encoding="utf-8"):
         r = json.loads(line)
         if r["name"] in gt:
-            table.setdefault(label + " roh", {})[r["name"]] = errors(gt[r["name"]], norm(r["hyp"]))
-            table.setdefault(label + " mit Nachbearbeitung", {})[r["name"]] = errors(gt[r["name"]], norm(engine.tidy(fach.correct(engine.apply_base(engine.LEADING.sub("", r["hyp"].strip()))))))
+            if label.startswith("fremd_"):     # Ausgabe eines anderen Programms: so werten, wie sie ist
+                table.setdefault(label[6:], {})[r["name"]] = errors(gt[r["name"]], norm(r["hyp"]))
+                continue
+            table.setdefault("LocalScribe " + label + " roh", {})[r["name"]] = errors(gt[r["name"]], norm(r["hyp"]))
+            table.setdefault("LocalScribe " + label + " mit Nachbearbeitung", {})[r["name"]] = errors(gt[r["name"]], norm(engine.tidy(fach.correct(engine.apply_base(engine.LEADING.sub("", r["hyp"].strip()))))))
 names = list(gt)
 total = sum(len(gt[n]) for n in names)
 print(f"{'':52s}" + "".join(f"{n[:10]:>11s}" for n in names) + "     gesamt")

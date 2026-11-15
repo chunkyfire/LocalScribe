@@ -47,6 +47,10 @@ def spelling(low: str) -> str:
     return re.sub(r"c(?!h)", "k", re.sub(r"c(?=[eiäy])", "z", low))
 
 
+def _cs(low: str) -> int:
+    return len(re.findall(r"c(?!h|k)", low))
+
+
 def alternates(low: str):
     """Der Schlüssel selbst und zwei häufige Abweichungen: w für v (Wena), z für s (Lipaze)."""
     yield key(low)
@@ -117,6 +121,87 @@ def nearest(low: str):
     return next(iter(found)) if len(found) == 1 else None
 
 
+WIDE = 8         # ab dieser Schlüssellänge sucht die weite Suche (Trimbo, Trossiba, Pempolyzomap)
+RATIO = 0.85     # so ähnlich müssen die Lautschlüssel mindestens sein
+_wide = None
+
+
+def _compound(low, known):
+    """Aus zwei echten Wörtern zusammengesetzt (Hautturgor, Mundspatel): ein richtiges Wort, das nur in keiner Liste steht."""
+    for i in range(4, len(low) - 3):
+        a, b = low[:i], low[i:]
+        if (a in known or a.rstrip("s") in known) and (b in known or b.capitalize() in known):
+            return True
+    return False
+
+
+# Wortstämme von Wirkstoffnamen (als Lautschlüssel): Wer so endet und kein bekanntes Wort ist, ist ein Medikament.
+STEMS = ("map", "nip", "pril", "sartan", "statin", "olol", "prazol", "konazol", "floksazin", "zilin", "mizin", "ziklin",
+         "gliptin", "gliflozin", "glutit", "parin", "ksaban", "gatran", "tidin", "dipin", "zepam", "zolam", "tropium", "terol",
+         "sonit", "setron", "lukast", "triptan", "siklofir", "dronat", "tiazit", "semit", "profen", "koksip", "fibrat",
+         "mustin", "rubizin", "platin", "taksel", "zept", "presin", "relin", "metason", "oksetin", "pramin", "triptilin",
+         "peridon", "kainamit", "zetam", "fosfamit", "trekzat", "limus", "sporin", "penem", "bactam", "baktam")
+LOOSE = 0.7      # so ähnlich müssen Wirkstoffnamen mit gleichem Stamm mindestens klingen
+
+
+def wide(low: str):
+    """Kein echtes Wort, klingt aber deutlich nach genau einem Fachbegriff: Lymphardenopathie -> Lymphadenopathie.
+
+    Strenger als ein Laut daneben, weil mehr abweichen darf: das gehörte Wort steht in keiner Wortliste,
+    der Anfang stimmt, die Abweichung liegt nicht nur am Wortende (Beugung) und kein zweiter Begriff ist ähnlich nah.
+    Wirkstoffnamen erkennt man am Stamm (-mab, -sartan); dort genügt eine geringere Ähnlichkeit, verglichen wird
+    nur mit Wirkstoffen desselben Stamms (Pempolyzomap -> Pembrolizumab).
+    """
+    global _wide
+    known = near()[0]
+    k = key(low)
+    if low in known:
+        return None
+    stem = next((s for s in STEMS if k.endswith(s) and len(k) >= len(s) + 4), None)
+    if not stem and (len(k) < WIDE or _compound(low, known)):
+        return None
+    keys = load()[2]
+    if _wide is None:
+        _wide = {}
+        for c in keys:
+            if len(c) >= WIDE - 1:
+                _wide.setdefault(c[0], []).append(c)
+    need = LOOSE if stem else RATIO
+    best, second, term = 0.0, 0.0, None
+    for c in _wide.get(k[0], ()):
+        if abs(len(c) - len(k)) > 2 or (stem and not c.endswith(stem)) or (not stem and c[:2] != k[:2]):
+            continue
+        m = difflib.SequenceMatcher(None, k, c, autojunk=False)
+        if m.real_quick_ratio() < need or m.quick_ratio() < need:
+            continue
+        r = m.ratio()
+        if r < need:
+            continue
+        if not stem:
+            same = 0
+            while same < min(len(k), len(c)) and k[same] == c[same]:
+                same += 1
+            if same >= min(len(k), len(c)) - 2:
+                continue        # nur das Ende weicht ab: Beugungsform oder anderes Grundwort
+        if r > best:
+            if keys[c] != term:
+                second = best
+            best, term = r, keys[c]
+        elif keys[c] != term and r > second:
+            second = r
+    return term if term and best - second >= 0.05 else None
+
+
+def _ending(low: str, term: str) -> str:
+    """Die Beugung des gehörten Worts behalten: viseralen -> viszeralen, Rhapdomyosarkoms -> Rhabdomyosarkoms."""
+    t = term.lower()
+    if t.endswith("e") and low[-2:] in ("en", "er", "es", "em"):
+        return term + low[-1]
+    if low.endswith("s") and not t.endswith(("s", "e")) and len(key(low)) == len(key(t)) + 1:
+        return term + "s"
+    return term
+
+
 def load():
     global _data
     if _data is None:
@@ -159,7 +244,7 @@ def own(vocabulary):
     return _own[1], _own[2]
 
 
-def correct(text: str, fuzzy: bool = True, vocabulary=None) -> str:
+def correct(text: str, fuzzy: bool = True, vocabulary=None, far: bool = True, respell: bool = True) -> str:
     terms, protected, keys, eszett = load()
     if not keys:
         return text
@@ -192,11 +277,18 @@ def correct(text: str, fuzzy: bool = True, vocabulary=None) -> str:
         found = {keys[k] for k in alternates(low) if k in keys}
         if len(found) == 1:
             term = next(iter(found))
-            if spelling(low) == spelling(term.lower()):
-                return word
+            if spelling(low) == spelling(term.lower()) and not (respell and (_cs(low) > _cs(term.lower())
+                                                                             or key(low).endswith(STEMS))):
+                return word             # c, k und z: nur andere Schreibweise. Eingedeutscht wird (Coronare ->
+                                        # Koronare), wenn nur diese Form im Lexikon steht; umgekehrt nur bei
+                                        # Wirkstoffnamen, die eine feste Schreibweise haben (Kandesartan).
             return term[0].lower() + term[1:] if word[0].islower() else term
         if not found and fuzzy:
             term = nearest(low)
+            if not term and far:
+                term = wide(low)
+                if term:
+                    term = _ending(low, term)
             if term:
                 return term[0].lower() + term[1:] if word[0].islower() else term
         return word
