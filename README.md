@@ -4,6 +4,8 @@ Lokales Diktieren per Tastenkürzel für Windows: Taste halten, sprechen, loslas
 landet im gerade aktiven Textfeld. Die Spracherkennung läuft vollständig auf dem eigenen Rechner
 (primeline-Parakeet, 600 Mio. Parameter, int8-ONNX, nur CPU, rund 850 MB Arbeitsspeicher).
 
+**Handbuch mit Bildern:** [docs/LocalScribe-Handbuch.pdf](docs/LocalScribe-Handbuch.pdf) – Installieren, Starten, Diktieren und alle Funktionen auf neun Seiten.
+
 ## Installieren (ohne Adminrechte)
 
 1. Unter **Releases** die Datei `LocalScribe-…-windows.zip` herunterladen. Die Prüfsumme steht
