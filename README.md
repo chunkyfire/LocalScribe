@@ -129,6 +129,35 @@ dem deutschen Modell und nach dem eigenen Wörterbuch. Entstanden ist es so (`we
 Grenzen: Die Fehlschreibungen stammen von einer synthetischen Stimme, nicht von echten Sprechern.
 Seltene Eigennamen, die zufällig einer Fehlschreibung gleichen, würden ersetzt.
 
+## Fachbegriffe am Klang erkennen
+
+Zusätzlich zur Liste bekannter Fehlschreibungen prüft die App jedes unbekannte Wort ab sechs
+Buchstaben gegen ein Fachlexikon mit rund 39 000 Begriffen (ICD-10-GM, Wikidata, Kernliste). Verglichen
+wird ein Lautschlüssel: „Tachükardie“, „Flegmone“ und „Kolezüstitis“ klingen wie Tachykardie,
+Phlegmone und Cholezystitis und werden so geschrieben. Bekannte Wörter, Beugungsformen
+(Pankreatitiden) und Schreibvarianten mit c, k oder z (Processus/Prozessus) bleiben unberührt.
+Bei langen Wörtern darf ein Vokal abweichen oder ein Laut im Wortinneren fehlen (Stinosen,
+Abwehspannung). Außerdem wird ss zu ß, wo es die ss-Schreibung nicht gibt (anschliessend).
+
+Gemessen (`werkzeug/messen/`, Ergebnisse in `werkzeug/messen/ERGEBNIS.md`):
+
+- 395 Arztbrief-Sätze aus GraSCCo (öffentlicher deutscher Klinikkorpus), vorgelesen von der
+  Windows-Stimme: Wortfehlerrate 12,4 % roh, 11,0 % mit Nachbearbeitung; Fachbegriffe richtig
+  82 % roh, 86 % danach; 69 richtige Ersetzungen, 2 falsche.
+- 221 echte Aufnahmen aus MultiMed: Wortfehlerrate 13,1 % roh, 12,4 % danach; 40 richtige Ersetzungen,
+  keine falsche.
+- 5 928 einzeln vorgelesene Fachbegriffe: richtig geschrieben 45 % roh, 60 % allein über den Klang,
+  79 % mit der Liste bekannter Fehlschreibungen (die aus genau diesen Aufnahmen stammt).
+- 110 000 Wörter korrekt geschriebener Text (MultiMed, GraSCCo): Ersetzt wurden fast nur echte
+  Tippfehler der Vorlagen.
+
+Die Nachbearbeitung repariert, was knapp daneben liegt. Was das Modell grob verhört
+(„Aorten V Etium“), bleibt falsch; dafür bräuchte es Wort-Boosting im Modell oder Nachtraining.
+
+Öffentliche deutsche Aufnahmen echter medizinischer Diktate mit Transkript gibt es nicht. MultiMed
+(ACL 2025) ist der einzige frei zugängliche Datensatz mit echten Stimmen; sein deutscher Teil besteht
+überwiegend aus Lehrvideos für Sprachprüfungen und enthält kaum Fachbegriffe.
+
 ## Lizenz und Signatur
 
 GPL-3.0-or-later, siehe `LICENSE`. Nutzen, verändern und weitergeben ist erlaubt; wer eine veränderte

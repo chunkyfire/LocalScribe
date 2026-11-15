@@ -9,7 +9,7 @@ import time
 from PySide6 import QtGui, QtWidgets
 from PySide6.QtCore import Qt, QTimer, Signal
 
-from . import config, engine, llm
+from . import config, engine, fach, llm
 from .longform import LongJob
 from .ui import make_icon, make_pixmap, private_mime
 
@@ -824,9 +824,9 @@ class MapPage(Page):
     def refresh(self):
         self.loading = True
         if hasattr(self, "base"):
-            n = len(engine.base_dictionary())
-            self.base.setText(f"Medizinisches Basiswörterbuch anwenden: {n:,} bekannte Fehlschreibungen von "
-                              "Medikamenten, Diagnosen und Fachbegriffen".replace(",", "."))
+            n, m = len(engine.base_dictionary()), len(fach.load()[0])
+            self.base.setText(f"Medizinisches Basiswörterbuch anwenden: {m:,} Fachbegriffe werden am Klang erkannt, "
+                              f"dazu {n:,} bekannte Fehlschreibungen".replace(",", "."))
             self.base.setChecked(bool(self.ctl.cfg.get("base_dictionary", True)))
         data = self.ctl.cfg.get(self.key) or {}
         self.table.setRowCount(0)

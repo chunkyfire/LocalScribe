@@ -35,6 +35,11 @@ normal = ("Der Patient stellt sich mit seit drei Tagen bestehenden Oberbauchschm
           "Karzinom, Carcinom, Zystitis, Cystitis, Sonographie, Sonografie, Glukose, Glucose, Kalzium, Calcium.")
 check("Richtig geschriebener Text bleibt unverändert", engine.postprocess(normal, cfg) == normal,
       str([a for a, b in zip(engine.postprocess(normal, cfg).split(), normal.split()) if a != b]))
+sound = engine.postprocess("Tachükardie, Flegmone, Kolezüstitis, Hüpokaliämie, Glomerulonefritis, Rabdomüolüse und Nefrolithiasis.", cfg)
+check("Fachbegriffe werden am Klang erkannt",
+      sound == "Tachykardie, Phlegmone, Cholezystitis, Hypokaliämie, Glomerulonephritis, Rhabdomyolyse und Nephrolithiasis.", sound)
+keep = "Pankreatitiden, Prozessus, Processus, Lied, Wahl, Mayer, Fischer, Organomegalie, Kolitis, Colitis."
+check("Beugungsformen, Schreibvarianten und Alltagswörter bleiben", engine.postprocess(keep, cfg) == keep, engine.postprocess(keep, cfg))
 check("Abschaltbar", engine.postprocess("Lipaase", dict(cfg, base_dictionary=False)) == "Lipaase")
 check("Gilt nur für das deutsche Modell", engine.postprocess("Lipaase", dict(cfg, model_choice="multi")) == "Lipaase")
 check("Eigenes Wörterbuch hat Vorrang", engine.postprocess("Lipaase", dict(cfg, dictionary={"Lipaase": "Lipase-Wert"})) == "Lipase-Wert")

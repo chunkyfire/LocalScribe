@@ -9,7 +9,7 @@ import numpy as np
 import sounddevice as sd
 from pathlib import Path
 
-from . import config
+from . import config, fach
 
 from .vad import FRAME, Vad
 
@@ -307,6 +307,7 @@ class Transcriber:
             path = snapshot_download(repo, revision=rev, allow_patterns=files)
         model = onnx_asr.load_model("nemo-conformer-tdt", path, **kw)
         model.recognize(np.zeros(RATE, dtype=np.float32), sample_rate=RATE)  # aufwärmen
+        fach.near()                      # Fachlexikon jetzt laden, nicht erst beim ersten Diktat
         self.model = model
         self.loaded = choice
         log.info("Modell %s bereit nach %.1f s", choice, time.time() - t)
@@ -408,7 +409,8 @@ def postprocess(text: str, cfg: dict) -> str:
     for wrong, right in (cfg.get("dictionary") or {}).items():
         text = re.sub(_phrase(wrong), lambda m, r=right: r, text, flags=re.IGNORECASE)
     if cfg.get("base_dictionary", True) and cfg.get("model_choice", "de") == "de":
-        text = apply_base(text)
+        # erst die bekannten Fehlschreibungen, dann alles, was wie ein Fachbegriff klingt
+        text = fach.correct(apply_base(text))
     for key, snippet in (cfg.get("snippets") or {}).items():
         text = re.sub(_phrase(key) + r"[.,;:!?]?", lambda m, r=snippet: r, text, flags=re.IGNORECASE)
     for key, repl in (cfg.get("commands") or {}).items():
