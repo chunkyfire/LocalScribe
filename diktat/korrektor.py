@@ -9,9 +9,9 @@ wenn er
 Alles andere bleibt, wie es erkannt wurde. Das Sprachmodell kann also nichts umformulieren,
 nichts hinzufügen und nichts weglassen.
 
-Stand 0.8: in der App noch nicht geschaltet. Gemessen mit lokalen Modellen (Gemma 3 4B, Llama 3.1 8B):
-drei bis vier Sekunden auf einer Grafikkarte, und die Vorschläge sind zu oft falsch
-(werkzeug/messen/ERGEBNIS.md). Der Türsteher ist für ein stärkeres Modell im Cloud-Modus vorgesehen.
+In der App ab 0.9.1 als Option auf der Seite KI-Nachbearbeitung, ab Werk aus. Gemessen mit Llama 3.1 8B lokal:
+drei richtige Ersetzungen, keine falsche, 14,3 -> 13,8 % Wortfehler, rund drei Sekunden je Diktat auf einer
+Grafikkarte (werkzeug/messen/ERGEBNIS.md).
 """
 import difflib
 import json
@@ -72,8 +72,8 @@ def accept(heard: str, proposed) -> bool:
     if not words or len(words) > 2:
         return False
     medical = all(w.lower() in core() or w in SHORT for w in words)     # Kernliste: Diagnosen, Wirkstoffe, Befunde
-    if not (medical or all(len(w) < 5 or w.lower() in known or w.lower() in terms for w in words)):
-        return False
+    if not all(w.lower() in terms or w in SHORT or w.lower() in core() for w in words):
+        return False                # der Vorschlag muss selbst ein Fachbegriff sein, kein beliebiges Wort
     heard_words = fach.WORD.findall(heard)
     real = all(w.lower() in known or w.lower() in protected or len(w) < 5 for w in heard_words)
     if any(w.lower() in terms for w in heard_words) or (real and not medical):
@@ -81,7 +81,14 @@ def accept(heard: str, proposed) -> bool:
     a, b = fach.key("".join(heard_words).lower()), fach.key("".join(words).lower())
     if min(len(a), len(b)) >= 5 and (a[:-2] == b[:-2] or a.startswith(b) or b.startswith(a)):
         return False                # nur die Endung anders: Beugungsform, kein Hörfehler
-    return difflib.SequenceMatcher(None, a, b).ratio() >= (0.7 if real else 0.6)
+    if a[:1] != b[:1]:
+        return False                # Hörfehler behalten den Anlaut (gürtelförmig ist nicht keilförmig)
+    return difflib.SequenceMatcher(None, a, b).ratio() >= 0.72     # darunter rät das Sprachmodell (Hydralacin -> Hydrochlorothiazid)
+
+
+def enabled(cfg: dict) -> bool:
+    l = cfg.get("llm") or {}
+    return bool(cfg.get("llm_fix") and (l.get("model") or "").strip() and (l.get("base_url") or "").strip())
 
 
 def correct(text: str, cfg_llm: dict, ask=None):

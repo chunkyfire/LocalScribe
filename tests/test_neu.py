@@ -65,9 +65,11 @@ e = sprecher.embed(tone)
 check("Stimmabdruck berechenbar", e is not None and abs(float(np.linalg.norm(e)) - 1) < 1e-3 and sprecher.embed(tone[:8000]) is None)
 
 # ----- Fachkorrektur
-ok = [("Set", "Stent"), ("Riba", "RIVA"), ("Trossiba", "Tresiba"), ("Prägensolom", "Prednisolon")]
+ok = [("Set", "Stent"), ("Riba", "RIVA"), ("Trossiba", "Tresiba"), ("Prägensolom", "Prednisolon"), ("Retroximab", "Rituximab")]
 no = [("Monaten", "Monate"), ("Lunge", "Zunge"), ("Kabel", "Tisch"), ("Bisoprolol", "Metoprolol"), ("Tablette", "50 mg"),
-      ("Patient", "Patientin ist wach und orientiert")]
+      ("Patient", "Patientin ist wach und orientiert"), ("Erdjobschema", "ERGO-Schema"), ("Hydralacin", "Hydrochlorothiazid"), ("gürtelförmiger", "keilförmiger"), ("Oberbauchschmerz", "Obere Bauchschmerz")]
+check("Fachkorrektur ist ab Werk aus", not korrektor.enabled(dict(config.DEFAULTS))
+      and korrektor.enabled(dict(config.DEFAULTS, llm_fix=True, llm={"model": "m", "base_url": "http://localhost:1/v1"})))
 check("Türsteher lässt Hörfehler durch", all(korrektor.accept(h, p) for h, p in ok), str([x for x in ok if not korrektor.accept(*x)]))
 check("Türsteher hält Umformulierungen auf", not any(korrektor.accept(h, p) for h, p in no), str([x for x in no if korrektor.accept(*x)]))
 text, done = korrektor.correct("Zustand nach Set-Implantation, Patient stabil.", {},

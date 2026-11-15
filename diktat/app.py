@@ -17,7 +17,7 @@ os.environ.setdefault("DO_NOT_TRACK", "1")
 from PySide6 import QtCore, QtGui, QtNetwork, QtWidgets
 from PySide6.QtCore import QTimer, Signal
 
-from . import config, engine, llm, winio
+from . import config, engine, korrektor, llm, winio
 from .hub import Hub, keys_text
 from .ui import Overlay, Store, make_icon, make_pixmap, private_mime
 
@@ -254,6 +254,10 @@ class Diktat(QtCore.QObject):
                 cfg = self.cfg
                 if job["kind"] == "dictation":
                     clean = engine.postprocess(self.transcriber.transcribe(job["audio"]), cfg)
+                    if korrektor.enabled(cfg) and clean.strip():
+                        clean, fixed = korrektor.correct(clean, cfg["llm"])
+                        if fixed:
+                            log.info("Fachkorrektur: %d Wort/Wörter ersetzt", len(fixed))
                 else:
                     clean = job["text"]
                 out["raw"] = out["text"] = clean

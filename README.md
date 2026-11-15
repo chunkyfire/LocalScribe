@@ -66,6 +66,8 @@ beendet sie nicht; sie bleibt im Infobereich (Rechtsklick → Beenden).
   Spricht jede OpenAI-kompatible Schnittstelle (Ollama, LM Studio, vLLM, eigener Anbieter).
   Der API-Schlüssel liegt in der Windows-Anmeldeinformationsverwaltung, nicht in einer Datei.
   Ist der Server nicht erreichbar, wird der unbearbeitete Text eingefügt.
+  **Fachkorrektur** (Haken, ab Werk aus): Das Sprachmodell schlägt Korrekturen für verhörte Fachbegriffe vor;
+  übernommen wird nur, was selbst ein Fachbegriff ist, ähnlich klingt und keine Zahl ändert.
 - **Einstellungen** – Tasten, Mikrofon, Töne, Autostart, Aufbewahrung, Verknüpfungen.
 
 Dateien: `%LOCALAPPDATA%\LocalScribe\` (`config.json`, `verlauf.sqlite`, `diktat.log`).

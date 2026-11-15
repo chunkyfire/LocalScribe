@@ -21,6 +21,7 @@ LocalScribe selbst steht unter der GPL-3.0-or-later (siehe `LICENSE`).
 | [pynput](https://github.com/moses-palmer/pynput) | Tastenkürzel, Einfügen | LGPL-3.0 | ja |
 | [keyring](https://github.com/jaraco/keyring) | API-Schlüssel in der Windows-Anmeldeinformationsverwaltung | MIT | ja |
 | [huggingface_hub](https://github.com/huggingface/huggingface_hub) | lädt das Modell | Apache-2.0 | ja |
+| [certifi](https://github.com/certifi/python-certifi) | Zertifikatsliste für den Modell-Download | MPL-2.0 | ja |
 | [NumPy](https://numpy.org/) | Rechnen mit Audiodaten | BSD-3-Clause | ja |
 | [Python](https://www.python.org/) | Laufzeit | PSF-2.0 | ja |
 

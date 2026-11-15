@@ -1,3 +1,17 @@
+## LocalScribe 0.9.1
+
+- **Fachkorrektur als Option** (Seite KI-Nachbearbeitung, ab Werk aus): Das eingestellte Sprachmodell schlägt vor,
+  was bei verhörten Wörtern gemeint war. Übernommen wird nur, was selbst ein Fachbegriff ist, ähnlich klingt und
+  keine Zahl ändert. Gemessen mit Llama 3.1 8B lokal: drei richtige Ersetzungen, keine falsche (14,3 → 13,8 %
+  Wortfehler), rund drei Sekunden je Diktat auf einer Grafikkarte.
+- Der Modell-Download kommt auch mit Zertifikatsproblemen zurecht (zweiter Versuch mit eigener Zertifikatsliste).
+- Beim Beenden nimmt LocalScribe das Modell eines lokalen Ollama sofort aus dem Grafikspeicher.
+- Whisper large-v3-turbo deutsch auf der CPU gemessen: 16,0 % Wortfehler bei einem Drittel der Geschwindigkeit
+  (Parakeet 14,3 %).
+
+Installation: ZIP entpacken, `LocalScribe.exe` starten. Keine Adminrechte nötig. Die Datei ist nicht
+signiert: Meldet Windows „Der Computer wurde geschützt“, auf **Weitere Informationen → Trotzdem ausführen**.
+
 ## LocalScribe 0.9.0
 
 - **Deutlich genauer bei gleicher Geschwindigkeit.** Die bisher verwendete 8-Bit-Fassung des Sprachmodells

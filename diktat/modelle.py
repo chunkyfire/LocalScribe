@@ -118,6 +118,24 @@ def find_release(release: dict):
     return None
 
 
+def _open(request):
+    """Verbindung öffnen. Erst mit den Zertifikaten von Windows (nötig hinter Klinik-Proxys, die den Verkehr
+    aufbrechen), bei einem Zertifikatsfehler noch einmal mit der mitgelieferten Liste von certifi."""
+    import ssl
+    import urllib.error
+    import urllib.request
+    try:
+        return urllib.request.urlopen(request, timeout=60)
+    except urllib.error.URLError as e:
+        if not isinstance(getattr(e, "reason", None), ssl.SSLError):
+            raise
+        try:
+            import certifi
+        except ImportError:
+            raise e from None
+        return urllib.request.urlopen(request, timeout=60, context=ssl.create_default_context(cafile=certifi.where()))
+
+
 def fetch_release(release: dict, progress=None) -> str:
     """Modell aus einem GitHub-Release laden: {"name", "url", "files": {Dateiname: [Größe, sha256]}}.
 
@@ -147,7 +165,7 @@ def fetch_release(release: dict, progress=None) -> str:
         if have:
             request.add_header("Range", f"bytes={have}-")
         try:
-            with urllib.request.urlopen(request, timeout=60) as response:
+            with _open(request) as response:
                 if have and response.status != 206:      # Server setzt nicht fort: von vorn
                     have = 0
                 with open(part, "ab" if have else "wb") as f:

@@ -52,6 +52,7 @@ DEFAULTS = {
     "model_choice": "de",
     # mitgeliefertes medizinisches Wörterbuch anwenden (nur mit dem deutschen Modell)
     "base_dictionary": True,
+    "llm_fix": False,             # Fachkorrektur: Hörfehler bei Fachbegriffen vom Sprachmodell vorschlagen lassen
     "speakers": False,            # Sprecher trennen bei Aufnahme und Datei
     "training_done": [],          # Stimmtraining: schon gelesene Sätze
     "config_version": 3,

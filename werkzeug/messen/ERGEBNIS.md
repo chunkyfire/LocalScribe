@@ -129,6 +129,15 @@ eines Kernbegriffs machen. Mit der alten int8-Fassung: eigene Diktate 20,4 → 1
 Stimmabdrücke in kurzen Fenstern statt je Äußerung wurden versucht und waren am Telefon schlechter (die Gruppen
 fallen zusammen). Ein deutsches Arzt-Patienten-Gespräch mit bekannten Sprechern gibt es öffentlich nicht.
 
+## Fachkorrektur ab 0.9.1: strengerer Türsteher
+
+Nach der Messung oben verschärft: Der Vorschlag muss selbst im Fachlexikon stehen, mit demselben Laut beginnen
+und im Lautschlüssel zu 72 % übereinstimmen. Mit dem neuen Erkennungsmodell und Llama 3.1 8B (lokal, RTX 4070 Ti,
+2,6 bis 3,9 s je Diktat): drei Ersetzungen, alle richtig (Settimplantation → Stentimplantation, inhaltiger →
+inhalativer, Retroximab → Rituximab), keine falsche; 14,3 → 13,8 % Wortfehler. Zwei falsche Vorschläge des Modells
+(Hydralacin → Hydrochlorothiazid, gürtelförmiger → keilförmiger) hält der Türsteher auf. Ab Werk aus, weil der
+Schritt ohne Grafikkarte zu lange dauert; mit einem stärkeren Modell hinter einer Schnittstelle noch nicht gemessen.
+
 ## Was die anderen tun
 
 - Heidi hat nach eigener Darstellung NVIDIA Parakeet V2 mit NeMo auf 1 500 Stunden klinischer Aufnahmen

@@ -1055,8 +1055,13 @@ class LlmPage(Page):
         self.status = label("", "muted", wrap=True)
         self.status.hide()
         self.fetch = button("Modelle abrufen", self.load_models)
+        self.fix = QtWidgets.QCheckBox("Fachkorrektur: Hörfehler bei Fachbegriffen vom Sprachmodell korrigieren lassen")
+        self.fix.setToolTip("Das Sprachmodell schlägt vor, was bei verhörten Wörtern gemeint war. Übernommen wird nur, "
+                            "was selbst ein Fachbegriff ist, ähnlich klingt und keine Zahl ändert. Kostet je Diktat "
+                            "eine Anfrage an den Server oben; mit kleinen lokalen Modellen bringt es wenig.")
         self.body.addWidget(card(
             self.enabled,
+            self.fix,
             form(("Server", hbox(self.preset, (self.url, 1))),
                  ("API-Schlüssel", hbox((self.key, 1), button("Entfernen", self.drop_key, "ghost"))),
                  ("Modell", hbox((self.model, 1), self.fetch))),
@@ -1110,6 +1115,7 @@ class LlmPage(Page):
         cfg = self.ctl.cfg
         l = cfg["llm"]
         self.enabled.setChecked(bool(l.get("enabled")))
+        self.fix.setChecked(bool(cfg.get("llm_fix")))
         self.url.setText(l.get("base_url") or "")
         urls = [u for _, u in PRESETS]
         self.preset.setCurrentIndex(urls.index(self.url.text()) if self.url.text() in urls[:-1] else len(urls) - 1)
@@ -1156,6 +1162,7 @@ class LlmPage(Page):
             except Exception as e:
                 return self.saved(self.note, f"Schlüssel nicht speicherbar: {e}", ok=False)
         self.ctl.cfg["llm"] = self.llm_cfg()
+        self.ctl.cfg["llm_fix"] = self.fix.isChecked()
         self.ctl.cfg["prompts"] = copy.deepcopy(self.prompts)
         self.ctl.apply_cfg()
         selected = self.current
