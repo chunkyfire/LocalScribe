@@ -1,6 +1,8 @@
 """Das App-Fenster: Verlauf, Wörterbuch, Textbausteine, KI-Nachbearbeitung, Einstellungen."""
 import copy
+import difflib
 import os
+import re
 import threading
 import time
 
@@ -379,6 +381,7 @@ class Transcript(QtWidgets.QWidget):
         lay.addWidget(self.text, 1)
         lay.addLayout(hbox(self.copy, self.save, self.ki, self.note, None))
         self.sig_llm.connect(self._llm_done)
+        self.busy = False
         self.set_busy(False)
 
     def refresh(self):
@@ -391,14 +394,21 @@ class Transcript(QtWidgets.QWidget):
         self.ki.setMenu(menu)
 
     def set_busy(self, busy):
+        self.busy = busy
         self.text.setReadOnly(busy)
         has = bool(self.text.toPlainText().strip())
-        for b in (self.copy, self.save, self.ki):
+        self.copy.setEnabled(has)                 # Zwischenstand lässt sich jederzeit kopieren
+        for b in (self.save, self.ki):
             b.setEnabled(has and not busy)
 
     def set_text(self, text):
+        """Text ersetzen. Wer gerade weiter oben mitliest, bleibt dort; sonst läuft das Ende mit."""
+        bar = self.text.verticalScrollBar()
+        follow = bar.value() >= bar.maximum() - 4
+        position = bar.value()
         self.text.setPlainText(text)
-        self.text.verticalScrollBar().setValue(self.text.verticalScrollBar().maximum())
+        bar.setValue(bar.maximum() if follow else position)
+        self.copy.setEnabled(bool(text.strip()))
 
     def _copy(self):
         QtGui.QGuiApplication.clipboard().setMimeData(private_mime(self.text.toPlainText()))
@@ -479,9 +489,6 @@ class LongPage(Page):
                          "markiert.")
         if self.job.overflows:
             notes.append(f"Der Audiotreiber meldete {self.job.overflows} Aussetzer.")
-        if self.job.noisy:
-            notes.append("Die Umgebung war sehr laut. Bitte den Text besonders sorgfältig gegenlesen; "
-                         "ein Headset hilft.")
         if self.job.kept:
             notes.append(f"Die Tonaufnahme wurde deshalb nicht gelöscht: {self.job.kept}")
         return " ".join(notes)
@@ -491,8 +498,8 @@ class RecordPage(LongPage):
     def __init__(self, ctl):
         super().__init__(ctl, "Aufnahme",
                          "Einmal drücken startet, noch einmal drücken beendet – auch nach einer Stunde. "
-                         "Der Text entsteht schon während du sprichst. Der Ton wird nebenbei gesichert und "
-                         "gelöscht, sobald der Text vollständig ist.",
+                         "Der Text läuft live mit: Nach jeder Sprechpause erscheint, was du gerade gesagt hast. "
+                         "Der Ton wird nebenbei gesichert und gelöscht, sobald der Text vollständig ist.",
                          "Aufnahme")
         self.btn = button("Start", self.toggle, "rec")
         self.btn.setFixedSize(96, 96)
@@ -514,6 +521,7 @@ class RecordPage(LongPage):
         self.body.addWidget(self.left_card)
         self.body.addWidget(self.out, 1)
         self.recording = self.warned = False
+        self.done = 0.0
         self.leftover = None
         self.tick = QTimer(self, interval=250, timeout=self._tick)
 
@@ -580,7 +588,7 @@ class RecordPage(LongPage):
         except Exception as e:
             return self.info(f"Mikrofon nicht verfügbar: {e}", bad=True)
         self.ctl.keep_awake(True)   # kein Ruhezustand mitten in der Aufnahme
-        self.recording, self.warned, self.started = True, False, time.time()
+        self.recording, self.warned, self.started, self.done = True, False, time.time(), 0.0
         self.left_card.hide()
         self.out.set_text("")
         self.out.set_busy(True)
@@ -598,12 +606,16 @@ class RecordPage(LongPage):
             return self.info("Das Mikrofon liefert keinen Ton mehr! Aufnahme beenden und Mikrofon prüfen – "
                              "alles bisher Gesprochene bleibt erhalten.", bad=True)
         self.warned = False
-        loud = self.job.level > 0.01
-        self.info("Nimmt auf …" if loud or time.time() - self.started < 3
-                  else "Nimmt auf – gerade ist nichts zu hören")
+        behind = time.time() - self.started - self.done
+        if behind > 30:
+            # eine Äußerung dauert höchstens 12 s; mehr Rückstand heißt, der Rechner kommt nicht nach
+            return self.info(f"Nimmt auf – die Erkennung hängt {behind:.0f} s hinterher. Es geht nichts verloren, "
+                             "der Text kommt nach.", bad=True)
+        self.info(f"Live – Text bis {clock(self.done)} erkannt. Er erscheint nach jeder Sprechpause.")
 
     def on_part(self, text, done, total):
         super().on_part(text, done, total)
+        self.done = done
         if not self.recording and total > 0:   # Nachholen einer alten Aufnahme
             self.clock.setText(clock(done))
             self.info(f"Hole die Aufnahme nach … {clock(done)} von {clock(total)}")
@@ -740,10 +752,40 @@ class FilePage(LongPage):
 
 
 # ---------------------------------------------------------------- Wörterbuch / Textbausteine
+def learn_verdict(target: str, heard: str, error: str = ""):
+    """Entscheidet, ob eine eingesprochene Fehlerkennung ins Wörterbuch darf.
+
+    Gibt (Hinweis, Fehlschreibung oder None) zurück. Gesprochen werden darf das Wort allein oder
+    in einem Satz; im Satz wird die Stelle gesucht, die dem richtigen Wort am ähnlichsten ist.
+    Übernommen wird nur, was dem richtigen Wort ähnlich ist. Sonst könnte ein Versprecher dafür
+    sorgen, dass künftig ein ganz anderes, richtig erkanntes Wort ersetzt wird.
+    """
+    if error:
+        return f"Das hat nicht geklappt: {error}", None
+    if not heard:
+        return "Nichts erkannt. Knopf halten, kurz warten, dann sprechen.", None
+    if target.casefold() in heard.casefold():
+        return f"Gehört: „{heard}“. Das Wort wird schon richtig erkannt.", None
+    words = [w.strip(".,;:!?…\"„“()") for w in heard.split()]
+    words = [w for w in words if w]
+    n = max(1, len(target.split()))
+    best, score = "", 0.0
+    for size in {n, n + 1, max(1, n - 1)}:
+        for i in range(0, len(words) - size + 1):
+            candidate = " ".join(words[i:i + size])
+            ratio = difflib.SequenceMatcher(None, candidate.casefold(), target.casefold()).ratio()
+            if ratio > score:
+                best, score = candidate, ratio
+    if score < 0.6:
+        return (f"Gehört: „{heard}“. Darin ist nichts, was „{target}“ ähnelt; es wird nichts übernommen. "
+                "Wenn es stimmt, unten von Hand eintragen."), None
+    return f"Gehört: „{heard}“ – „{best}“ wird ab jetzt durch „{target}“ ersetzt.", best
+
+
 class MapPage(Page):
     """Tabelle für ein Wörterbuch in der Konfiguration (Schlüssel -> Wert)."""
 
-    def __init__(self, ctl, title, subtitle, key, headers):
+    def __init__(self, ctl, title, subtitle, key, headers, learn=False):
         super().__init__(title, subtitle, scroll=False)
         self.ctl, self.key, self.loading = ctl, key, False
         self.table = QtWidgets.QTableWidget(0, 2)
@@ -757,6 +799,16 @@ class MapPage(Page):
         self.table.setShowGrid(False)
         self.table.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
         self.table.itemChanged.connect(self.store)
+        if learn:
+            self.word = QtWidgets.QLineEdit(placeholderText="Richtige Schreibweise, z. B. Apixaban")
+            self.speak = button("Halten und sprechen", name="primary")
+            self.speak.pressed.connect(self._listen)
+            self.speak.released.connect(self.ctl.listen_stop)
+            self.heard = label("Wort eintippen, Knopf halten und das Wort so sprechen wie im Diktat – am besten "
+                               "zwei- bis dreimal, auch in einem kurzen Satz. Was die Erkennung daraus macht, "
+                               "wird künftig durch die richtige Schreibweise ersetzt.", "muted", wrap=True)
+            self.body.addWidget(card(label("Wort einsprechen", "h2"), hbox((self.word, 1), self.speak), self.heard))
+            self.ctl.sig_heard.connect(self._heard)
         self.body.addWidget(self.table, 1)
         self.body.addLayout(hbox(button("Hinzufügen", self.add, "primary"),
                                  button("Entfernen", self.remove), None))
@@ -788,6 +840,27 @@ class MapPage(Page):
         for r in rows:
             self.table.removeRow(r)
         self.store()
+
+    def _listen(self):
+        if not self.word.text().strip():
+            restyle(self.heard, "bad")
+            return self.heard.setText("Erst die richtige Schreibweise eintippen.")
+        error = self.ctl.listen_start()
+        restyle(self.heard, "bad" if error else "muted")
+        self.heard.setText(error or "Höre zu …")
+
+    def _heard(self, text, error):
+        target = self.word.text().strip()
+        heard = re.sub(r"[.,;:!?…]+$", "", text.strip()).strip()
+        note, wrong = learn_verdict(target, heard, error)
+        if wrong:
+            data = dict(self.ctl.cfg.get(self.key) or {})
+            data[wrong] = target
+            self.ctl.cfg[self.key] = data
+            self.ctl.apply_cfg()
+            self.refresh()
+        restyle(self.heard, "ok" if wrong or "schon richtig" in note else "bad")
+        self.heard.setText(note)
 
     def store(self, *_):
         if self.loading:
@@ -1181,7 +1254,7 @@ class Hub(QtWidgets.QWidget):
             ("Wörterbuch", MapPage(ctl, "Wörterbuch",
                                    "Wörter, die falsch erkannt werden, automatisch ersetzen. "
                                    "Groß- und Kleinschreibung spielt beim Erkennen keine Rolle.",
-                                   "dictionary", ["Erkannt wird", "Ersetzen durch"])),
+                                   "dictionary", ["Erkannt wird", "Ersetzen durch"], learn=True)),
             ("Textbausteine", MapPage(ctl, "Textbausteine",
                                       "Ein gesprochenes Stichwort wird durch den hinterlegten Text ersetzt. "
                                       "Für einen Zeilenumbruch \\n schreiben.",

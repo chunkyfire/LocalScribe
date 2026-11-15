@@ -1,6 +1,6 @@
 # Langzeittest: eine Stunde Diktat
 
-Stand 15.11.2026, LocalScribe 0.3.0, Rechner: Intel i7-13700KF, nur CPU.
+Stand 15.11.2026, LocalScribe 0.4.0 (Sprechpausen über Silero VAD), Rechner: Intel i7-13700KF, nur CPU.
 
 ## Aufbau
 
@@ -16,17 +16,24 @@ Stand 15.11.2026, LocalScribe 0.3.0, Rechner: Intel i7-13700KF, nur CPU.
 
 ## Ergebnis
 
-| Weg | fehlende Inhaltswörter von 3 371 | längste Lücke |
-|---|---|---|
-| Bestfall (Satz für Satz einzeln) | 49 | 5 Wörter |
-| Datei transkribieren | 45 | wie Bestfall |
-| Aufnahme (als Mikrofon-Blöcke eingespeist) | 47 | 5 Wörter |
-| Nach Absturz aus der Sicherungsdatei (20 Minuten, 1 156 Wörter) | 14 (Bestfall 15) | – |
+| Weg | fehlende Inhaltswörter von 3 371 | abweichend geschrieben | längste Lücke |
+|---|---|---|---|
+| Bestfall (Satz für Satz einzeln) | 49 | 408 | 5 Wörter |
+| Datei transkribieren | 44 | 452 | 5 Wörter |
+| Aufnahme (als Mikrofon-Blöcke eingespeist) | 43 | 458 | 5 Wörter |
+| Nach Absturz aus der Sicherungsdatei (20 Minuten, 1 156 Wörter) | 13 (Bestfall 15) | – | – |
 
 Die Verarbeitungskette verliert gegenüber dem Bestfall nichts. Die Lücken des Bestfalls sind
 Maßeinheiten in Kurzschreibweise und Medikamentennamen, die die synthetische Stimme verschluckt.
+„Abweichend geschrieben“ sind vor allem diese Medikamentennamen und Zahlen. Die Kette liegt hier
+rund 45 Wörter (1,3 %) über dem Bestfall: An Schnittstellen mitten im Satz schreibt das Modell
+gelegentlich Wörter zusammen oder eine Zahl als Wort aus.
 
-Dauer: 60 Minuten Ton in rund 6 Minuten. Die Sicherungsdatei war nach der Aufnahme gelöscht.
+Dauer: 60 Minuten Ton in rund 6 Minuten, 1 438 Stücke, längstes 11 s; 6,2 Minuten Stille
+übersprungen. Die Sicherungsdatei war nach der Aufnahme gelöscht.
+
+Live (`tests/test_live.py`, Ton im Tempo eines echten Mikrofons, 75 s): erster Text nach 5,2 s,
+27 Zwischenstände, Rückstand hinter dem Gesprochenen 0,3 s, nach dem Stopp sofort fertig.
 
 ## Vorher
 
@@ -40,7 +47,7 @@ Ursache: Das Modell lässt Satzteile weg, sobald ein Stück eine Sprechpause ent
 | 5 bis 10 s, leiseste Stelle | 80 |
 | an Pausen, zu Stücken bis 12 s gebündelt | 106 |
 | an jeder Pause ab 0,6 s | 39 |
-| an jeder Pause ab 0,3 s | 10 |
+| an jeder Pause ab 0,3 s (Lautstärke, 0.3.0) | 10 |
 
 ## Was der Test nicht zeigt
 

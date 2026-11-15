@@ -6,7 +6,8 @@ landet im gerade aktiven Textfeld. Die Spracherkennung läuft vollständig auf d
 
 ## Installieren (ohne Adminrechte)
 
-1. Unter **Releases** die Datei `LocalScribe-…-windows.zip` herunterladen.
+1. Unter **Releases** die Datei `LocalScribe-…-windows.zip` herunterladen. Die Prüfsumme steht
+   daneben in `SHA256SUMS.txt`.
 2. Entpacken, zum Beispiel nach `Dokumente\LocalScribe`.
 3. `LocalScribe.exe` starten. Meldet Windows „Der Computer wurde geschützt“: **Weitere Informationen →
    Trotzdem ausführen** (die Datei ist nicht signiert).
@@ -33,11 +34,13 @@ beendet sie nicht; sie bleibt im Infobereich (Rechtsklick → Beenden).
 ## Das Fenster
 
 - **Verlauf** – alle Diktate, Klick kopiert, „KI“ bearbeitet einen Eintrag nachträglich.
-  Einträge werden nach 30 Tagen gelöscht (einstellbar).
+  Einträge werden nach 7 Tagen gelöscht (einstellbar).
 - **Aufnahme** – einmal drücken startet, noch einmal drücken beendet, auch nach einer Stunde.
-  Der Text entsteht schon während der Aufnahme.
+  Der Text läuft live mit: Nach jeder Sprechpause erscheint, was gerade gesagt wurde.
 - **Datei** – Audio- oder Videodatei hineinziehen (MP3, M4A, WAV, FLAC, OGG, MP4 …).
-- **Wörterbuch** – falsch Erkanntes automatisch ersetzen.
+- **Wörterbuch** – falsch Erkanntes automatisch ersetzen. Mit **Wort einsprechen** lernt die App
+  dazu: richtige Schreibweise eintippen, Knopf halten, Wort sprechen. Was die Erkennung daraus
+  macht, wird künftig ersetzt. Übernommen wird nur, was dem richtigen Wort ähnlich ist.
 - **Textbausteine** – gesprochenes Stichwort → hinterlegter Text.
 - **KI-Nachbearbeitung** – Server-Adresse, API-Schlüssel, Modell und eigene Prompts.
   Spricht jede OpenAI-kompatible Schnittstelle (Ollama, LM Studio, vLLM, eigener Anbieter).
@@ -55,7 +58,7 @@ Dateien: `%LOCALAPPDATA%\LocalScribe\` (`config.json`, `verlauf.sqlite`, `diktat
   Bleibt sie liegen (Absturz, Fehler), bietet die App beim nächsten Öffnen das Nachholen an;
   spätestens nach der Aufbewahrungsfrist wird sie gelöscht.
 - **Text.** Der Verlauf speichert Text, Zeitpunkt und Dauer – keinen Ton und keinen Fenstertitel.
-  Er wird nach 30 Tagen gelöscht (einstellbar) und lässt sich ganz abschalten, etwa auf gemeinsam
+  Er wird nach 7 Tagen gelöscht (einstellbar) und lässt sich ganz abschalten, etwa auf gemeinsam
   genutzten Windows-Konten. Gelöschte Einträge werden in der Datei überschrieben.
 - **Ort.** Alles liegt unter `%LOCALAPPDATA%`, also nicht im Roaming-Profil, das in Firmennetzen
   auf einen Server wandert.
@@ -81,6 +84,7 @@ Tests:
     .venv\Scripts\python.exe tests\test_llm.py
     .venv\Scripts\python.exe tests\test_flow.py
     .venv\Scripts\python.exe tests\test_long.py
+    .venv\Scripts\python.exe tests\test_live.py
     # Langzeittest (rund 25 Minuten): siehe Kopf von tests\langzeit\stunde.py
 
 ## Was gemessen ist und wo die Grenzen liegen
@@ -91,15 +95,34 @@ Verarbeitungskette. Ergebnis und Vergleich stehen in `tests/langzeit/ERGEBNIS.md
 - Das Modell erkennt zuverlässig nur einzelne Äußerungen. Enthält ein Stück eine Sprechpause oder
   ist es länger als etwa 23 Sekunden, lässt es Satzteile weg. Die App schneidet deshalb an jeder
   Sprechpause ab 0,3 Sekunden und nie später als nach 12 Sekunden.
-- Reine Stille wird nicht erkannt, weil das Modell daraus gelegentlich Wörter erfindet.
-- In sehr lauter Umgebung sind Pausen nicht mehr zu erkennen; dann sinkt die Vollständigkeit und
-  die App weist darauf hin. Ein Headset hilft.
+- Sprechpausen erkennt Silero VAD am Klang, unabhängig von der Lautstärke.
+- Reine Stille wird nicht erkannt, weil das Modell daraus gelegentlich Wörter erfindet. Dafür müssen
+  zwei Prüfungen übereinstimmen (Silero hört keine Sprache, der Pegel hebt sich nicht vom
+  Grundrauschen ab); im Zweifel wird erkannt.
+- Echtes Wort-Boosting im Modell gibt es nicht. Das Wörterbuch korrigiert nach der Erkennung.
 - Geprüft wurde mit einer synthetischen Stimme. Die Erkennungsgüte bei echten Stimmen, Dialekt
   und Fachvokabular ist damit nicht belegt. Jeder Text muss vor der Übernahme gegengelesen werden.
 - In Fenster, die mit Adminrechten laufen, kann die App nicht einfügen.
+
+## Lizenz und Signatur
+
+GPL-3.0-or-later, siehe `LICENSE`. Nutzen, verändern und weitergeben ist erlaubt; wer eine veränderte
+Fassung weitergibt, legt deren Quelltext ebenfalls offen. Die Lizenzen der verwendeten Bausteine
+stehen in `THIRD_PARTY.md`.
+
+Die EXE trägt keine Windows-Signatur. Zu jeder Veröffentlichung liegt die SHA-256-Prüfsumme der
+ZIP-Datei in `SHA256SUMS.txt`; prüfen mit
+
+    Get-FileHash LocalScribe-<Version>-windows.zip -Algorithm SHA256
+
+Unter `docs/github-build.yml` liegt ein vorbereiteter GitHub-Actions-Ablauf, der die ZIP-Datei
+öffentlich nachvollziehbar aus dem Quelltext baut und einen Herkunftsnachweis anhängt. Er wird
+aktiv, sobald er nach `.github/workflows/build.yml` verschoben wird.
 
 ## Herkunft
 
 Eigener Code, eigene Gestaltung, eigene Töne. Vorbild für den Ablauf war Wispr Flow;
 aus dessen Programm wurde nichts übernommen. Modell: primeline/parakeet-primeline
 (CC-BY-4.0, primeline und NVIDIA), ONNX-Export OpenVoiceOS/primeline-parakeet-onnx.
+Sprechpausen: Silero VAD. Wer eine fertige, ausgereifte Diktier-App für alle Betriebssysteme
+sucht, findet sie in [Handy](https://github.com/cjpais/Handy).

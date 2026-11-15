@@ -59,9 +59,10 @@ def run(name, min_pause, max_len, n):
     seg = engine.Segmenter(min_pause=min_pause, max_len=max_len)
     start, texts, lens = time.time(), [], []
     for i in range(0, len(audio), 1600):
-        for c in seg.feed(audio[i:i + 1600]) + ([] if i + 1600 < len(audio) else seg.flush()):
+        for c, still in seg.feed(audio[i:i + 1600]) + ([] if i + 1600 < len(audio) else seg.flush()):
             lens.append(len(c) / RATE)
-            texts.append(t.model.recognize(c, sample_rate=RATE))
+            if not still:
+                texts.append(t.model.recognize(c, sample_rate=RATE))
     score(f"{name} [{len(lens)} Stücke, max {max(lens):.1f} s, {time.time() - start:.0f} s]", texts, n)
 
 

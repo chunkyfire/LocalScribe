@@ -30,6 +30,7 @@ class Diktat(QtCore.QObject):
     sig_stop, sig_cancel, sig_lock = Signal(), Signal(), Signal()
     sig_ready = Signal(str)
     sig_status = Signal(str)
+    sig_heard = Signal(str, str)      # gehörter Text, Fehlermeldung (Wörterbuch: Wort einsprechen)
     sig_result = Signal(object)
 
     def __init__(self, app):
@@ -108,6 +109,34 @@ class Diktat(QtCore.QObject):
         if self.cfg.get("history_enabled", True):
             self.store.add(text, seconds, latency, raw, prompt)
             self.hub.refresh()
+
+    def listen_start(self) -> str:
+        """Aufnahme für „Wort einsprechen“ beginnen. Gibt eine Fehlermeldung zurück oder ""."""
+        if not self.ready:
+            return "Das Sprachmodell lädt noch."
+        if self.recording:
+            return "Es läuft gerade ein Diktat."
+        try:
+            self.recorder.start()
+        except Exception as e:
+            return f"Mikrofon nicht verfügbar: {e}"
+        self.recording = True
+        return ""
+
+    def listen_stop(self):
+        """Aufnahme beenden; das Ergebnis kommt über sig_heard."""
+        if not self.recording:
+            return
+        audio = self.recorder.stop()
+        self.recording = False
+
+        def work():
+            try:
+                self.sig_heard.emit(self.transcriber.transcribe(audio), "")
+            except Exception as e:
+                log.exception("Einsprechen fehlgeschlagen")
+                self.sig_heard.emit("", str(e) or type(e).__name__)
+        threading.Thread(target=work, daemon=True).start()
 
     def apply_cfg(self):
         """Geänderte Einstellungen speichern und sofort wirksam machen."""

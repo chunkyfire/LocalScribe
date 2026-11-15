@@ -174,6 +174,18 @@ def after_recovery(kept):
     check("Diktat per Taste (17,7 s mit Pausen): vollständig",
           single.startswith("Der Patient") and "morgen früh" in single and 33 <= len(single.split()) <= 39,
           f"({len(single.split())} Wörter)")
+    class Deaf:   # Silero überhört alles (wie bei Flüstern): Es darf trotzdem nichts verworfen werden
+        def __call__(self, frame):
+            return 0.0
+    real_vad, engine.Vad = engine.Vad, Deaf
+    whisper = ctl.transcriber.transcribe(as_float[:len(speech)])
+    engine.Vad = real_vad
+    check("Überhört Silero die Sprache, wird sie trotzdem erkannt",
+          "Oberbauchschmerzen" in whisper and "morgen früh" in whisper, f"({len(whisper.split())} Wörter)")
+    loud = as_float[:len(speech)] * 0.35 + (np.random.default_rng(2).standard_normal(len(speech)) * 0.02).astype(np.float32)
+    noisy = ctl.transcriber.transcribe(loud)
+    check("Lauter Raum (Rauschen 6 % der Aussteuerung): Anfang und Ende des Diktats erkannt",
+          noisy.startswith("Der Patient") and "morgen früh" in noisy, f"({len(noisy.split())} Wörter)")
     quiet = ctl.transcriber.transcribe_stream(iter([long_audio[:18 * 16000].astype(np.float32) / 32768 * 0.003]))
     check("Sehr leise Sprache wird nicht verworfen", quiet.count("Oberbauchschmerzen") == 1, f"({len(quiet.split())} Wörter)")
     silence = ctl.transcriber.transcribe_stream(iter([np.zeros(16000 * 40, np.float32)]))

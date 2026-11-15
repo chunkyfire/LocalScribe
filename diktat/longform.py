@@ -37,7 +37,6 @@ class LongJob(QtCore.QObject):
         self.kept = None            # Sicherungsdatei, die wegen eines Problems liegen blieb
         self.failed = 0             # Stücke, die nicht erkannt werden konnten
         self.overflows = 0          # vom Audiotreiber gemeldete Aussetzer
-        self.noisy = False          # sehr lautes Grundrauschen: Erkennung unzuverlässiger
         self.last_block = 0.0       # Zeitpunkt des letzten Mikrofon-Blocks (für die Überwachung)
         self._cancel = False
         self._queue = None
@@ -160,7 +159,6 @@ class LongJob(QtCore.QObject):
             log.exception("Transkription abgebrochen")
             error = str(e) or type(e).__name__
         self.failed = stats.get("failed", 0)
-        self.noisy = bool(stats.get("noisy"))
         if self.overflows:
             log.warning("Audiotreiber meldete %d Aussetzer während der Aufnahme", self.overflows)
         if backup is not None:
@@ -188,4 +186,3 @@ class LongJob(QtCore.QObject):
         self.running, self._cancel = True, False
         self.wav_path = self.kept = None
         self.failed = self.overflows = 0
-        self.noisy = False

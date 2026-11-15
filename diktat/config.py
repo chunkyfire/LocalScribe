@@ -40,8 +40,9 @@ DEFAULTS = {
     "min_seconds": 0.3,
     # Verlauf führen? Auf gemeinsam genutzten Windows-Konten ausschalten.
     "history_enabled": True,
-    # Verlauf nach so vielen Tagen löschen (0 = nie)
-    "history_days": 30,
+    # Verlauf nach so vielen Tagen löschen (0 = nie). Er soll nur einen Text retten, der im
+    # falschen Fenster gelandet ist; dafür reicht eine Woche.
+    "history_days": 7,
     # gesprochene Befehle -> Text
     "commands": {"neue Zeile": "\n", "neuer Absatz": "\n\n"},
     # Wörterbuch: falsch erkannt -> richtig (Groß-/Kleinschreibung egal)

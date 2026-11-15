@@ -7,6 +7,8 @@ import time
 import numpy as np
 import sounddevice as sd
 
+from .vad import FRAME, Vad
+
 log = logging.getLogger("diktat")
 RATE = 16000
 # Was die Messungen an diesem Modell ergeben haben (tests/langzeit):
@@ -16,7 +18,6 @@ RATE = 16000
 # Deshalb bekommt das Modell immer nur eine zusammenhängende Äußerung: Geschnitten wird an jeder
 # Sprechpause ab MIN_PAUSE, und kein Stück wird länger als MAX_LEN.
 MIN_PAUSE, MAX_LEN, PAD = 0.3, 12.0, 0.2
-QUIET_TRUST = 0.01   # Grundrauschen darüber (lauter Raum): Stille wird nicht mehr aussortiert
 GAP = "[Stelle nicht erkannt]"
 
 
@@ -95,144 +96,109 @@ class Recorder:
         return audio
 
 
-def quiet_cut(audio: np.ndarray, target, search) -> int:
-    """Index der leisesten Stelle zwischen target und target+search Sekunden."""
-    lo, hi = int(target * RATE), int((target + search) * RATE)
-    win = int(0.05 * RATE)
-    seg = audio[lo:hi]
-    n = len(seg) // win
-    rms = np.sqrt(np.mean(seg[: n * win].reshape(n, win) ** 2, axis=1))
-    # über 0,3 s glätten, damit eine echte Pause gewinnt
-    rms = np.convolve(rms, np.ones(6) / 6, mode="same")
-    return lo + int(np.argmin(rms)) * win + win // 2
-
-
 class Segmenter:
     """Zerlegt einen Audiostrom an Sprechpausen in einzelne Äußerungen.
 
     feed(block) nimmt beliebig große Blöcke (float32, 16 kHz) und gibt fertige Stücke als
-    (audio, still) zurück, flush() den Rest. Alle Stücke zusammen ergeben wieder exakt den
-    Eingang. „still“ heißt: In dem Stück lag kein einziger Rahmen über dem Grundrauschen.
-    Solche Stücke werden nicht erkannt, weil das Modell aus reiner Stille gelegentlich Wörter
-    erfindet (gemessen: „Thank you.“ bei stummgeschaltetem Mikrofon). Ist das Grundrauschen
-    ungewöhnlich hoch (über QUIET_TRUST), gilt nichts als still: Dann wird lieber alles erkannt.
+    (audio, still) zurück, flush() den Rest. Alle Stücke zusammen ergeben wieder exakt den Eingang.
 
-    Sprache wird am Pegel relativ zum Grundrauschen erkannt; das Grundrauschen wird laufend aus
-    den letzten 30 s geschätzt, eine feste Lautstärke-Schwelle gibt es nicht.
+    Ob gerade gesprochen wird, entscheidet Silero VAD (siehe vad.py) am Klang, unabhängig von der
+    Lautstärke – das funktioniert bei sehr leiser Sprache ebenso wie in lauter Umgebung.
+
+    „still“ heißt: Das Stück wird nicht erkannt, weil das Modell aus reiner Stille gelegentlich
+    Wörter erfindet (gemessen: „Thank you.“ bei stummgeschaltetem Mikrofon). Dafür müssen zwei
+    unabhängige Prüfungen übereinstimmen: Silero hört nirgends Sprache UND der Pegel hebt sich
+    nirgends vom Grundrauschen ab. Im Zweifel (Flüstern, das Silero überhört) wird erkannt.
     """
-    FRAME = 320  # 20 ms
+    ENTER, STAY, STILL = 0.5, 0.35, 0.2
 
-    def __init__(self, min_pause=MIN_PAUSE, max_len=MAX_LEN, pad=PAD, floor=None):
-        self.min_pause = int(round(min_pause * RATE / self.FRAME))
-        self.max_frames = int(round(max_len * RATE / self.FRAME))
-        self.pad = int(round(pad * RATE / self.FRAME))
-        self.max_len = max_len
-        self.fixed_floor = floor
-        self.floor = floor
-        self.history = collections.deque(maxlen=1500)   # 30 s Pegelwerte
+    def __init__(self, min_pause=MIN_PAUSE, max_len=MAX_LEN, pad=PAD):
+        self.vad = Vad()
+        self.min_pause = max(1, int(round(min_pause * RATE / FRAME)))
+        self.max_frames = int(round(max_len * RATE / FRAME))
+        self.pad = int(round(pad * RATE / FRAME))
         self.rest = np.zeros(0, np.float32)
-        self.cur = []            # Rahmen des laufenden Stücks
-        self.speech = True       # Anfang zählt als Sprache, bis das Grundrauschen bekannt ist
-        self.quiet = 0           # leise Rahmen in Folge (im Sprach-Stück)
-        self.onset = 0           # laute Rahmen in Folge (im Stille-Stück)
-        self.loud = 0            # laute Rahmen im laufenden Stück
+        self.cur, self.probs, self.levels = [], [], []   # Rahmen des laufenden Stücks
+        self.speech = False
+        self.quiet = 0           # Rahmen ohne Sprache in Folge (in einer Äußerung)
+        self.onset = 0           # Rahmen mit Sprache in Folge (in der Stille)
+        self.history = collections.deque(maxlen=940)     # Pegel der letzten 30 s
+        self.floor = None        # Grundrauschen; steigt nur langsam, fällt sofort
         self.count = 0
-        self.noisy = False       # Grundrauschen über QUIET_TRUST
-        self.noisy_frames = int(round(min(max_len, 8.0) * RATE / self.FRAME))
 
-    def _loud(self, rms, inside):
-        if rms < 1e-7:
-            return False       # digitale Stille (stummes Mikrofon) ist nie Sprache
-        if self.floor is None:
-            return True
-        return rms > max(self.floor * (3.0 if inside else 4.0), 1e-6)
+    def _floor(self, rms):
+        self.history.append(rms)
+        self.count += 1
+        if self.count >= 50 and self.count % 25 == 0:
+            p10 = float(np.percentile(self.history, 10))
+            self.floor = p10 if self.floor is None else min(p10, self.floor * 1.02)
 
-    def _emit(self, out, frames_or_audio, loud):
-        audio = frames_or_audio if isinstance(frames_or_audio, np.ndarray) else np.concatenate(frames_or_audio)
-        trusted = self.floor is not None and self.floor <= QUIET_TRUST
-        still = loud == 0 and (trusted or not audio.any())
+    def _emit(self, out, n):
+        """Die ersten n Rahmen als Stück abschließen."""
+        audio = np.concatenate(self.cur[:n])
+        heard = max(self.probs[:n]) >= self.STILL
+        raised = self.floor is None or max(self.levels[:n]) > max(self.floor * 4.0, 1e-6)
+        still = not audio.any() or (not heard and not raised)
         out.append((audio, still))
+        self.cur, self.probs, self.levels = self.cur[n:], self.probs[n:], self.levels[n:]
 
     def feed(self, block):
         out = []
         data = np.concatenate([self.rest, block]) if len(self.rest) else block
-        n = len(data) // self.FRAME
-        self.rest = data[n * self.FRAME:]
+        n = len(data) // FRAME
+        self.rest = data[n * FRAME:]
         for k in range(n):
-            frame = data[k * self.FRAME:(k + 1) * self.FRAME]
+            frame = data[k * FRAME:(k + 1) * FRAME]
             rms = float(np.sqrt(np.mean(frame * frame)))
-            if self.fixed_floor is None:
-                self.history.append(rms)
-                self.count += 1
-                if self.count >= 50 and self.count % 25 == 0:
-                    self.floor = float(np.percentile(self.history, 10))
+            self._floor(rms)
+            p = self.vad(frame)
             self.cur.append(frame)
-            self.noisy = self.floor is not None and self.floor > QUIET_TRUST
-            if self.noisy:
-                # Lauter Raum: Pausen sind am Pegel nicht mehr zu erkennen. Dann nichts aussortieren
-                # und in kürzeren Abständen an der jeweils leisesten Stelle teilen.
-                self.speech, self.quiet, self.loud = True, 0, self.loud + 1
-                limit = self.noisy_frames
-            else:
-                limit = self.max_frames
-            if self.noisy:
-                pass
-            elif self.speech:
-                if self._loud(rms, True):
-                    self.quiet = 0
-                    self.loud += 1
-                else:
-                    self.quiet += 1
+            self.probs.append(p)
+            self.levels.append(rms)
+            if self.speech:
+                self.quiet = 0 if p >= self.STAY else self.quiet + 1
                 if self.quiet >= self.min_pause:
                     # Pause erkannt: Äußerung samt kurzem Nachlauf abschließen
-                    keep = len(self.cur) - self.quiet + self.pad
-                    self._emit(out, self.cur[:keep], self.loud)
-                    self.cur, self.speech, self.onset, self.loud = self.cur[keep:], False, 0, 0
+                    self._emit(out, len(self.cur) - self.quiet + min(self.pad, self.quiet))
+                    self.speech, self.onset = False, 0
                     continue
             else:
-                self.onset = self.onset + 1 if self._loud(rms, False) else 0
+                self.onset = self.onset + 1 if p >= self.ENTER else 0
                 if self.onset >= 2:
                     # Sprache setzt ein: Stille abschließen, kurzer Vorlauf gehört zur Äußerung
                     keep = max(0, len(self.cur) - self.onset - self.pad)
                     if keep:
-                        self._emit(out, self.cur[:keep], 0)
-                    self.cur, self.speech, self.quiet, self.loud = self.cur[keep:], True, 0, self.onset
+                        self._emit(out, keep)
+                    self.speech, self.quiet = True, 0
                     continue
-            if len(self.cur) >= limit:
-                # keine Pause gefunden: an der leisesten Stelle der zweiten Hälfte teilen
-                audio = np.concatenate(self.cur)
-                half = len(self.cur) * self.FRAME / RATE / 2
-                cut = quiet_cut(audio, half, half)
-                cut = max(self.FRAME, cut - cut % self.FRAME)
-                self._emit(out, audio[:cut], self.loud)
-                tail = audio[cut:]
-                self.cur = [tail[i:i + self.FRAME] for i in range(0, len(tail), self.FRAME)]
+            if len(self.cur) >= self.max_frames:
+                # keine Pause gefunden: dort teilen, wo in der zweiten Hälfte am wenigsten Sprache ist
+                half = len(self.cur) // 2
+                tail = np.array(self.probs[half:]) + np.array(self.levels[half:]) / (max(self.levels[half:]) + 1e-9) * 0.01
+                self._emit(out, max(1, half + int(np.argmin(tail))))
                 self.quiet = min(self.quiet, len(self.cur))
-                # im Sprach-Stück vorsichtshalber weiter als Sprache werten
-                self.loud = len(self.cur) if self.speech and self.loud else 0
         return out
 
     def flush(self):
         out = []
-        parts = self.cur + ([self.rest] if len(self.rest) else [])
-        if parts:
-            self._emit(out, np.concatenate(parts), self.loud if self.speech else self.onset)
-        self.cur, self.rest, self.quiet, self.onset, self.loud = [], np.zeros(0, np.float32), 0, 0, 0
+        if len(self.rest):
+            if len(self.rest) >= FRAME // 2 or not self.cur:
+                frame = np.concatenate([self.rest, np.zeros(FRAME - len(self.rest), np.float32)])
+                self.probs.append(self.vad(frame))
+                self.levels.append(float(np.sqrt(np.mean(self.rest * self.rest))))
+                self.cur.append(self.rest)
+            else:
+                self.cur[-1] = np.concatenate([self.cur[-1], self.rest])
+            self.rest = np.zeros(0, np.float32)
+        if self.cur:
+            self._emit(out, len(self.cur))
+        self.speech, self.quiet, self.onset = False, 0, 0
         return out
 
 
-def noise_floor(audio: np.ndarray):
-    """Grundrauschen einer fertigen Aufnahme (für kurze Diktate, bei denen sofort gesprochen wird)."""
-    n = len(audio) // Segmenter.FRAME
-    if n < 10:
-        return None
-    rms = np.sqrt(np.mean(audio[: n * Segmenter.FRAME].reshape(n, Segmenter.FRAME) ** 2, axis=1))
-    return float(np.percentile(rms, 10))
-
-
 def split_long(audio: np.ndarray) -> list[np.ndarray]:
-    """Fertige Aufnahme (Diktat per Taste) in einzelne Äußerungen zerlegen."""
-    seg = Segmenter(floor=noise_floor(audio))
+    """Fertige Aufnahme (Diktat per Taste) in einzelne Äußerungen zerlegen; reine Stille fällt weg."""
+    seg = Segmenter()
     return [c for c, still in seg.feed(audio) + seg.flush() if len(c) and not still]
 
 
@@ -245,8 +211,6 @@ def stream_chunks(blocks, stats=None):
         if block is None or not len(block):
             continue
         yield from seg.feed(block)
-        if stats is not None and seg.noisy:
-            stats["noisy"] = True
     yield from seg.flush()
 
 
