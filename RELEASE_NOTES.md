@@ -1,3 +1,12 @@
+## LocalScribe 0.11.0
+
+- **Handy als Mikrofon**: Einstellungen, „Handy als Mikrofon“ ankreuzen, speichern, QR-Code scannen. Das Telefon
+  nimmt im Browser auf (keine App nötig) und schickt den Ton nach dem Stopp an den Rechner; erkannt und eingefügt
+  wird dort wie bei jedem Diktat. Beide Geräte müssen im selben Netz sein. Die Verbindung ist verschlüsselt mit
+  einem Zertifikat, das LocalScribe selbst erzeugt; das Telefon zeigt dafür einmal eine Warnung. Ohne das Kürzel
+  aus dem QR-Code nimmt der Rechner nichts an. Grenzen: Windows fragt beim ersten Einschalten nach der Firewall;
+  in Kliniknetzen sind Geräte oft voneinander getrennt, dann geht es nicht.
+
 ## LocalScribe 0.10.1
 
 - **Zielfenster**: Umschalt + F9 merkt das Fenster, das gerade vorn ist. Ab dann landet jedes Diktat dort, auch

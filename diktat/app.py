@@ -17,7 +17,7 @@ os.environ.setdefault("DO_NOT_TRACK", "1")
 from PySide6 import QtCore, QtGui, QtNetwork, QtWidgets
 from PySide6.QtCore import QTimer, Signal
 
-from . import config, engine, felder, korrektor, llm, winio
+from . import config, engine, felder, handy, korrektor, llm, winio
 from .hub import Hub, keys_text
 from .ui import Overlay, Store, make_icon, make_pixmap, private_mime
 
@@ -33,6 +33,7 @@ class Diktat(QtCore.QObject):
     sig_download = Signal(float, float)   # geladene Bytes, Gesamtgröße (Modell-Download)
     sig_heard = Signal(str, str)      # gehörter Text, Fehlermeldung (Wörterbuch: Wort einsprechen)
     sig_result = Signal(object)
+    sig_phone = Signal(object)        # Aufnahme vom Telefon (Handy als Mikrofon)
 
     def __init__(self, app):
         super().__init__()
@@ -63,6 +64,10 @@ class Diktat(QtCore.QObject):
         self.sig_status.connect(self.on_status)
         self.sig_download.connect(self.on_download)
         self.sig_result.connect(self.on_result)
+        self.sig_phone.connect(self.on_phone)
+        self.phone = None
+        self.target = 0
+        QTimer.singleShot(0, self.start_phone)
 
         self.hub = Hub(self)
         self.tray = QtWidgets.QSystemTrayIcon(make_icon(), self)
@@ -154,6 +159,7 @@ class Diktat(QtCore.QObject):
         self.recorder.set_warm(self.cfg.get("mic_warm"), self.cfg.get("microphone"))
         self.cleanup()
         self.start_hotkey()
+        self.start_phone()
         if self.ready and self.cfg.get("model_choice", "de") != self.transcriber.loaded:
             # anderes Sprachmodell gewählt: im Hintergrund laden, bis dahin ruht das Diktieren
             self.ready = False
@@ -206,6 +212,8 @@ class Diktat(QtCore.QObject):
                 return
         winio.keep_awake(False)
         self.hotkey.stop()
+        if self.phone:
+            self.phone.stop()
         self.recorder.warm = False           # Mikrofon beim Beenden sicher schließen
         self.recorder.stop()
         llm.release(self.cfg["llm"])       # lokales Sprachmodell aus dem Grafikspeicher nehmen
@@ -399,6 +407,41 @@ class Diktat(QtCore.QObject):
         if self.recording:
             return
         self.overlay.set_mode("processing" if self.pending else "idle")
+
+    # ---------- Handy als Mikrofon ----------
+    def start_phone(self):
+        """Den Empfang für das Telefon ein- oder ausschalten, je nach Einstellung."""
+        want = self.cfg.get("phone") or {}
+        if self.phone and (not want.get("enabled") or self.phone.token != want.get("token")
+                           or self.phone.port != int(want.get("port") or handy.PORT)):
+            self.phone.stop()
+            self.phone = None
+        if want.get("enabled") and want.get("token") and not self.phone:
+            try:
+                self.phone = handy.Server(self._from_phone, want["token"], want.get("port"))
+                self.phone.start()
+            except Exception as e:
+                log.exception("Handy-Mikrofon nicht startbar")
+                self.phone = None
+                self.overlay.flash(f"Handy als Mikrofon nicht startbar: {e}", 6000)
+
+    def _from_phone(self, audio):
+        """Läuft im Thread des Webservers: prüfen, dann an die Oberfläche übergeben. Gibt einen Ablehnungsgrund zurück."""
+        if not self.ready:
+            return "Das Sprachmodell am Rechner lädt noch. Gleich noch einmal versuchen."
+        if len(audio) / engine.RATE < float(self.cfg.get("min_seconds", 0.3)):
+            return "Die Aufnahme war zu kurz."
+        if engine.audio_note(audio) == "stumm":
+            return "Es kam kein Ton an. Mikrofon am Telefon prüfen."
+        self.sig_phone.emit(audio)
+        return ""
+
+    def on_phone(self, audio):
+        self.beep(880, 660)
+        self.pending += 1
+        self.overlay.set_mode("processing")
+        self.jobs.put({"kind": "dictation", "audio": audio, "seconds": len(audio) / engine.RATE, "prompt": "",
+                       "note": engine.audio_note(audio)})
 
     # ---------- Zielfenster ----------
     def toggle_target(self):

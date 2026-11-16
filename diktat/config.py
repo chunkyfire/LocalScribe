@@ -59,6 +59,7 @@ DEFAULTS = {
     "mic_warm": False,            # Mikrofon dauerhaft offen halten: kein Startverzug, erste Silbe bleibt
     "speakers": False,            # Sprecher trennen bei Aufnahme und Datei
     "training_done": [],          # Stimmtraining: schon gelesene Sätze
+    "phone": {"enabled": False, "port": 8765, "token": ""},   # Handy als Mikrofon (Webseite im eigenen Netz)
     "training_keep": False,       # Stimmtraining: Aufnahmen mit Satz auf diesem Rechner aufheben (für ein Nachtraining)
     "config_version": 3,
     "quantization": "int8",

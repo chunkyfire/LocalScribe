@@ -285,5 +285,28 @@ check("Eigene Berichtigungen gelten ohne Türsteher", out[0] == "Cave Nierenfunk
 check("Schlüssel je Anbieter getrennt", llm._account("IONOS") == "llm_api_key:IONOS" and llm._account() == "llm_api_key")
 # ---- 0.10.1: Zielfenster ----
 check("Zielfenster hat eine eigene Taste", config.DEFAULTS.get("hotkey_target") == ["shift", "f9"])
+# ---- 0.11.0: Handy als Mikrofon ----
+import ssl as _ssl
+import tempfile as _tf
+import urllib.request as _rq
+from diktat import handy
+got = []
+srv = handy.Server(lambda audio: got.append(audio) or "", "geheim123", 0, pathlib.Path(_tf.mkdtemp()))
+srv.port = 48765
+srv.start()
+ctx = _ssl.create_default_context(); ctx.check_hostname = False; ctx.verify_mode = _ssl.CERT_NONE
+def _call(path, data=None):
+    try:
+        with _rq.urlopen(_rq.Request("https://127.0.0.1:48765" + path, data=data), context=ctx, timeout=10) as r:
+            return r.status, r.read()
+    except Exception as e:
+        return getattr(e, "code", 0), b""
+tone = (np.sin(np.arange(16000) / 10) * 12000).astype("<i2").tobytes()
+check("Handy: Seite nur mit dem Kürzel aus dem QR-Code", _call("/")[0] == 403 and _call("/?k=falsch")[0] == 403 and b"Aufnehmen" in _call("/?k=geheim123")[1])
+check("Handy: Ton ohne Kürzel wird abgewiesen", _call("/audio?k=x", tone)[0] == 403 and not got)
+code, body = _call("/audio?k=geheim123", tone)
+check("Handy: Ton kommt als Diktat an", code == 200 and json.loads(body)["ok"] and len(got) == 1 and len(got[0]) == 16000 and abs(float(got[0].max()) - 12000 / 32768) < 0.01, str((code, body)))
+check("Handy: QR-Code ist ein PNG mit der Adresse", handy.qr_png(srv.url())[:4] == b"\x89PNG" and srv.url().endswith(":48765/?k=geheim123"))
+srv.stop()
 print("FEHLER:" if failed else "ALLES OK", failed or "")
 sys.exit(1 if failed else 0)

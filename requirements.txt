@@ -7,3 +7,5 @@ keyring
 av
 certifi
 tokenizers
+cryptography
+segno

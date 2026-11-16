@@ -10,7 +10,9 @@ import time
 from PySide6 import QtCore, QtGui, QtWidgets
 from PySide6.QtCore import Qt, QTimer, Signal
 
-from . import config, engine, fach, llm, schutz, training
+import secrets
+
+from . import config, engine, fach, handy, llm, schutz, training
 from . import sprecher
 from .longform import LongJob
 from .ui import make_icon, make_pixmap, private_mime
@@ -1598,6 +1600,7 @@ class SettingsPage(Page):
         self.signs = QtWidgets.QCheckBox("Satzzeichen diktieren: „Punkt“, „Komma“, „Doppelpunkt“, „neue Zeile“, „neuer Absatz“ werden zu Zeichen")
         self.warm.setToolTip("Das Mikrofon bleibt geöffnet, solange LocalScribe läuft (Windows zeigt das Mikrofon-Symbol). "
                              "Außerhalb eines Diktats wird nur die letzte Viertelsekunde im Arbeitsspeicher gehalten.")
+        self.phone = QtWidgets.QCheckBox("Handy als Mikrofon: Telefon im selben WLAN nimmt auf, der Text erscheint hier")
         self.auto = QtWidgets.QCheckBox("Mit Windows starten")
         self.history = QtWidgets.QCheckBox("Verlauf führen (auf gemeinsam genutzten Windows-Konten ausschalten)")
         self.days = QtWidgets.QSpinBox(minimum=0, maximum=3650, suffix=" Tage", specialValueText="nie löschen")
@@ -1623,6 +1626,14 @@ class SettingsPage(Page):
                   "Esc bricht eine laufende Aufnahme ab.", "muted", wrap=True)))
         self.body.addWidget(card(label("Aufnahme", "h2"), form(("Mikrofon", self.mic)),
                                  self.sounds, self.clip, self.warm, self.signs))
+        self.body.addWidget(card(
+            label("Handy als Mikrofon", "h2"), self.phone,
+            label("Einschalten, speichern, dann den QR-Code mit dem Telefon scannen. Das Telefon zeigt einmal eine "
+                  "Zertifikatswarnung (die Seite kommt von diesem Rechner, nicht aus dem Internet): „Erweitert“ und "
+                  "„Trotzdem öffnen“. Fragt Windows beim Einschalten nach der Firewall, den Zugriff im privaten Netz "
+                  "erlauben. Der Ton geht nur vom Telefon zu diesem Rechner und wird nicht gespeichert.",
+                  "muted", wrap=True),
+            hbox(button("QR-Code zeigen", self.show_qr), None)))
         self.body.addWidget(card(label("Verlauf und Start", "h2"),
                                  self.history, form(("Einträge löschen nach", hbox(self.days, None))),
                                  label("Tonaufnahmen werden nie aufbewahrt: Diktate per Taste bleiben im Arbeitsspeicher, "
@@ -1649,9 +1660,32 @@ class SettingsPage(Page):
         self.clip.setChecked(bool(cfg.get("restore_clipboard", True)))
         self.warm.setChecked(bool(cfg.get("mic_warm")))
         self.signs.setChecked(bool(cfg.get("spoken_punctuation")))
+        self.phone.setChecked(bool((cfg.get("phone") or {}).get("enabled")))
         self.days.setValue(int(cfg.get("history_days") or 0))
         self.history.setChecked(bool(cfg.get("history_enabled", True)))
         self.auto.setChecked(self.ctl.autostart_enabled())
+
+    def show_qr(self):
+        server = self.ctl.phone
+        if not server:
+            return self.saved(self.note, "Erst „Handy als Mikrofon“ ankreuzen und speichern.", ok=False)
+        box = QtWidgets.QDialog(self)
+        box.setWindowTitle("Handy als Mikrofon")
+        lay = QtWidgets.QVBoxLayout(box)
+        pic = QtGui.QPixmap()
+        pic.loadFromData(handy.qr_png(server.url()))
+        code = QtWidgets.QLabel()
+        code.setPixmap(pic)
+        code.setAlignment(QtCore.Qt.AlignCenter)
+        lay.addWidget(code)
+        lay.addWidget(label("1. Telefon ins selbe WLAN wie diesen Rechner.\n2. Mit der Kamera den Code scannen.\n"
+                            "3. Warnung bestätigen: „Erweitert“, „Trotzdem öffnen“.\n"
+                            "4. „Aufnehmen“ tippen, sprechen, „Stopp“ tippen. Der Text landet dort, wo am Rechner "
+                            "der Cursor steht (oder im Zielfenster).", wrap=True))
+        link = QtWidgets.QLineEdit(server.url())
+        link.setReadOnly(True)
+        lay.addWidget(link)
+        box.exec()
 
     def shortcuts(self):
         try:
@@ -1680,6 +1714,10 @@ class SettingsPage(Page):
                             spoken_punctuation=self.signs.isChecked(),
                             history_days=self.days.value(),
                             history_enabled=self.history.isChecked())
+        phone = dict(self.ctl.cfg.get("phone") or {})
+        phone.update(enabled=self.phone.isChecked(), token=phone.get("token") or secrets.token_urlsafe(9),
+                     port=phone.get("port") or handy.PORT)
+        self.ctl.cfg["phone"] = phone
         try:
             self.ctl.set_autostart(self.auto.isChecked())
         except Exception as e:

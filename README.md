@@ -254,6 +254,22 @@ kurz nach vorn und fügt ein. Noch einmal Umschalt + F9 löst die Bindung. Der T
 Cursor in diesem Fenster zuletzt stand. Fenster, die mit höheren Rechten laufen, lassen sich von Windows aus nicht
 ansteuern; dann bleibt der Text in der Zwischenablage und die App sagt das.
 
+## Handy als Mikrofon
+
+Für Rechner ohne gutes Mikrofon. Unter Einstellungen „Handy als Mikrofon“ ankreuzen und speichern, dann „QR-Code
+zeigen“ und mit dem Telefon scannen. LocalScribe öffnet dafür einen kleinen Webserver im eigenen Netz (Port 8765,
+`diktat/handy.py`). Das Telefon nimmt im Browser auf und schickt den Ton nach dem Stopp als 16-kHz-Rohton an den
+Rechner. Dort läuft alles wie bei einem Diktat per Taste: erkennen, nachbearbeiten, einfügen (auch ins Zielfenster).
+
+- Browser geben das Mikrofon nur auf verschlüsselten Seiten frei. LocalScribe erzeugt sich deshalb ein eigenes
+  Zertifikat (`%LOCALAPPDATA%\LocalScribe\handy`); das Telefon warnt einmal davor, weil keine Zertifizierungsstelle
+  dahinter steht.
+- Der QR-Code enthält ein zufälliges Kürzel. Ohne es liefert der Server weder die Seite noch nimmt er Ton an.
+- Der Ton wird nicht gespeichert und verlässt das eigene Netz nicht.
+- Grenzen: Beide Geräte müssen im selben Netz sein und einander erreichen dürfen. Windows fragt beim ersten
+  Einschalten nach der Firewall (privates Netz erlauben). Geprüft ist der Server mit einem nachgestellten Telefon
+  am selben Rechner, nicht mit vielen Telefonmodellen.
+
 ## Stimmtraining
 
 Auf der Seite **Stimmtraining** steht ein Satz. Knopf halten, vorlesen, loslassen. Die App legt Wort für Wort
