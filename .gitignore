@@ -8,3 +8,4 @@ build_icon.ico
 tests/_*
 build.log
 .venv-nemo/
+.venv-train/

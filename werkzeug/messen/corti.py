@@ -23,6 +23,11 @@ from diktat import config, engine
 
 work = pathlib.Path(sys.argv[1])
 choice = sys.argv[2] if len(sys.argv) > 2 else "de"
+label = choice
+if pathlib.Path(choice).is_dir():           # statt eines eingebauten Modells ein Ordner mit ONNX-Dateien
+    label = pathlib.Path(choice).name
+    config.MODELS["ordner"] = dict(config.MODELS["de"], path=str(pathlib.Path(choice).resolve()))
+    choice = "ordner"
 path = hf_hub_download("corti/med-dictate", "de/test-00000-of-00001.parquet", repo_type="dataset")
 table = pq.read_table(path)
 t = engine.Transcriber(dict(config.DEFAULTS, model_choice=choice))
@@ -38,7 +43,7 @@ def decode(data):
     return np.concatenate(out).astype(np.float32) / 32768
 
 
-with open(work / f"corti_{choice}.jsonl", "w", encoding="utf-8") as f:
+with open(work / f"corti_{label}.jsonl", "w", encoding="utf-8") as f:
     for i in range(table.num_rows):
         row = table.slice(i, 1).to_pylist()[0]
         audio = decode(row["audio"]["bytes"])

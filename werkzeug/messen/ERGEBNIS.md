@@ -262,3 +262,26 @@ Gleiche Eingabe, gleiches Tor, nur das Modell getauscht (`LS_MODEL=... korrektur
 Das größte Modell holt noch 0,4 bis 0,7 Punkte, braucht dafür aber das Zehn- bis Zwanzigfache an Zeit. Was danach
 übrig bleibt, ist überwiegend falsch Gehörtes, das kein Textmodell aus dem Wortlaut erraten kann. Bei 412 Wörtern
 entspricht ein Wort 0,24 Punkten; Unterschiede unter einem Punkt zwischen den schnellen Modellen sind Rauschen.
+
+## Nachtraining des Sprachmodells mit künstlichen Stimmen: sechs Läufe, kein Gewinn (16.11.2026)
+
+Werkzeug: `werkzeug/training/` (Sätze erzeugen, mit Piper sprechen, trainieren, Start auf Hugging Face Jobs).
+Ausgangsmodell primeline-Parakeet (NeMo), Prüfung an echten Aufnahmen mit der Nachbearbeitung der App.
+
+| Lauf | trainiert | Daten | Kunstsätze zurückgehalten | eigene Diktate | Corti |
+|---|---|---|---|---|---|
+| Ausgangsmodell | – | – | – | 9,0 % | 16,65 % |
+| 1 | Decoder+Joint | 4,3 h Piper, Anker MLS | 10,1 → 8,2 % | 11,4 % | 16,75 % |
+| 2 | Decoder+Joint | 7,5 h Piper, Anker MLS + MultiMed | 11,4 → 10,4 % | 10,7 % | 16,39 % |
+| 3 | Decoder+Joint | 11,4 h Piper mit Zahlen, berichtigte Zieltexte | 14,6 → 13,2 % | 9,7 % | 16,49 % |
+| 5 | Decoder+Joint | wie 3 + 12.000 Neurologie-Sätze (Chatterbox) | 14,6 → 12,6 % | 11,2 % | 16,52 % |
+| 6 | ganzes Modell | wie 5 | 14,6 → 11,1 % | 12,4 % | 16,65 % |
+
+Lauf 4 (ganzes Modell ohne Neurologie) ging beim Export verloren (zu wenig Arbeitsspeicher).
+Auf künstlichen Stimmen lernt das Modell die Fachwörter (bis 34 % weniger Fehler bei den Neurologie-Sätzen), auf
+echte Stimmen überträgt sich das nicht: Corti bleibt innerhalb von 0,3 Punkten, die eigenen Diktate werden schlechter.
+Was das Modell danach von sich aus richtig schreibt, fängt die Nachbearbeitung ohnehin ab; dazu kommen neue Fehler
+(ausgelassene Wörter, „Thank you.“ am Ende). Keines der Modelle ist eingebaut.
+Berichtigte Zieltexte (ab Lauf 3): Zieltext ist, was das Ausgangsmodell hört, nur falsch gehörte Wörter werden ersetzt;
+so bleibt seine Schreibweise für Zahlen und Einheiten. Das hat die Schäden verkleinert, aber keinen Gewinn gebracht.
+Offen und aussichtsreicher: Nachtraining mit echten Aufnahmen der eigenen Stimme (Stimmtraining, „Aufnahmen aufheben“).
