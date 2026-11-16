@@ -283,5 +283,7 @@ check("Lange Texte gehen in Stücken an das Sprachmodell", len(korrektor._pieces
 out = korrektor.correct("Kabel Nierenfunktion beachten, der Tisch bleibt.", {}, lambda s, u: '{"Kabel": "Cave", "Tisch": "Fisch"}', memory=[["Tisch", "Fisch"]])
 check("Eigene Berichtigungen gelten ohne Türsteher", out[0] == "Cave Nierenfunktion beachten, der Fisch bleibt.", str(out))
 check("Schlüssel je Anbieter getrennt", llm._account("IONOS") == "llm_api_key:IONOS" and llm._account() == "llm_api_key")
+# ---- 0.10.1: Zielfenster ----
+check("Zielfenster hat eine eigene Taste", config.DEFAULTS.get("hotkey_target") == ["shift", "f9"])
 print("FEHLER:" if failed else "ALLES OK", failed or "")
 sys.exit(1 if failed else 0)

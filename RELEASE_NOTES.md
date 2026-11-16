@@ -1,3 +1,11 @@
+## LocalScribe 0.10.1
+
+- **Zielfenster**: Umschalt + F9 merkt das Fenster, das gerade vorn ist. Ab dann landet jedes Diktat dort, auch
+  wenn du inzwischen in einem anderen Programm liest oder klickst. Noch einmal Umschalt + F9 löst die Bindung.
+  Ist das Fenster geschlossen, geht der Text wieder dorthin, wo der Cursor steht. Die Taste ist unter
+  Einstellungen, Tasten änderbar.
+- Messung: fünf Sprachmodelle als Fachkorrektur verglichen (`werkzeug/messen/ERGEBNIS.md`).
+
 ## LocalScribe 0.10.0
 
 - **Schutz vor dem Versand**: Geht Text an ein Sprachmodell außerhalb des Rechners, ersetzt LocalScribe vorher

@@ -248,6 +248,53 @@ def foreground_title() -> str:
         return ""
 
 
+def foreground() -> int:
+    try:
+        return int(user32.GetForegroundWindow() or 0)
+    except Exception:
+        return 0
+
+
+def window_title(hwnd: int) -> str:
+    try:
+        n = user32.GetWindowTextLengthW(hwnd)
+        buf = ctypes.create_unicode_buffer(n + 1)
+        user32.GetWindowTextW(hwnd, buf, n + 1)
+        return buf.value
+    except Exception:
+        return ""
+
+
+def window_alive(hwnd: int) -> bool:
+    try:
+        return bool(hwnd and user32.IsWindow(hwnd))
+    except Exception:
+        return False
+
+
+def focus(hwnd: int) -> bool:
+    """Fenster nach vorn holen (Zielfenster). Windows erlaubt das nur dem Vordergrundprozess; deshalb hängt sich
+    der eigene Thread kurz an die Eingabe des Fensters, das gerade vorn ist."""
+    try:
+        if user32.GetForegroundWindow() == hwnd:
+            return True
+        if user32.IsIconic(hwnd):
+            user32.ShowWindow(hwnd, 9)                      # SW_RESTORE
+        me = ctypes.windll.kernel32.GetCurrentThreadId()
+        front = user32.GetWindowThreadProcessId(user32.GetForegroundWindow(), None)
+        joined = bool(front and front != me and user32.AttachThreadInput(me, front, True))
+        try:
+            user32.BringWindowToTop(hwnd)
+            user32.SetForegroundWindow(hwnd)
+        finally:
+            if joined:
+                user32.AttachThreadInput(me, front, False)
+        return user32.GetForegroundWindow() == hwnd
+    except Exception:
+        log.exception("Zielfenster nicht ansteuerbar")
+        return False
+
+
 RUN_KEY = r"Software\Microsoft\Windows\CurrentVersion\Run"
 
 

@@ -246,6 +246,14 @@ Mit der Einstellung „Satzzeichen diktieren“ (ab Werk aus) werden „Punkt“
 das Befehlswort an das Wort davor („Schwindelpunkt“), wird es getrennt. „Punkt“ bleibt ein Wort hinter Artikel,
 Zahl oder Bindestrich („der wichtigste Punkt“, „McBurney-Punkt“).
 
+## Zielfenster
+
+Umschalt + F9 merkt das Fenster, das gerade vorn ist (zum Beispiel den Arztbrief). Jedes Diktat wird danach in
+dieses Fenster eingefügt, auch wenn inzwischen ein anderes Programm vorn ist: LocalScribe holt das Zielfenster
+kurz nach vorn und fügt ein. Noch einmal Umschalt + F9 löst die Bindung. Der Text landet an der Stelle, an der der
+Cursor in diesem Fenster zuletzt stand. Fenster, die mit höheren Rechten laufen, lassen sich von Windows aus nicht
+ansteuern; dann bleibt der Text in der Zwischenablage und die App sagt das.
+
 ## Stimmtraining
 
 Auf der Seite **Stimmtraining** steht ein Satz. Knopf halten, vorlesen, loslassen. Die App legt Wort für Wort

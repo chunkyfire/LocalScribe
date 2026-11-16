@@ -1590,6 +1590,7 @@ class SettingsPage(Page):
         self.lock = QtWidgets.QLineEdit()
         self.paste = QtWidgets.QLineEdit()
         self.field = QtWidgets.QLineEdit()
+        self.target = QtWidgets.QLineEdit()
         self.mic = QtWidgets.QComboBox()
         self.sounds = QtWidgets.QCheckBox("Töne bei Start und Ende der Aufnahme")
         self.clip = QtWidgets.QCheckBox("Zwischenablage nach dem Einfügen wiederherstellen")
@@ -1615,7 +1616,8 @@ class SettingsPage(Page):
             label("Tasten", "h2"),
             form(("Diktieren (halten)", self.hold), ("Freihand (dazu drücken)", self.lock),
                  ("Letzten Text einfügen", self.paste),
-                 ("Nächste Sprungmarke [ ]", self.field)),
+                 ("Nächste Sprungmarke [ ]", self.field),
+                 ("Zielfenster merken / lösen", self.target)),
             label("Mehrere Tasten mit + verbinden, zum Beispiel ctrl+win. Eine einzelne Taste wie ctrl startet "
                   "nach kurzem Halten; Strg+C, Strg+Klick und andere Kürzel funktionieren weiter wie gewohnt. "
                   "Esc bricht eine laufende Aufnahme ab.", "muted", wrap=True)))
@@ -1637,6 +1639,7 @@ class SettingsPage(Page):
         self.lock.setText(cfg.get("hotkey_lock") or "")
         self.paste.setText("+".join(cfg.get("hotkey_paste_last") or []))
         self.field.setText("+".join(cfg.get("hotkey_next_field") or []))
+        self.target.setText("+".join(cfg.get("hotkey_target") or []))
         self.mic.clear()
         self.mic.addItem("Standardgerät", None)
         for name in self.ctl.input_devices():
@@ -1662,7 +1665,8 @@ class SettingsPage(Page):
         lock = self.ctl.parse_keys(self.lock.text())
         paste = self.ctl.parse_keys(self.paste.text())
         field = self.ctl.parse_keys(self.field.text())
-        if not hold or lock is None or paste is None or field is None or len(lock) > 1:
+        target = self.ctl.parse_keys(self.target.text())
+        if not hold or lock is None or paste is None or field is None or target is None or len(lock) > 1:
             return self.saved(self.note, "Eine Taste ist unbekannt oder das Diktier-Kürzel fehlt.", ok=False)
         choice = self.model.currentData()
         if choice != self.ctl.cfg.get("model_choice", "de"):
@@ -1670,6 +1674,7 @@ class SettingsPage(Page):
                 return self.saved(self.note, "Das Sprachmodell lässt sich erst wechseln, wenn nichts mehr läuft.", ok=False)
             self.ctl.cfg["model_choice"] = choice
         self.ctl.cfg.update(hotkey_hold=hold, hotkey_lock=lock[0] if lock else "", hotkey_paste_last=paste, hotkey_next_field=field,
+                            hotkey_target=target,
                             microphone=self.mic.currentData(), sounds=self.sounds.isChecked(),
                             restore_clipboard=self.clip.isChecked(), mic_warm=self.warm.isChecked(),
                             spoken_punctuation=self.signs.isChecked(),

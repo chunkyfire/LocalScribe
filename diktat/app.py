@@ -178,7 +178,8 @@ class Diktat(QtCore.QObject):
                 if p.get("hotkey") and p.get("name"):
                     holds["prompt:" + p["name"]] = p["hotkey"]
         taps = {"paste_last": self.cfg.get("hotkey_paste_last") or [],
-                "next_field": self.cfg.get("hotkey_next_field") or []}
+                "next_field": self.cfg.get("hotkey_next_field") or [],
+                "target": self.cfg.get("hotkey_target") or []}
         self.hotkey = winio.Hotkey(holds, self.cfg.get("hotkey_lock"), taps,
                                    self.sig_start.emit, self.sig_stop.emit, self.sig_cancel.emit,
                                    self.sig_lock.emit, self.sig_tap.emit)
@@ -348,6 +349,8 @@ class Diktat(QtCore.QObject):
         self.jobs.put({"kind": "dictation", "audio": audio, "seconds": seconds, "prompt": self.prompt, "note": note})
 
     def on_tap(self, ident):
+        if ident == "target":
+            return self.toggle_target()
         if ident == "next_field":
             step = self.fields.next()
             if step is None:
@@ -397,6 +400,21 @@ class Diktat(QtCore.QObject):
             return
         self.overlay.set_mode("processing" if self.pending else "idle")
 
+    # ---------- Zielfenster ----------
+    def toggle_target(self):
+        """Das Fenster, das gerade vorn ist, als Ziel merken; ein zweiter Druck löst es wieder."""
+        if getattr(self, "target", 0):
+            self.target = 0
+            self.overlay.flash("Zielfenster gelöst – Text geht wieder dorthin, wo der Cursor steht", 3000)
+            return
+        hwnd = winio.foreground()
+        title = winio.window_title(hwnd).strip()
+        if not hwnd or not title or "LocalScribe" in title:
+            self.overlay.flash("Kein Fenster zum Merken – erst in das Zielprogramm klicken", 3000)
+            return
+        self.target = hwnd
+        self.overlay.flash("Zielfenster: " + (title if len(title) < 46 else title[:44] + "…"), 3000)
+
     # ---------- Einfügen ----------
     def paste(self, text):
         cb = QtGui.QGuiApplication.clipboard()
@@ -433,6 +451,19 @@ class Diktat(QtCore.QObject):
         QTimer.singleShot(50, self._send)
 
     def _send(self):
+        target = getattr(self, "target", 0)
+        if target and not winio.window_alive(target):
+            self.target = target = 0
+            self.overlay.flash("Zielfenster ist geschlossen – Text geht dorthin, wo der Cursor steht", 4000)
+        if target and winio.foreground() != target:
+            if not winio.focus(target):
+                self.overlay.flash("Zielfenster nicht erreichbar – Text liegt in der Zwischenablage", 4000)
+                return
+            QTimer.singleShot(180, self._paste_now)         # dem Fenster Zeit geben, den Fokus zu übernehmen
+            return
+        self._paste_now()
+
+    def _paste_now(self):
         try:
             winio.send_paste()
         except Exception:
