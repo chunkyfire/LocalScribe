@@ -156,7 +156,7 @@ LocalScribe hat das Vokabular (Wörterbuch, Lautschlüssel, Stimmtraining), aber
 Der nächste große Schritt wäre ein deutsches medizinisches Parakeet (etwa Mediform/parakeet-medical-de) als
 ONNX-Fassung oder ein eigenes Nachtraining auf eigenen Diktaten.
 
-## Vergleich mit Tandem und Heidi (16.11.2026)
+## Vergleich mit Tandem, Heidi und Orpheus (16.11.2026)
 
 Fünf eigene Diktate (412 Wörter, 4 min), als 16-kHz-Datei digital in den Browser eingespielt: Die Seite bekommt
 statt des Mikrofons einen Tonstrom aus der Datei, ohne Lautsprecher und Raum. Beide Programme im Diktiermodus,
@@ -167,6 +167,7 @@ ohne eigenes Vokabular. Gezählt wie in `eigene.py`, für alle gleich.
 | Tandem, Diktat | 10,3 % | 10,9 % | 13,7 % | 6,2 % | 5,4 % | **8,3 %** |
 | Heidi, Rohtranskript | 11,8 % | 25,0 % | 11,8 % | 2,5 % | 4,7 % | 9,5 % |
 | Heidi, fertiger Text | 10,3 % | 17,2 % | 15,7 % | 13,6 % | 2,0 % | **9,7 %** |
+| Orpheus, Diktat | 13,2 % | 12,5 % | 13,7 % | 11,1 % | 4,7 % | **9,7 %** |
 | LocalScribe 0.9.7 | 11,8 % | 17,2 % | 15,7 % | 8,6 % | 2,0 % | **9,0 %** |
 | LocalScribe 0.9.4 | 11,8 % | 18,8 % | 13,7 % | 9,9 % | 7,4 % | 11,2 % |
 | LocalScribe 0.9.3 | | | | | | 12,6 % |
@@ -189,7 +190,10 @@ Was man an den Ausgaben sieht:
 0.9.7 holt den Abstand zu einem Teil mit Regeln auf, die an diesen fünf Diktaten entstanden sind (kurze Handelsnamen,
 zerlegte Begriffe). Auf den unabhängigen Prüfsätzen bringen dieselben Regeln 10,30 → 10,15 % und 12,00 → 11,98 %.
 
-Orpheus ist noch nicht gemessen.
+Orpheus (Programm 4.9.0) bekam denselben Ton über ein virtuelles Audiokabel, Diktat per gehaltener Taste Strg rechts.
+Es trifft alle Wirkstoffnamen bis auf zwei („Narbig“, „Trossiva“), kürzt von sich aus ab („AZ“, „bds.“, „KOF“), setzt im
+Diktat ohne Zusatzfunktion keine Satzzeichen, hängt an drei Diktate das Wort „Trial“ an und schreibt am Ende der
+Übergabe „Reha-Verordnung liegt“ statt „Brief ist schon angelegt“. Ohne die drei „Trial“ wären es 9,0 %.
 
 ## Sprechertrennung an einem deutschen Arzt-Patienten-Gespräch (16.11.2026)
 
