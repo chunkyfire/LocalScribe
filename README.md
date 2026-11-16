@@ -59,7 +59,7 @@ beendet sie nicht; sie bleibt im Infobereich (Rechtsklick → Beenden).
   macht, wird künftig ersetzt. Übernommen wird nur, was dem richtigen Wort ähnlich ist.
   Mitgeliefert ist ein **medizinisches Basiswörterbuch** (abschaltbar): Fehlschreibungen von rund
   5 900 Wirkstoffen, Diagnosen, anatomischen und klinischen Begriffen. Siehe unten.
-- **Stimmtraining** – 152 medizinische Sätze aus zehn Themen zum Vorlesen. Die App vergleicht, was sie
+- **Stimmtraining** – 297 medizinische Sätze aus 24 Themen zum Vorlesen. Die App vergleicht, was sie
   verstanden hat, mit dem Satz und trägt deine Aussprache falsch erkannter Fachbegriffe ins Wörterbuch ein.
   Freiwillig; je mehr Sätze, desto besser. Siehe „Stimmtraining“ unten.
 - **Textbausteine** – gesprochenes Stichwort → hinterlegter Text.
@@ -280,7 +280,7 @@ daneben, was sie verstanden hat. Ein falsch erkanntes Wort kommt ins persönlich
   Kabel im Diktat ersetzt würde. Solche Fälle zeigt die App an, lernt sie aber nicht.
 
 Getrennt gehörte Zusammensetzungen werden als Paar gelernt („Set-Implantation“ → „Stentimplantation“).
-Das Material: 152 Sätze aus Kardiologie, Pneumologie, Gastroenterologie, Nephrologie, Neurologie,
+Das Material: 297 Sätze aus 24 Themen, darunter Kardiologie, Pneumologie, Gastroenterologie, Nephrologie, Neurologie,
 Notaufnahme, Chirurgie und Orthopädie, Onkologie und Hämatologie, Medikation, Befund und Verlauf
 (`diktat/lesetexte.json`, erweiterbar). Der Ton bleibt im Arbeitsspeicher. Alles Gelernte steht auf der Seite
 Wörterbuch und lässt sich dort ändern oder löschen.

@@ -1,3 +1,10 @@
+## LocalScribe 0.11.1
+
+- **Stimmtraining: fast doppelt so viel Lesematerial.** 297 statt 152 Sätze, 14 neue Themen: Endokrinologie,
+  Infektiologie, Rheumatologie, Intensivmedizin, Radiologie, Urologie, Gynäkologie und Geburtshilfe, Dermatologie,
+  HNO und Augenheilkunde, Psychiatrie, Pädiatrie, Geriatrie und Palliativmedizin, Labor, Anästhesie. Die Sätze sind
+  erfunden und enthalten keine Patientendaten.
+
 ## LocalScribe 0.11.0
 
 - **Handy als Mikrofon**: Einstellungen, „Handy als Mikrofon“ ankreuzen, speichern, QR-Code scannen. Das Telefon
