@@ -48,6 +48,7 @@ DEFAULTS = {
     "hotkey_lock": "space",
     # letzten Text noch einmal einfügen (falls das falsche Fenster aktiv war)
     "hotkey_paste_last": ["shift", "f7"],
+    "hotkey_next_field": ["shift", "f8"],   # nächste Sprungmarke [ ] im zuletzt eingefügten Text
     # Sprachmodell: "de" oder "multi", siehe MODELS
     "model_choice": "de",
     # mitgeliefertes medizinisches Wörterbuch anwenden (nur mit dem deutschen Modell)

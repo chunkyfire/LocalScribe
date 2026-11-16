@@ -30,6 +30,8 @@ NORMAL = {
     "Normalbefund Neurologie": "Neurologie: Wach, zu Person, Ort, Zeit und Situation orientiert. Pupillen isokor, prompte Lichtreaktion beidseits. Keine Paresen, kein sensibles Defizit, kein Meningismus.",
     "Normalbefund EKG": "EKG: Sinusrhythmus, Indifferenztyp, regelrechte Überleitungszeiten, keine Erregungsrückbildungsstörungen.",
     "Normalbefund Haut": "Haut: Warm, trocken, keine Effloreszenzen, Rekapillarisierungszeit unter zwei Sekunden.",
+    # eine Vorlage mit Sprungmarken: Umschalt + F8 springt von Marke zu Marke, dort weiterdiktieren
+    "Vorlage Aufnahme": "Anamnese: [ ]\nVorerkrankungen: [ ]\nMedikation: [ ]\nBefund: [ ]\nBeurteilung: [ ]\nProcedere: [ ]",
 }
 
 STYLE = """
@@ -1446,6 +1448,7 @@ class SettingsPage(Page):
         self.hold = QtWidgets.QLineEdit()
         self.lock = QtWidgets.QLineEdit()
         self.paste = QtWidgets.QLineEdit()
+        self.field = QtWidgets.QLineEdit()
         self.mic = QtWidgets.QComboBox()
         self.sounds = QtWidgets.QCheckBox("Töne bei Start und Ende der Aufnahme")
         self.clip = QtWidgets.QCheckBox("Zwischenablage nach dem Einfügen wiederherstellen")
@@ -1469,7 +1472,8 @@ class SettingsPage(Page):
         self.body.addWidget(card(
             label("Tasten", "h2"),
             form(("Diktieren (halten)", self.hold), ("Freihand (dazu drücken)", self.lock),
-                 ("Letzten Text einfügen", self.paste)),
+                 ("Letzten Text einfügen", self.paste),
+                 ("Nächste Sprungmarke [ ]", self.field)),
             label("Mehrere Tasten mit + verbinden, zum Beispiel ctrl+win. Eine einzelne Taste wie ctrl startet "
                   "nach kurzem Halten; Strg+C, Strg+Klick und andere Kürzel funktionieren weiter wie gewohnt. "
                   "Esc bricht eine laufende Aufnahme ab.", "muted", wrap=True)))
@@ -1490,6 +1494,7 @@ class SettingsPage(Page):
         self.model.setCurrentIndex(max(0, self.model.findData(cfg.get("model_choice", "de"))))
         self.lock.setText(cfg.get("hotkey_lock") or "")
         self.paste.setText("+".join(cfg.get("hotkey_paste_last") or []))
+        self.field.setText("+".join(cfg.get("hotkey_next_field") or []))
         self.mic.clear()
         self.mic.addItem("Standardgerät", None)
         for name in self.ctl.input_devices():
@@ -1513,14 +1518,15 @@ class SettingsPage(Page):
         hold = self.ctl.parse_keys(self.hold.text())
         lock = self.ctl.parse_keys(self.lock.text())
         paste = self.ctl.parse_keys(self.paste.text())
-        if not hold or lock is None or paste is None or len(lock) > 1:
+        field = self.ctl.parse_keys(self.field.text())
+        if not hold or lock is None or paste is None or field is None or len(lock) > 1:
             return self.saved(self.note, "Eine Taste ist unbekannt oder das Diktier-Kürzel fehlt.", ok=False)
         choice = self.model.currentData()
         if choice != self.ctl.cfg.get("model_choice", "de"):
             if not self.ctl.ready or self.window().busy():
                 return self.saved(self.note, "Das Sprachmodell lässt sich erst wechseln, wenn nichts mehr läuft.", ok=False)
             self.ctl.cfg["model_choice"] = choice
-        self.ctl.cfg.update(hotkey_hold=hold, hotkey_lock=lock[0] if lock else "", hotkey_paste_last=paste,
+        self.ctl.cfg.update(hotkey_hold=hold, hotkey_lock=lock[0] if lock else "", hotkey_paste_last=paste, hotkey_next_field=field,
                             microphone=self.mic.currentData(), sounds=self.sounds.isChecked(),
                             restore_clipboard=self.clip.isChecked(), mic_warm=self.warm.isChecked(),
                             history_days=self.days.value(),

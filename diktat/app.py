@@ -17,7 +17,7 @@ os.environ.setdefault("DO_NOT_TRACK", "1")
 from PySide6 import QtCore, QtGui, QtNetwork, QtWidgets
 from PySide6.QtCore import QTimer, Signal
 
-from . import config, engine, korrektor, llm, winio
+from . import config, engine, felder, korrektor, llm, winio
 from .hub import Hub, keys_text
 from .ui import Overlay, Store, make_icon, make_pixmap, private_mime
 
@@ -40,6 +40,7 @@ class Diktat(QtCore.QObject):
         self.cfg = config.load()
         self.store = Store(config.DB)
         self.recorder = engine.Recorder()
+        self.fields = felder.Fields()         # Sprungmarken im zuletzt eingefügten Text
         self.recorder.set_warm(self.cfg.get("mic_warm"), self.cfg.get("microphone"))
         self.transcriber = engine.Transcriber(self.cfg)
         self.overlay = Overlay(self.recorder)
@@ -176,7 +177,8 @@ class Diktat(QtCore.QObject):
             for p in self.cfg.get("prompts") or []:
                 if p.get("hotkey") and p.get("name"):
                     holds["prompt:" + p["name"]] = p["hotkey"]
-        taps = {"paste_last": self.cfg.get("hotkey_paste_last") or []}
+        taps = {"paste_last": self.cfg.get("hotkey_paste_last") or [],
+                "next_field": self.cfg.get("hotkey_next_field") or []}
         self.hotkey = winio.Hotkey(holds, self.cfg.get("hotkey_lock"), taps,
                                    self.sig_start.emit, self.sig_stop.emit, self.sig_cancel.emit,
                                    self.sig_lock.emit, self.sig_tap.emit)
@@ -346,6 +348,13 @@ class Diktat(QtCore.QObject):
         self.jobs.put({"kind": "dictation", "audio": audio, "seconds": seconds, "prompt": self.prompt, "note": note})
 
     def on_tap(self, ident):
+        if ident == "next_field":
+            step = self.fields.next()
+            if step is None:
+                self.overlay.flash("Keine Sprungmarke mehr offen")
+            else:
+                self._field_when_free(step, 0)
+            return
         if ident == "paste_last":
             text = self.store.last()
             if text:
@@ -402,8 +411,19 @@ class Diktat(QtCore.QObject):
                 log.exception("Zwischenablage nicht sicherbar")
                 self._clip_backup = None
         self._restore.stop()
+        self.fields.pasted(text)
         cb.setMimeData(private_mime(text))
         self._send_when_free(0)
+
+    def _field_when_free(self, step, tries):
+        # erst bewegen, wenn die Tasten des Kürzels losgelassen sind (sonst würde Umschalt mitmarkieren)
+        if winio.modifiers_down() and tries < 100:
+            QTimer.singleShot(20, lambda: self._field_when_free(step, tries + 1))
+            return
+        try:
+            winio.send_field(*step)
+        except Exception:
+            log.exception("Sprungmarke nicht ansteuerbar")
 
     def _send_when_free(self, tries):
         # Strg+V erst senden, wenn keine Modifikatortaste mehr gedrückt ist

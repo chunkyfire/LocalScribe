@@ -211,6 +211,21 @@ def send_paste():
         _kb.release("v")
 
 
+def send_field(move: int, length: int):
+    """Cursor um move Zeichen bewegen (negativ: nach links), dann length Zeichen markieren und löschen."""
+    key = keyboard.Key.right if move > 0 else keyboard.Key.left
+    for _ in range(abs(move)):
+        _kb.press(key)
+        _kb.release(key)
+    if length:
+        with _kb.pressed(keyboard.Key.shift):
+            for _ in range(length):
+                _kb.press(keyboard.Key.right)
+                _kb.release(keyboard.Key.right)
+        _kb.press(keyboard.Key.delete)
+        _kb.release(keyboard.Key.delete)
+
+
 def keep_awake(on: bool):
     """Verhindert, dass Windows während einer langen Aufnahme in den Ruhezustand geht.
     Muss aus demselben Thread ein- und ausgeschaltet werden."""

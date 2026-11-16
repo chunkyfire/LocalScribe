@@ -1,3 +1,15 @@
+## LocalScribe 0.9.9
+
+- **Sprungmarken in Textbausteinen**: Ein Baustein kann Marken enthalten, `[ ]`, `[Befund]` oder `___`. Nach dem
+  Einfügen springt **Umschalt + F8** zur nächsten Marke und löscht sie; dort diktiert man weiter. Die Taste lässt sich
+  in den Einstellungen ändern. Gerechnet wird in Zeichen ab der letzten Cursorstelle: Wer zwischendurch mit der Maus
+  woanders hinklickt, bringt die Reihenfolge durcheinander. Programme, die `[ ]` beim Tippen umformatieren (der neue
+  Windows-Editor), eignen sich nicht; dort `___` verwenden.
+- „Normalbefunde hinzufügen“ legt zusätzlich die „Vorlage Aufnahme“ mit sechs Sprungmarken an.
+
+Installation: ZIP entpacken, `LocalScribe.exe` starten. Keine Adminrechte nötig. Die Datei ist nicht
+signiert: Meldet Windows „Der Computer wurde geschützt“, auf **Weitere Informationen → Trotzdem ausführen**.
+
 ## LocalScribe 0.9.8
 
 - **Aus Korrektur lernen** (Seite Wörterbuch): Das letzte Diktat öffnen, die falsch erkannten Wörter berichtigen,

@@ -213,5 +213,29 @@ for text in ["Der Patient kommt aus Sevilla.", "Herr Meyer und Frau Bergmann.", 
     check(f"bleibt: {text}", fach.correct(text) == text, fach.correct(text))
 check("30er-Regel", engine.tidy("Actrapid nach Dreißiger Regel") == "Actrapid nach 30er-Regel")
 check("Grad Celsius ergänzt", engine.tidy("38 Grad Celsi Fieber, 37 Grad Celsius") == "38 Grad Celsius Fieber, 37 Grad Celsius")
+
+# ---- 0.9.9: Sprungmarken ----
+from diktat import felder
+f = felder.Fields()
+check("Text ohne Marken: nichts zu springen", f.pasted("Kein Feld hier. ") == 0 and f.next() is None)
+t = "Anamnese: [ ]\nBefund: [Befund]\nEnde"
+check("Marken werden gefunden", f.pasted(t) == 2 and f.active())
+doc, caret = t, len(t)
+def play(step, typed=""):
+    global doc, caret
+    move, n = step
+    caret += move
+    doc = doc[:caret] + typed + doc[caret + n:]
+    caret += len(typed)
+play(f.next(), "Husten seit drei Tagen")
+f.pasted("Husten seit drei Tagen")           # das Diktat ins Feld beendet die Runde nicht
+play(f.next(), "unauffällig")
+check("Felder werden nacheinander gefüllt", doc == "Anamnese: Husten seit drei Tagen\nBefund: unauffällig\nEnde", doc)
+check("Danach ist keine Marke mehr offen", f.next() is None)
+f.pasted("A [ ] B [ ] ")
+play_doc = "A [ ] B [ ] "
+doc, caret = play_doc, len(play_doc)
+play(f.next()); play(f.next())
+check("Überspringen ohne Eingabe stimmt auch", doc == "A  B  ", repr(doc))
 print("FEHLER:" if failed else "ALLES OK", failed or "")
 sys.exit(1 if failed else 0)
