@@ -246,3 +246,19 @@ MultiMed: neun richtige, zwei falsche Ersetzungen (beide Schreibweisen von Eigen
     powershell -File tests\langzeit\tts.ps1 -Dir <Ordner mit saetze.txt>
     python werkzeug\messen\saetze.py <Ordner> de
     python werkzeug\messen\auswerten.py <Ordner>\saetze_de.jsonl
+
+## Größere Modelle als Korrektor (16.11.2026)
+
+Gleiche Eingabe, gleiches Tor, nur das Modell getauscht (`LS_MODEL=... korrektur_cloud.py`), über OpenRouter.
+
+| Modell | eigene Diktate | Corti DE | Wartezeit je Diktat |
+|---|---|---|---|
+| ohne Korrektor | 9,0 % | 16,65 % | – |
+| Gemini 3.1 Flash Lite | 7,5 % | 13,72 % | 1–2 s |
+| Gemini 3.5 Flash Lite | 8,0 % | 14,40 % | 1–2 s |
+| Claude Haiku 5.5 | 8,7 % | 13,75 % | 6 s / 14 s |
+| Gemini 3.6 Flash | 6,8 % | 13,33 % | 18 s / 25 s |
+
+Das größte Modell holt noch 0,4 bis 0,7 Punkte, braucht dafür aber das Zehn- bis Zwanzigfache an Zeit. Was danach
+übrig bleibt, ist überwiegend falsch Gehörtes, das kein Textmodell aus dem Wortlaut erraten kann. Bei 412 Wörtern
+entspricht ein Wort 0,24 Punkten; Unterschiede unter einem Punkt zwischen den schnellen Modellen sind Rauschen.

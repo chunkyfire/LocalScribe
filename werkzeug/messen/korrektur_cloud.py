@@ -8,6 +8,7 @@ Schreibt je Aufnahme: Text vorher, Rohantwort des Modells, übernommene Ersetzun
 bleibt erhalten, damit sich der Türsteher ohne neue Anfragen nachprüfen lässt.
 """
 import json
+import os
 import pathlib
 import sys
 import time
@@ -21,6 +22,8 @@ src, out = sys.argv[1], sys.argv[2]
 limit = int(sys.argv[3]) if len(sys.argv) > 3 and sys.argv[3].isdigit() else 10 ** 9
 signs = "satzzeichen" in sys.argv[3:]          # diktierte Satzzeichen umsetzen, wie mit der Einstellung der App
 cfg = config.load()["llm"]
+if os.environ.get("LS_MODEL"):                 # anderes Modell beim selben Anbieter messen, ohne die Einstellungen zu ändern
+    cfg = dict(cfg, model=os.environ["LS_MODEL"])
 print("Server:", cfg.get("base_url"), "| Modell:", cfg.get("model"), flush=True)
 rows = [json.loads(l) for l in open(src, encoding="utf-8")]
 rows = [r for r in rows if not r["hyp"].startswith("!")][:limit]
