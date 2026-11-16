@@ -206,6 +206,30 @@ Frauenstimmen von ElevenLabs, also künstlich erzeugt und ohne Durcheinanderrede
 Ein echtes Gespräch mit Unterbrechungen, Nebengeräuschen und ähnlichen Stimmen ist schwerer; dazu die Werte
 oben (VoxConverse 88,6 %, CallHome 75,4 %).
 
+## Fachkorrektur mit großem Sprachmodell und ein unabhängiger Prüfsatz (16.11.2026)
+
+Sprachmodell: Gemini 3.1 Flash Lite über OpenRouter, eine Anfrage je Diktat (lange Texte in Stücken zu 110 Wörtern,
+gleichzeitig), Median 1,1 s. Der Türsteher (`korrektor.accept`) wurde an den Arztbrief-Sätzen eingestellt; Med-Dictate
+und MultiMed hat er dabei nicht gesehen.
+
+| Prüfsatz | Umfang | roh | App | App mit Fachkorrektur |
+|---|---|---|---|---|
+| eigene Diktate (ein Sprecher) | 5 Diktate, 412 Wörter | 20,1 % | 9,0 % | **7,5 %** |
+| Med-Dictate, Corti (fremde Sprecher, 7 Fachgebiete) | 9 Diktate, 32,6 min | 21,0 % | 16,7 % | **13,7 %** |
+| Arztbrief-Sätze, vorgelesen (GraSCCo) | 395 Sätze | | 10,2 % | **8,4 %** |
+| MultiMed (YouTube, Laiensprache) | 318 Aufnahmen | | 12,3 % | 12,2 % |
+
+Zum Vergleich auf den eigenen Diktaten: Tandem 8,3 %, Orpheus 9,7 %, Heidi 9,7 %.
+
+Med-Dictate (`corti.py`, `corti_auswerten.py`): neun deutsche ärztliche Diktate von Corti-Mitarbeitenden ohne
+Patientendaten, mit diktierten Satzzeichen, erkannt in 151 s für 32,6 min Ton. Fachbegriffe richtig: roh 57,6 %,
+App 65,0 %, mit Fachkorrektur 71,5 %. Die Stufen: Nachbearbeitung 21,0 → 18,3 %, diktierte Satzzeichen → 16,7 %,
+Fachkorrektur → 13,7 %. Was bleibt, sind Verhörer des Sprachmodells bei seltenen Fachwörtern (Fiduzialpunkte,
+suszeptibilitätsgewichtet), abgeschnittene Mehrzahlendungen und Schreibvarianten (okzipital/occipital), die hier
+als Fehler zählen.
+
+MultiMed: neun richtige, zwei falsche Ersetzungen (beide Schreibweisen von Eigennamen), zwölf ohne Einfluss auf das Soll.
+
 ## Was die Zahlen nicht zeigen
 
 - Echte medizinische Diktate. Öffentliche deutsche Aufnahmen mit Transkript gibt es nicht: PoCaP

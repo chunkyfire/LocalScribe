@@ -93,6 +93,13 @@ Dateien: `%LOCALAPPDATA%\LocalScribe\` (`config.json`, `verlauf.sqlite`, `diktat
   beim Wechsel des Sprachmodells und beim ersten Einschalten von „Sprecher trennen“ (jeweils feste
   Fassung, Hugging Face). Danach arbeitet sie offline. Die KI-Nachbearbeitung ist ab Werk aus;
   ist dort eine Adresse außerhalb des eigenen Netzes eingetragen, zeigt die App das an.
+- **Schutz vor dem Versand.** Geht Text an ein Sprachmodell außerhalb des Rechners (OpenRouter, IONOS …),
+  ersetzt LocalScribe vorher auf dem Rechner Namen, Geburts- und andere Daten, Telefonnummern, E-Mail-Adressen,
+  Anschriften und lange Nummern durch Platzhalter (`[NAME_1]`, `[DATUM_1]`) und übersetzt die Antwort zurück.
+  Regeln finden Daten, Nummern, Kontaktdaten und Namen hinter Anrede oder Titel; die Namenserkennung (GLiNER,
+  293 MB, auf Knopfdruck geladen, läuft auf der CPU) findet Namen, Orte und Einrichtungen auch ohne solche Hinweise.
+  Fachbegriffe wie Parkinson oder Crohn bleiben stehen. Kein Verfahren findet alles: Das ist eine Schutzschicht,
+  kein Nachweis der Anonymität. Der Schutz ist für fremde Server ab Werk an und lässt sich je Anbieter abschalten.
 - **Stimmabdrücke.** „Sprecher trennen“ berechnet je Äußerung einen Stimmabdruck. Er lebt nur im
   Arbeitsspeicher, solange die Transkription läuft, und wird nicht gespeichert. Im Text stehen Nummern,
   keine Namen; die App erkennt niemanden wieder.
@@ -145,10 +152,12 @@ Verarbeitungskette. Ergebnis und Vergleich stehen in `tests/langzeit/ERGEBNIS.md
   Grundrauschen ab); im Zweifel wird erkannt.
 - Echtes Wort-Boosting im Modell gibt es nicht. Das Wörterbuch korrigiert nach der Erkennung.
 - Das Sprachmodell ist primeline-Parakeet in einer eigenen, schonender gekürzten 8-Bit-Fassung (siehe
-  `werkzeug/messen/ERGEBNIS.md`): fünf echte ärztliche Diktate 14,3 % Wortfehler, mit der üblichen Fassung 18,0 %.
-- Gemessen ist an einer synthetischen Stimme, an 221 echten Aufnahmen (MultiMed) und an fünf echten
-  ärztlichen Diktaten eines Sprechers (`werkzeug/messen/ERGEBNIS.md`). Dialekt, laute Umgebung und andere
-  Fachgebiete sind damit nicht belegt. Jeder Text muss vor der Übernahme gegengelesen werden.
+  `werkzeug/messen/ERGEBNIS.md`).
+- Gemessen ist an fünf ärztlichen Diktaten eines Sprechers (9,0 % Wortfehler, mit Fachkorrektur durch ein großes
+  Sprachmodell 7,5 %; Tandem 8,3 %, Orpheus und Heidi 9,7 %), an neun fremden ärztlichen Diktaten aus Med-Dictate von
+  Corti (32 Minuten, sieben Fachgebiete: 16,7 %, mit Fachkorrektur 13,7 %), an 395 vorgelesenen Arztbrief-Sätzen
+  (10,2 %, mit Fachkorrektur 8,4 %) und an echten Aufnahmen aus MultiMed (12,3 %). Dialekt und laute Umgebung sind
+  damit nicht belegt. Jeder Text muss vor der Übernahme gegengelesen werden.
 - In Fenster, die mit Adminrechten laufen, kann die App nicht einfügen.
 
 ## Das medizinische Basiswörterbuch
@@ -208,6 +217,34 @@ Die Nachbearbeitung repariert, was knapp daneben liegt. Was das Modell grob verh
 Öffentliche deutsche Aufnahmen echter medizinischer Diktate mit Transkript gibt es nicht. MultiMed
 (ACL 2025) ist der einzige frei zugängliche Datensatz mit echten Stimmen; sein deutscher Teil besteht
 überwiegend aus Lehrvideos für Sprachprüfungen und enthält kaum Fachbegriffe.
+
+## Fachkorrektur mit einem Sprachmodell
+
+Auf der Seite KI-Nachbearbeitung lässt sich ein Sprachmodell eintragen, das verhörte Fachwörter berichtigt
+(Häkchen „Fachkorrektur“). Es sieht den Text und schlägt Ersetzungen vor; ein Türsteher in der App übernimmt nur,
+was klingt wie das Gehörte:
+
+- ein Wort, das es nicht gibt, wird ein bekanntes Wort oder ein Fachbegriff („Hahnstau“ wird Harnstau),
+- mehrere Wörter werden ein Fachbegriff, wenn sie zusammen fast genauso klingen („Atem Note“ wird Atemnot),
+- ein richtiges Wort weicht nur einem Begriff der medizinischen Kernliste („Kabel“ wird Cave).
+
+Zahlen bleiben unberührt, umformuliert wird nichts. Gemessen mit Gemini Flash Lite über OpenRouter, rund eine
+Sekunde je Diktat: eigene Diktate 9,0 → 7,5 %, Med-Dictate 16,7 → 13,7 %, Arztbrief-Sätze 10,2 → 8,4 %,
+MultiMed 12,3 → 12,2 % (dort neun richtige, zwei falsche Ersetzungen). Mit einem kleinen lokalen Modell bringt es nichts.
+
+**Anbieter speichern und wechseln.** Mehrere Server lassen sich unter eigenem Namen ablegen (OpenRouter, IONOS,
+lokal) und in der Auswahl „Anbieter“ wechseln; jeder hat seinen eigenen Schlüssel im Windows-Schlüsselspeicher.
+
+**Aus Korrektur lernen** (Seite Wörterbuch): das letzte Diktat berichtigen. Verhörte Fachwörter kommen ins
+Wörterbuch. War das Erkannte selbst ein richtiges Wort („Kabel“ statt Cave), merkt es sich die Fachkorrektur und
+gibt es dem Sprachmodell als Hinweis mit; angewendet wird es nur, wo es in den Zusammenhang passt.
+
+## Satzzeichen diktieren
+
+Mit der Einstellung „Satzzeichen diktieren“ (ab Werk aus) werden „Punkt“, „Komma“, „Doppelpunkt“, „Semikolon“,
+„Fragezeichen“, „Klammer auf/zu“, „Schrägstrich“, „neue Zeile“ und „neuer Absatz“ zu Zeichen. Hängt die Erkennung
+das Befehlswort an das Wort davor („Schwindelpunkt“), wird es getrennt. „Punkt“ bleibt ein Wort hinter Artikel,
+Zahl oder Bindestrich („der wichtigste Punkt“, „McBurney-Punkt“).
 
 ## Stimmtraining
 

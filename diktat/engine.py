@@ -532,6 +532,61 @@ def apply_base(text: str) -> str:
     return "".join(out) + text[pos:]
 
 
+SIGNS = [("neuer Absatz", "\n\n"), ("neue Zeile", "\n"), ("Doppelpunkt", ":"), ("Semikolon", ";"), ("Strichpunkt", ";"),
+         ("Fragezeichen", "?"), ("Ausrufezeichen", "!"), ("Klammer auf", "("), ("Klammer zu", ")"),
+         ("Schrägstrich", "/"), ("Komma", ","), ("Punkt", ".")]
+_GLUED = re.compile(r"\b([A-Za-zÄÖÜäöüß]{3,}?)(doppelpunkt|punkt|komma)(neuer|neue)?\b", re.IGNORECASE)
+_NO_POINT = re.compile(r"(?:\b(?:der|den|dem|des|ein|einen|einem|eines|diesem|diesen|dieser|jedem|jeden|kein|keinen|"
+                       r"einzigen|wichtigste[rn]?|wichtiger|toter|toten|springende[rn]?|wunde[rn]?|ersten?|zweiten?|"
+                       r"dritten?|letzten?|nächsten?|folgenden?)|-|\d\.?)\s*$", re.IGNORECASE)
+
+
+def spoken(text: str) -> str:
+    """Diktierte Satzzeichen: „Punkt“, „Komma“, „Doppelpunkt“, „neue Zeile“, „neuer Absatz“ … werden zu Zeichen.
+
+    Die Erkennung hängt das Befehlswort oft an das Wort davor („Schwindelpunkt“); das wird getrennt, wenn es das
+    zusammengesetzte Wort nicht gibt, den Stamm aber schon (Zeitpunkt und Standpunkt bleiben). „Punkt“ bleibt ein
+    Wort hinter Artikel, Zahl oder Bindestrich („der Punkt“, „McBurney-Punkt“).
+    """
+    known, terms = fach.near()[0], fach.load()[0]
+
+    def split(m):
+        whole, stem = m.group().lower(), m.group(1)
+        if stem.lower() == "doppel":
+            return m.group()
+        if whole in known or whole in terms or (m.group(3) is None and stem.lower() not in known and stem.lower() not in terms):
+            return m.group()
+        return f"{stem} {m.group(2).capitalize()}" + (f" {m.group(3)}" if m.group(3) else "")
+    text = re.sub(r"\b(Doppelpunkt|Punkt|Komma)(neuer|neue)\b", r"\1 \2", text, flags=re.IGNORECASE)
+    text = _GLUED.sub(split, text)
+    for word, sign in SIGNS:
+        rx = re.compile(r"[ \t,.;:]*\b" + word.replace(" ", r"[ \t,.]*") + r"\b[ \t,.;:]*", re.IGNORECASE)
+
+        def put(m, word=word, sign=sign):
+            before = text_now[0][:m.start()]
+            after = text_now[0][m.end():m.end() + 2]
+            if word == "Punkt" and (_NO_POINT.search(before) or after[:1].isdigit()):
+                return m.group()
+            if word == "Komma" and before[-1:].isdigit() and after[:1].isdigit():
+                return ","
+            if sign in ("\n", "\n\n"):
+                lead = "" if not before.strip() or before.rstrip()[-1:] in ".:;!?\n" else "."
+                return lead + sign
+            if sign == "(":
+                return " ("
+            if sign == "/":
+                return "/"
+            return sign + " "
+        text_now = [text]
+        text = rx.sub(put, text)
+    text = re.sub(r"\s+([,.;:!?)])", r"\1", text)
+    text = re.sub(r"([,;:])\1+|\.{2,}", lambda m: m.group()[0], text)
+    text = re.sub(r"[,;:]+([.!?])", r"\1", text)
+    text = re.sub(r"([.!?]\s+)([a-zäöü])", lambda m: m.group(1) + m.group(2).upper(), text)
+    text = re.sub(r"[ \t]+\n", "\n", text)
+    return re.sub(r"[ \t]{2,}", " ", text).strip(" \t")
+
+
 def postprocess(text: str, cfg: dict) -> str:
     text = text.strip()
     if not text:
@@ -541,6 +596,8 @@ def postprocess(text: str, cfg: dict) -> str:
     if cfg.get("base_dictionary", True) and cfg.get("model_choice", "de") in config.GERMAN:
         # erst die bekannten Fehlschreibungen, dann alles, was wie ein Fachbegriff klingt
         text = tidy(fach.correct(apply_base(text), vocabulary=cfg.get("vocabulary")))
+    if cfg.get("spoken_punctuation"):
+        text = spoken(text)
     for key, snippet in (cfg.get("snippets") or {}).items():
         text = re.sub(_phrase(key) + r"[.,;:!?]?", lambda m, r=snippet: r, text, flags=re.IGNORECASE)
     for key, repl in (cfg.get("commands") or {}).items():

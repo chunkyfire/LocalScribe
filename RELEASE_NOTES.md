@@ -1,3 +1,23 @@
+## LocalScribe 0.10.0
+
+- **Schutz vor dem Versand**: Geht Text an ein Sprachmodell außerhalb des Rechners, ersetzt LocalScribe vorher
+  Namen, Daten, Telefonnummern, E-Mail-Adressen, Anschriften und lange Nummern durch Platzhalter und übersetzt die
+  Antwort zurück. Regeln greifen immer; eine Namenserkennung (GLiNER, 293 MB, Knopf auf der Seite
+  KI-Nachbearbeitung) findet auch Namen ohne Anrede. Für fremde Server ab Werk an.
+- **Anbieter speichern und wechseln**: mehrere Server mit eigenem Namen und eigenem Schlüssel (OpenRouter, IONOS,
+  lokal), Auswahl auf der Seite KI-Nachbearbeitung.
+- **Fachkorrektur für große Sprachmodelle**: neuer Türsteher, lange Texte gehen in Stücken gleichzeitig an den Server.
+  Mit Gemini Flash Lite gemessen: eigene Diktate 9,0 → 7,5 % Wortfehler (Tandem 8,3 %), neun fremde ärztliche
+  Diktate (Med-Dictate von Corti) 16,7 → 13,7 %, Arztbrief-Sätze 10,2 → 8,4 %, rund eine Sekunde je Diktat.
+- **Satzzeichen diktieren** (Einstellungen, ab Werk aus): „Punkt“, „Komma“, „Doppelpunkt“, „neue Zeile“ … werden
+  zu Zeichen. Auf Med-Dictate 18,3 → 16,7 %.
+- **Aus Korrektur lernen** merkt sich jetzt auch richtige Wörter an falscher Stelle („Kabel“ statt Cave) und gibt
+  sie der Fachkorrektur als Hinweis mit.
+- Neuer unabhängiger Prüfsatz: neun echte deutsche ärztliche Diktate mit Wortlaut-Transkript (`werkzeug/messen/corti.py`).
+
+Installation: ZIP entpacken, `LocalScribe.exe` starten. Keine Adminrechte nötig. Die Datei ist nicht
+signiert: Meldet Windows „Der Computer wurde geschützt“, auf **Weitere Informationen → Trotzdem ausführen**.
+
 ## LocalScribe 0.9.9
 
 - **Sprungmarken in Textbausteinen**: Ein Baustein kann Marken enthalten, `[ ]`, `[Befund]` oder `___`. Nach dem

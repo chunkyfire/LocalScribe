@@ -67,6 +67,7 @@ DEFAULTS = {
     "sounds": True,
     "restore_clipboard": True,
     "trailing_space": True,
+    "spoken_punctuation": False,  # „Punkt“, „Komma“, „Doppelpunkt“, „neue Zeile“ als Satzzeichen schreiben
     "min_seconds": 0.3,
     # Verlauf führen? Auf gemeinsam genutzten Windows-Konten ausschalten.
     "history_enabled": True,
@@ -90,7 +91,11 @@ DEFAULTS = {
         "timeout": 30,
         # Name eines Prompts, der auf jedes normale Diktat angewendet wird ("" = keiner)
         "auto_prompt": "",
+        "profile": "",            # Name des gespeicherten Anbieters, zu dem der Schlüssel gehört ("" = alter Einzeleintrag)
+        "protect": True,          # Namen, Daten, Nummern vor dem Versand an fremde Server durch Platzhalter ersetzen
     },
+    "corrections": [],            # eigene Berichtigungen [erkannt, gemeint], die nur der Zusammenhang klärt (Kabel -> Cave)
+    "llm_profiles": [],           # gespeicherte Anbieter: [{"name", "base_url", "model"}], Schlüssel im Schlüsselspeicher
     # Jeder Prompt kann eine eigene Halte-Taste bekommen: halten, sprechen, loslassen.
     "prompts": [
         {"name": "Glätten", "hotkey": ["f8"],

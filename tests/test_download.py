@@ -24,7 +24,7 @@ from diktat import app as A
 from diktat import config, llm, modelle
 
 config.DIR, config.FILE, config.DB, config.ICON = tmp, tmp / "config.json", tmp / "v.sqlite", tmp / "d.ico"
-llm.get_key = lambda: ""
+llm.get_key = lambda *a: ""
 failed, seen, early = [], [], []
 
 

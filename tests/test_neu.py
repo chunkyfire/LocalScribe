@@ -237,5 +237,51 @@ play_doc = "A [ ] B [ ] "
 doc, caret = play_doc, len(play_doc)
 play(f.next()); play(f.next())
 check("Überspringen ohne Eingabe stimmt auch", doc == "A  B  ", repr(doc))
+
+# ---- 0.10.0: Schutz vor dem Versand, diktierte Satzzeichen, Türsteher für große Modelle, Anbieter ----
+from diktat import schutz, llm
+m = schutz.Mask(model=False)
+src = ("Herr Meier, geboren am 12.03.1957, wohnhaft Hauptstraße 12, 51373 Leverkusen. Frau Dr. Schmidt-Kowalski hat angerufen, "
+       "Telefon 0214 131234, Mail anna.schmidt@praxis.de, Fallnummer 20261234567. Patientin Müller klagt über Dyspnoe. "
+       "Morbus Parkinson bekannt. Pantoprazol 40 mg 1-0-0, RR 140/90, Limitierung 0-0-90 Grad, Epoetin 4000 IE, Fieber 38,7.")
+hidden = m.hide(src)
+for secret in ["Meier", "12.03.1957", "Hauptstraße", "Leverkusen", "Schmidt", "131234", "anna.schmidt", "20261234567", "Müller"]:
+    check(f"Schutz: {secret} verlässt den Rechner nicht", secret not in hidden, hidden)
+for keep in ["Parkinson", "Pantoprazol 40 mg 1-0-0", "RR 140/90", "0-0-90 Grad", "4000 IE", "38,7", "Dyspnoe"]:
+    check(f"Schutz: {keep} bleibt lesbar", keep in hidden, hidden)
+check("Schutz: Antwort wird zurückübersetzt", m.show(hidden) == src)
+check("Schutz: derselbe Name bekommt denselben Platzhalter", schutz.Mask(model=False).hide("Herr Meier und Frau Meier").count("[NAME_1]") == 2)
+check("Schutz gilt für fremde Server, nicht für den eigenen Rechner",
+      schutz.needed({"base_url": "https://openrouter.ai/api/v1"}) and not schutz.needed({"base_url": "http://localhost:11434/v1"})
+      and not schutz.needed({"base_url": "https://openrouter.ai/api/v1", "protect": False}))
+sent = {}
+def fake(system, user):
+    sent["text"] = user
+    return '{"Kabel": "Cave", "Meier": "Maier", "Hahnstau": "Harnstau"}'
+old_chat, llm.chat = llm.chat, lambda cfg, system, user, json_mode=False, key=None: fake(system, user)
+fixed, done = korrektor.correct("Herr Meier hat Hahnstau. Kabel Nierenfunktion.", {"base_url": "https://openrouter.ai/api/v1", "model": "m"})
+llm.chat = old_chat
+check("Fachkorrektur schickt die geschützte Fassung", "Meier" not in sent["text"] and "[NAME_1]" in sent["text"], sent["text"])
+check("Fachkorrektur ersetzt im Original und lässt Namen in Ruhe", fixed == "Herr Meier hat Harnstau. Cave Nierenfunktion.", fixed)
+
+signs = engine.spoken("Operationsbericht neuer Absatz, Eingriff, Doppelpunkt Kraniotomie, neue Zeile, Operateur Doppelpunkt, Doktor Williams, "
+                      "neuer Absatz. Kein Schwindelpunkt Fieber verneint, Komma, Husten auch Punkt der wichtigste Punkt ist der Zeitpunkt Punkt "
+                      "Wert 3 Komma 5 Klammer auf links Klammer zu")
+check("Diktierte Satzzeichen", signs == "Operationsbericht.\n\nEingriff: Kraniotomie.\nOperateur: Doktor Williams.\n\nKein Schwindel. Fieber verneint, "
+      "Husten auch. Der wichtigste Punkt ist der Zeitpunkt. Wert 3,5 (links)", repr(signs))
+check("Satzzeichen sind ab Werk aus", "Punkt" in engine.postprocess("Befund unauffällig Punkt", dict(config.DEFAULTS)))
+check("Satzzeichen eingeschaltet", engine.postprocess("Befund unauffällig Punkt", dict(config.DEFAULTS, spoken_punctuation=True)).strip() == "Befund unauffällig.")
+
+yes = [("Hahnstau", "Harnstau"), ("neumonischen", "pneumonischen"), ("perkotanes", "perkutanes"), ("Atem Note", "Atemnot"),
+       ("und dann sind Tron", "Ondansetron"), ("Kabel", "Cave"), ("Lisenophril", "Lisinopril"), ("Belastungsdisplühl", "Belastungsdyspnoe")]
+nope = [("Plumpe", "Pumpe"), ("Maria", "Mund"), ("Zuschauer", "Zuweisung"), ("Nabic", "Natriumbicarbonat"), ("Folgeschaden", "Folgeschäden"),
+        ("paragelaufen", "paravasal gelaufen"), ("verätzt", "reseziert"), ("Wimmer", "Termin")]
+check("Türsteher für große Modelle lässt Hörfehler durch", all(korrektor.accept(h, p) for h, p in yes), str([x for x in yes if not korrektor.accept(*x)]))
+check("Türsteher für große Modelle hält Umdeutungen auf", not any(korrektor.accept(h, p) for h, p in nope), str([x for x in nope if korrektor.accept(*x)]))
+long_text = "Der Befund ist unauffällig. " * 80
+check("Lange Texte gehen in Stücken an das Sprachmodell", len(korrektor._pieces(long_text)) >= 3 and "".join(korrektor._pieces(long_text)) == long_text)
+out = korrektor.correct("Kabel Nierenfunktion beachten, der Tisch bleibt.", {}, lambda s, u: '{"Kabel": "Cave", "Tisch": "Fisch"}', memory=[["Tisch", "Fisch"]])
+check("Eigene Berichtigungen gelten ohne Türsteher", out[0] == "Cave Nierenfunktion beachten, der Fisch bleibt.", str(out))
+check("Schlüssel je Anbieter getrennt", llm._account("IONOS") == "llm_api_key:IONOS" and llm._account() == "llm_api_key")
 print("FEHLER:" if failed else "ALLES OK", failed or "")
 sys.exit(1 if failed else 0)

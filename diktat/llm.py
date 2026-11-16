@@ -22,22 +22,27 @@ class LlmError(Exception):
     pass
 
 
-def get_key() -> str:
+def _account(profile: str = "") -> str:
+    """Jeder gespeicherte Anbieter hat seinen eigenen Eintrag im Schlüsselspeicher."""
+    return f"{ACCOUNT}:{profile}" if profile else ACCOUNT
+
+
+def get_key(profile: str = "") -> str:
     try:
         import keyring
-        return keyring.get_password(SERVICE, ACCOUNT) or ""
+        return keyring.get_password(SERVICE, _account(profile)) or ""
     except Exception:
         log.exception("API-Schlüssel nicht lesbar")
         return ""
 
 
-def set_key(key: str) -> None:
+def set_key(key: str, profile: str = "") -> None:
     import keyring
     if key:
-        keyring.set_password(SERVICE, ACCOUNT, key)
+        keyring.set_password(SERVICE, _account(profile), key)
     else:
         try:
-            keyring.delete_password(SERVICE, ACCOUNT)
+            keyring.delete_password(SERVICE, _account(profile))
         except Exception:
             pass
 
@@ -58,7 +63,7 @@ def _request(llm: dict, path: str, body=None, key=None):
     if not base.lower().startswith(("http://", "https://")):
         raise LlmError("Die Server-Adresse muss mit http:// oder https:// beginnen.")
     headers = {"Accept": "application/json"}
-    key = get_key() if key is None else key
+    key = get_key(llm.get("profile") or "") if key is None else key
     if key:
         headers["Authorization"] = f"Bearer {key}"
     data = None
@@ -124,9 +129,17 @@ def run(llm: dict, instruction: str, transcript: str, key=None) -> str:
     """Wendet die Anweisung auf das Transkript an und gibt den fertigen Text zurück."""
     if not (llm.get("model") or "").strip():
         raise LlmError("Kein Modell ausgewählt.")
+    from . import schutz
+    shield = schutz.Mask() if schutz.needed(llm) else None      # Namen, Daten, Nummern verlassen den Rechner nicht
+    system = SYSTEM + instruction.strip()
+    if shield:
+        transcript = shield.hide(transcript)
+        if shield.back:
+            system += ("\n\nPlatzhalter in eckigen Klammern wie [NAME_1] oder [DATUM_1] stehen für geschützte Angaben. "
+                       "Übernimm sie unverändert an der passenden Stelle.")
     body = {
         "model": llm["model"].strip(),
-        "messages": [{"role": "system", "content": SYSTEM + instruction.strip()},
+        "messages": [{"role": "system", "content": system},
                      {"role": "user", "content": transcript.strip()}],
         "temperature": float(llm.get("temperature", 0.2)),
         "stream": False,
@@ -140,4 +153,4 @@ def run(llm: dict, instruction: str, transcript: str, key=None) -> str:
     text = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL | re.IGNORECASE).strip()
     if not text:
         raise LlmError("Das Modell hat keinen Text geliefert.")
-    return text
+    return shield.show(text) if shield else text

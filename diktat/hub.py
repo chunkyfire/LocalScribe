@@ -10,7 +10,7 @@ import time
 from PySide6 import QtCore, QtGui, QtWidgets
 from PySide6.QtCore import Qt, QTimer, Signal
 
-from . import config, engine, fach, llm, training
+from . import config, engine, fach, llm, schutz, training
 from . import sprecher
 from .longform import LongJob
 from .ui import make_icon, make_pixmap, private_mime
@@ -111,6 +111,8 @@ QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical { background: trans
 
 PRESETS = [("Ollama (lokal)", "http://localhost:11434/v1"),
            ("LM Studio (lokal)", "http://localhost:1234/v1"),
+           ("OpenRouter", "https://openrouter.ai/api/v1"),
+           ("IONOS AI Model Hub", "https://openai.inference.de-txl.ionos.com/v1"),
            ("Eigene Adresse", "")]
 
 
@@ -926,8 +928,15 @@ class MapPage(Page):
         if new:
             parts.append("Gelernt: " + ", ".join(f"„{w}“ → „{r}“" for w, r in new) + ".")
         if open_:
-            parts.append("Nicht lernbar, weil das Erkannte selbst ein richtiges Wort ist: "
-                         + ", ".join(f"„{w}“ statt „{r}“" for w, r in open_) + ".")
+            # ein richtiges Wort an falscher Stelle: Das klärt nur der Zusammenhang, also merkt es sich die Fachkorrektur
+            memory = [list(x) for x in self.ctl.cfg.get("corrections") or []]
+            for w, r in open_:
+                if [w, r] not in memory:
+                    memory.append([w, r])
+            self.ctl.cfg["corrections"] = memory[-200:]
+            self.ctl.apply_cfg()
+            parts.append("Für die Fachkorrektur gemerkt (das Erkannte ist selbst ein richtiges Wort, darüber "
+                         "entscheidet der Zusammenhang): " + ", ".join(f"„{w}“ → „{r}“" for w, r in open_) + ".")
         return " ".join(parts) or "Keine verhörten Wörter gefunden."
 
     def _terms(self):
@@ -1160,6 +1169,7 @@ class TrainPage(Page):
 class LlmPage(Page):
     sig_models = Signal(object, str)
     sig_test = Signal(str, str, float)
+    sig_shield = Signal(float, str)
 
     def __init__(self, ctl):
         super().__init__("KI-Nachbearbeitung",
@@ -1173,6 +1183,15 @@ class LlmPage(Page):
         self.head.addWidget(button("Speichern", self.save, "primary"))
 
         # Verbindung
+        self.active = ""                  # Name des gewählten gespeicherten Anbieters
+        self.profile = QtWidgets.QComboBox()
+        self.profile.setMinimumWidth(220)
+        self.profile.activated.connect(self._pick)
+        self.protect = QtWidgets.QCheckBox("Vor dem Versand schützen: Namen, Daten, Nummern und Anschriften durch Platzhalter ersetzen")
+        self.protect.setToolTip("Gilt für jeden Server außerhalb dieses Rechners. Der Server sieht „[NAME_1] kam am "
+                                "[DATUM_1]“; die Antwort wird hier zurückübersetzt.")
+        self.shield = label("", "muted", wrap=True)
+        self.shield_btn = button("Namenserkennung laden (293 MB)", self._shield_load)
         self.enabled = QtWidgets.QCheckBox("KI-Nachbearbeitung einschalten")
         self.preset = QtWidgets.QComboBox()
         for name, _ in PRESETS:
@@ -1196,10 +1215,13 @@ class LlmPage(Page):
         self.body.addWidget(card(
             self.enabled,
             self.fix,
-            form(("Server", hbox(self.preset, (self.url, 1))),
+            form(("Anbieter", hbox((self.profile, 1), button("Speichern als …", self._save_as),
+                                   button("Löschen", self._delete, "ghost"))),
+                 ("Server", hbox(self.preset, (self.url, 1))),
                  ("API-Schlüssel", hbox((self.key, 1), button("Entfernen", self.drop_key, "ghost"))),
                  ("Modell", hbox((self.model, 1), self.fetch))),
-            self.where, self.status))
+            self.where, self.status,
+            self.protect, hbox((self.shield, 1), self.shield_btn)))
 
         # Prompts
         self.list = QtWidgets.QListWidget()
@@ -1236,6 +1258,116 @@ class LlmPage(Page):
 
         self.sig_models.connect(self._models)
         self.sig_test.connect(self._tested)
+        self.sig_shield.connect(self._shield_progress)
+
+    # ----- gespeicherte Anbieter
+    def _profiles(self):
+        return self.ctl.cfg.setdefault("llm_profiles", [])
+
+    def _migrate(self):
+        """Wer vor den Anbieterprofilen schon einen Server eingetragen hatte, bekommt ihn als ersten Eintrag."""
+        l = self.ctl.cfg["llm"]
+        if self._profiles() or not (l.get("base_url") and l.get("model")):
+            return
+        host = llm.urllib.parse.urlsplit(l["base_url"]).hostname or "Server"
+        name = next((n for n, u in PRESETS if u and u == l["base_url"]), host)
+        self._profiles().append({"name": name, "base_url": l["base_url"], "model": l["model"]})
+        key = llm.get_key()
+        if key:
+            try:
+                llm.set_key(key, name)
+            except Exception:
+                log.exception("Schlüssel nicht übertragbar")
+        l["profile"] = name
+        self.ctl.apply_cfg()
+
+    def _fill_profiles(self):
+        self.profile.blockSignals(True)
+        self.profile.clear()
+        self.profile.addItem("– nicht gespeichert –", "")
+        for p in self._profiles():
+            self.profile.addItem(f"{p['name']} · {p.get('model', '')}", p["name"])
+        self.profile.setCurrentIndex(max(0, self.profile.findData(self.active)))
+        self.profile.blockSignals(False)
+
+    def _pick(self, _=None):
+        """Einen gespeicherten Anbieter wählen: Adresse, Modell und Schlüssel wechseln mit."""
+        name = self.profile.currentData() or ""
+        p = next((p for p in self._profiles() if p["name"] == name), None)
+        self.active = name
+        if p:
+            self.url.setText(p.get("base_url", ""))
+            self.model.setEditText(p.get("model", ""))
+            urls = [u for _, u in PRESETS]
+            self.preset.setCurrentIndex(urls.index(self.url.text()) if self.url.text() in urls[:-1] else len(urls) - 1)
+        self.key.clear()
+        self.key.setPlaceholderText("gespeichert – zum Ändern neu eingeben" if llm.get_key(self.active)
+                                    else "bei lokalen Servern meist leer")
+        if p:
+            self.saved(self.note, f"„{name}“ gewählt – mit Speichern übernehmen")
+
+    def _save_as(self):
+        url, model = self.url.text().strip(), self.model.currentText().strip()
+        if not url or not model:
+            return self.saved(self.note, "Erst Server und Modell eintragen.", ok=False)
+        host = llm.urllib.parse.urlsplit(url).hostname or "Server"
+        suggestion = next((n for n, u in PRESETS if u and u == url), host)
+        name, ok = QtWidgets.QInputDialog.getText(self, "Anbieter speichern", "Name für diesen Anbieter:", text=suggestion)
+        name = (name or "").strip()
+        if not ok or not name:
+            return
+        key = self.typed_key() or llm.get_key(self.active)
+        profiles = [p for p in self._profiles() if p["name"] != name] + [{"name": name, "base_url": url, "model": model}]
+        self.ctl.cfg["llm_profiles"] = profiles
+        try:
+            if key:
+                llm.set_key(key, name)
+        except Exception as e:
+            return self.saved(self.note, f"Schlüssel nicht speicherbar: {e}", ok=False)
+        self.active = name
+        self.save()
+
+    def _delete(self):
+        name = self.profile.currentData() or ""
+        if not name:
+            return
+        self.ctl.cfg["llm_profiles"] = [p for p in self._profiles() if p["name"] != name]
+        llm.set_key("", name)
+        if self.ctl.cfg["llm"].get("profile") == name:
+            self.ctl.cfg["llm"]["profile"] = ""
+        self.active = ""
+        self.ctl.apply_cfg()
+        self.refresh()
+        self.saved(self.note, f"„{name}“ gelöscht")
+
+    # ----- Schutz vor dem Versand
+    def _shield_state(self):
+        ready = schutz.ready()
+        self.shield_btn.setVisible(not ready)
+        self.shield.setText("Namenserkennung geladen: Namen werden auch ohne Anrede erkannt. Kein Verfahren findet alles."
+                            if ready else
+                            "Ohne Namenserkennung greifen nur Regeln: Daten, Nummern, Anschriften und Namen hinter Anrede "
+                            "oder Titel. Ein Name ohne Anrede rutscht durch.")
+
+    def _shield_load(self):
+        self.shield_btn.setEnabled(False)
+
+        def work():
+            try:
+                schutz.prepare(lambda done, total: self.sig_shield.emit(done / total if total else 0.0, ""))
+                self.sig_shield.emit(1.0, "")
+            except Exception as e:
+                self.sig_shield.emit(-1.0, str(e))
+        threading.Thread(target=work, daemon=True).start()
+
+    def _shield_progress(self, fraction, error):
+        if error or fraction >= 1.0:
+            self.shield_btn.setEnabled(True)
+            self._shield_state()
+            if error:
+                self.shield.setText(f"Laden fehlgeschlagen: {error[:140]}")
+        else:
+            self.shield.setText(f"Lade Namenserkennung … {fraction * 100:.0f} %")
 
     @staticmethod
     def _wrap(layout):
@@ -1246,15 +1378,20 @@ class LlmPage(Page):
 
     # ----- Laden / Speichern
     def refresh(self):
+        self._migrate()
         cfg = self.ctl.cfg
         l = cfg["llm"]
+        self.active = l.get("profile") or ""
+        self._fill_profiles()
+        self.protect.setChecked(bool(l.get("protect", True)))
+        self._shield_state()
         self.enabled.setChecked(bool(l.get("enabled")))
         self.fix.setChecked(bool(cfg.get("llm_fix")))
         self.url.setText(l.get("base_url") or "")
         urls = [u for _, u in PRESETS]
         self.preset.setCurrentIndex(urls.index(self.url.text()) if self.url.text() in urls[:-1] else len(urls) - 1)
         self.key.clear()
-        self.key.setPlaceholderText("gespeichert – zum Ändern neu eingeben" if llm.get_key()
+        self.key.setPlaceholderText("gespeichert – zum Ändern neu eingeben" if llm.get_key(self.active)
                                     else "bei lokalen Servern meist leer")
         self.model.setEditText(l.get("model") or "")
         self.prompts = copy.deepcopy(cfg.get("prompts") or [])
@@ -1277,7 +1414,8 @@ class LlmPage(Page):
     def llm_cfg(self):
         l = dict(self.ctl.cfg["llm"])
         l.update(enabled=self.enabled.isChecked(), base_url=self.url.text().strip(),
-                 model=self.model.currentText().strip(), auto_prompt=self.auto.currentData() or "")
+                 model=self.model.currentText().strip(), auto_prompt=self.auto.currentData() or "",
+                 profile=self.active, protect=self.protect.isChecked())
         return l
 
     def typed_key(self):
@@ -1292,10 +1430,13 @@ class LlmPage(Page):
             return self.saved(self.note, "Jeder Prompt braucht einen eigenen Namen.", ok=False)
         if self.typed_key():
             try:
-                llm.set_key(self.typed_key())
+                llm.set_key(self.typed_key(), self.active)
             except Exception as e:
                 return self.saved(self.note, f"Schlüssel nicht speicherbar: {e}", ok=False)
         self.ctl.cfg["llm"] = self.llm_cfg()
+        for p in self._profiles():                 # der gewählte Anbieter merkt sich Adresse und Modell
+            if p["name"] == self.active:
+                p.update(base_url=self.ctl.cfg["llm"]["base_url"], model=self.ctl.cfg["llm"]["model"])
         self.ctl.cfg["llm_fix"] = self.fix.isChecked()
         self.ctl.cfg["prompts"] = copy.deepcopy(self.prompts)
         self.ctl.apply_cfg()
@@ -1305,7 +1446,7 @@ class LlmPage(Page):
         self.saved(self.note)
 
     def drop_key(self):
-        llm.set_key("")
+        llm.set_key("", self.active)
         self.key.clear()
         self.key.setPlaceholderText("bei lokalen Servern meist leer")
 
@@ -1453,6 +1594,7 @@ class SettingsPage(Page):
         self.sounds = QtWidgets.QCheckBox("Töne bei Start und Ende der Aufnahme")
         self.clip = QtWidgets.QCheckBox("Zwischenablage nach dem Einfügen wiederherstellen")
         self.warm = QtWidgets.QCheckBox("Mikrofon offen halten: Diktat startet ohne Verzögerung, die erste Silbe geht nicht verloren")
+        self.signs = QtWidgets.QCheckBox("Satzzeichen diktieren: „Punkt“, „Komma“, „Doppelpunkt“, „neue Zeile“, „neuer Absatz“ werden zu Zeichen")
         self.warm.setToolTip("Das Mikrofon bleibt geöffnet, solange LocalScribe läuft (Windows zeigt das Mikrofon-Symbol). "
                              "Außerhalb eines Diktats wird nur die letzte Viertelsekunde im Arbeitsspeicher gehalten.")
         self.auto = QtWidgets.QCheckBox("Mit Windows starten")
@@ -1478,7 +1620,7 @@ class SettingsPage(Page):
                   "nach kurzem Halten; Strg+C, Strg+Klick und andere Kürzel funktionieren weiter wie gewohnt. "
                   "Esc bricht eine laufende Aufnahme ab.", "muted", wrap=True)))
         self.body.addWidget(card(label("Aufnahme", "h2"), form(("Mikrofon", self.mic)),
-                                 self.sounds, self.clip, self.warm))
+                                 self.sounds, self.clip, self.warm, self.signs))
         self.body.addWidget(card(label("Verlauf und Start", "h2"),
                                  self.history, form(("Einträge löschen nach", hbox(self.days, None))),
                                  label("Tonaufnahmen werden nie aufbewahrt: Diktate per Taste bleiben im Arbeitsspeicher, "
@@ -1503,6 +1645,7 @@ class SettingsPage(Page):
         self.sounds.setChecked(bool(cfg.get("sounds")))
         self.clip.setChecked(bool(cfg.get("restore_clipboard", True)))
         self.warm.setChecked(bool(cfg.get("mic_warm")))
+        self.signs.setChecked(bool(cfg.get("spoken_punctuation")))
         self.days.setValue(int(cfg.get("history_days") or 0))
         self.history.setChecked(bool(cfg.get("history_enabled", True)))
         self.auto.setChecked(self.ctl.autostart_enabled())
@@ -1529,6 +1672,7 @@ class SettingsPage(Page):
         self.ctl.cfg.update(hotkey_hold=hold, hotkey_lock=lock[0] if lock else "", hotkey_paste_last=paste, hotkey_next_field=field,
                             microphone=self.mic.currentData(), sounds=self.sounds.isChecked(),
                             restore_clipboard=self.clip.isChecked(), mic_warm=self.warm.isChecked(),
+                            spoken_punctuation=self.signs.isChecked(),
                             history_days=self.days.value(),
                             history_enabled=self.history.isChecked())
         try:

@@ -261,7 +261,7 @@ class Diktat(QtCore.QObject):
                 if job["kind"] == "dictation":
                     clean = engine.postprocess(self.transcriber.transcribe(job["audio"]), cfg)
                     if korrektor.enabled(cfg) and clean.strip():
-                        clean, fixed = korrektor.correct(clean, cfg["llm"])
+                        clean, fixed = korrektor.correct(clean, cfg["llm"], memory=cfg.get("corrections"))
                         if fixed:
                             log.info("Fachkorrektur: %d Wort/Wörter ersetzt", len(fixed))
                 else:

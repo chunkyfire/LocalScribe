@@ -193,7 +193,7 @@ class LongJob(QtCore.QObject):
             text = talk or engine.postprocess(text, cfg)
             if korrektor.enabled(self.ctl.cfg) and not self._cancel:
                 # absatzweise, damit das Sprachmodell kurze Texte bekommt und schnell antwortet
-                parts = [korrektor.correct(p, self.ctl.cfg["llm"])[0] if p.strip() else p for p in text.split("\n")]
+                parts = [korrektor.correct(p, self.ctl.cfg["llm"], memory=self.ctl.cfg.get("corrections"))[0] if p.strip() else p for p in text.split("\n")]
                 text = "\n".join(parts)
         self.running = False
         self.finished.emit(text, done[0], "" if self._cancel and not error else error)

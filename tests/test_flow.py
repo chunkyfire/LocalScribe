@@ -21,7 +21,7 @@ from diktat import config, llm
 
 tmp = pathlib.Path(tempfile.mkdtemp(prefix="diktat_test_"))
 config.DIR, config.FILE, config.DB, config.ICON = tmp, tmp / "config.json", tmp / "v.sqlite", tmp / "d.ico"
-llm.get_key = lambda: ""
+llm.get_key = lambda *a: ""
 
 
 class Fake(BaseHTTPRequestHandler):

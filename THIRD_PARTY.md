@@ -22,6 +22,8 @@ LocalScribe selbst steht unter der GPL-3.0-or-later (siehe `LICENSE`).
 | [keyring](https://github.com/jaraco/keyring) | API-Schlüssel in der Windows-Anmeldeinformationsverwaltung | MIT | ja |
 | [huggingface_hub](https://github.com/huggingface/huggingface_hub) | lädt das Modell | Apache-2.0 | ja |
 | [certifi](https://github.com/certifi/python-certifi) | Zertifikatsliste für den Modell-Download | MPL-2.0 | ja |
+| [tokenizers](https://github.com/huggingface/tokenizers) | zerlegt Text für die Namenserkennung | Apache-2.0 | ja |
+| [GLiNER multi PII](https://huggingface.co/greg-gajda/gliner_multi_pii-v1-onnx-q8-emb4) (urchade/gliner_multi_pii-v1, mDeBERTa-v3) | erkennt Namen, Orte und Einrichtungen vor dem Versand an ein Sprachmodell | Apache-2.0 | nein, wird auf Knopfdruck geladen (293 MB) |
 | [NumPy](https://numpy.org/) | Rechnen mit Audiodaten | BSD-3-Clause | ja |
 | [Python](https://www.python.org/) | Laufzeit | PSF-2.0 | ja |
 
