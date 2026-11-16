@@ -1,3 +1,15 @@
+## LocalScribe 0.9.8
+
+- **Aus Korrektur lernen** (Seite Wörterbuch): Das letzte Diktat öffnen, die falsch erkannten Wörter berichtigen,
+  auf Lernen klicken. Verhörte Fachwörter kommen ins Wörterbuch („Riba“ wird RIVA). Was selbst ein richtiges Wort
+  ist („Kabel“ statt Cave), wird angezeigt, aber nicht gelernt.
+- **Normalbefunde als Textbausteine** (Seite Textbausteine, Knopf „Normalbefunde hinzufügen“): zehn Formulierungen
+  für unauffällige Befunde, abrufbar per Stichwort („Normalbefund Lunge“). Jeder Text lässt sich ändern oder löschen.
+- Orpheus an denselben fünf Diktaten gemessen: 9,7 % Wortfehler (LocalScribe 9,0 %, Tandem 8,3 %, Heidi 9,7 %).
+
+Installation: ZIP entpacken, `LocalScribe.exe` starten. Keine Adminrechte nötig. Die Datei ist nicht
+signiert: Meldet Windows „Der Computer wurde geschützt“, auf **Weitere Informationen → Trotzdem ausführen**.
+
 ## LocalScribe 0.9.7
 
 - **Wortfehler an den fünf eigenen Diktaten: 9,0 %** (0.9.6: 11,2 %; Tandem 8,3 %, Heidi 9,7 %). Gleiche

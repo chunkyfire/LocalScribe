@@ -17,6 +17,21 @@ from .ui import make_icon, make_pixmap, private_mime
 
 log = logging.getLogger("diktat")
 
+# Formulierungen für unauffällige Untersuchungsbefunde, als Textbausteine zum Abrufen per Stichwort.
+# Reine Schreibhilfe: Der Baustein steht nur da, wenn man ihn diktiert, und muss zum Befund passen.
+NORMAL = {
+    "Normalbefund Allgemein": "Allgemeinzustand gut, Ernährungszustand normal. Haut und Schleimhäute rosig, kein Ikterus, keine Zyanose, keine Ruhedyspnoe.",
+    "Normalbefund Kopf und Hals": "Kopf und Hals: Rachen reizlos, keine Lymphknotenschwellungen, Schilddrüse nicht vergrößert, keine Halsvenenstauung.",
+    "Normalbefund Herz": "Herz: Herztöne rein und rhythmisch, keine pathologischen Geräusche.",
+    "Normalbefund Lunge": "Lunge: Vesikuläres Atemgeräusch beidseits, keine Rasselgeräusche, kein Giemen, sonorer Klopfschall.",
+    "Normalbefund Abdomen": "Abdomen: Weich, kein Druckschmerz, keine Abwehrspannung, keine Resistenzen, Darmgeräusche regelrecht in allen vier Quadranten.",
+    "Normalbefund Nierenlager": "Nierenlager beidseits frei, Wirbelsäule nicht klopfschmerzhaft.",
+    "Normalbefund Extremitäten": "Extremitäten: Keine Ödeme, Fußpulse beidseits tastbar, Waden weich und nicht druckschmerzhaft.",
+    "Normalbefund Neurologie": "Neurologie: Wach, zu Person, Ort, Zeit und Situation orientiert. Pupillen isokor, prompte Lichtreaktion beidseits. Keine Paresen, kein sensibles Defizit, kein Meningismus.",
+    "Normalbefund EKG": "EKG: Sinusrhythmus, Indifferenztyp, regelrechte Überleitungszeiten, keine Erregungsrückbildungsstörungen.",
+    "Normalbefund Haut": "Haut: Warm, trocken, keine Effloreszenzen, Rekapillarisierungszeit unter zwei Sekunden.",
+}
+
 STYLE = """
 QWidget { background: #0B0B0B; color: #EDEDED; font-family: "Segoe UI"; font-size: 10pt; }
 QLabel, QCheckBox { background: transparent; }
@@ -818,9 +833,9 @@ def learn_verdict(target: str, heard: str, error: str = ""):
 class MapPage(Page):
     """Tabelle für ein Wörterbuch in der Konfiguration (Schlüssel -> Wert)."""
 
-    def __init__(self, ctl, title, subtitle, key, headers, learn=False):
+    def __init__(self, ctl, title, subtitle, key, headers, learn=False, starter=None):
         super().__init__(title, subtitle, scroll=False)
-        self.ctl, self.key, self.loading = ctl, key, False
+        self.ctl, self.key, self.loading, self.starter = ctl, key, False, starter
         self.table = QtWidgets.QTableWidget(0, 2)
         self.table.setHorizontalHeaderLabels(headers)
         self.table.horizontalHeader().setDefaultAlignment(Qt.AlignLeft | Qt.AlignVCenter)
@@ -854,8 +869,64 @@ class MapPage(Page):
             self.base.toggled.connect(self._base)
             self.body.addWidget(self.base)
         self.body.addWidget(self.table, 1)
-        self.body.addLayout(hbox(button("Hinzufügen", self.add, "primary"),
-                                 button("Entfernen", self.remove), None))
+        row = [button("Hinzufügen", self.add, "primary"), button("Entfernen", self.remove)]
+        if learn:
+            row.append(button("Aus Korrektur lernen", self._correct))
+        if starter:
+            row.append(button(starter[0], self._starter))
+        self.note = label("", "muted", wrap=True)
+        self.body.addLayout(hbox(*row, (self.note, 1)))
+
+    def _starter(self):
+        """Mitgelieferte Einträge ergänzen; was es schon gibt, bleibt, wie es ist."""
+        data = dict(self.ctl.cfg.get(self.key) or {})
+        new = {k: v for k, v in self.starter[1].items() if k not in data}
+        data.update(new)
+        self.ctl.cfg[self.key] = data
+        self.ctl.apply_cfg()
+        self.refresh()
+        self.note.setText(f"{len(new)} Einträge ergänzt." if new else "Alle Einträge sind schon da.")
+
+    def _correct(self):
+        """Das letzte Diktat berichtigen lassen und daraus Wörterbucheinträge ableiten."""
+        heard = self.ctl.store.last().strip()
+        if not heard:
+            return self.note.setText("Der Verlauf ist leer. Erst diktieren, dann hier berichtigen.")
+        box = QtWidgets.QDialog(self)
+        box.setWindowTitle("Aus Korrektur lernen")
+        box.resize(640, 380)
+        lay = QtWidgets.QVBoxLayout(box)
+        lay.addWidget(label("Dein letztes Diktat. Berichtige die falsch erkannten Wörter und klicke auf Lernen. "
+                            "Verhörte Fachwörter kommen ins Wörterbuch.", "muted", wrap=True))
+        edit = QtWidgets.QPlainTextEdit(heard)
+        lay.addWidget(edit, 1)
+        ok = button("Lernen", box.accept, "primary")
+        lay.addLayout(hbox(None, button("Abbrechen", box.reject), ok))
+        if box.exec() != QtWidgets.QDialog.Accepted:
+            return
+        self.note.setText(self.learn_from(heard, edit.toPlainText().strip()))
+
+    def learn_from(self, heard, fixed) -> str:
+        if fixed == heard:
+            return "Nichts geändert."
+        read, learned, open_ = training.learn(fixed, heard)
+        if not read:
+            return "Der berichtigte Text weicht zu stark ab, daraus lässt sich nichts lernen."
+        data = dict(self.ctl.cfg.get(self.key) or {})
+        new = [(w, r) for w, r in learned if data.get(w) != r]
+        for w, r in new:
+            data[w] = r
+        if new:
+            self.ctl.cfg[self.key] = data
+            self.ctl.apply_cfg()
+            self.refresh()
+        parts = []
+        if new:
+            parts.append("Gelernt: " + ", ".join(f"„{w}“ → „{r}“" for w, r in new) + ".")
+        if open_:
+            parts.append("Nicht lernbar, weil das Erkannte selbst ein richtiges Wort ist: "
+                         + ", ".join(f"„{w}“ statt „{r}“" for w, r in open_) + ".")
+        return " ".join(parts) or "Keine verhörten Wörter gefunden."
 
     def _terms(self):
         terms = [t.strip() for t in self.terms.text().split(",") if t.strip()]
@@ -1496,7 +1567,8 @@ class Hub(QtWidgets.QWidget):
             ("Textbausteine", MapPage(ctl, "Textbausteine",
                                       "Ein gesprochenes Stichwort wird durch den hinterlegten Text ersetzt. "
                                       "Für einen Zeilenumbruch \\n schreiben.",
-                                      "snippets", ["Stichwort", "Text"])),
+                                      "snippets", ["Stichwort", "Text"],
+                                      starter=("Normalbefunde hinzufügen", NORMAL))),
             ("KI-Nachbearbeitung", LlmPage(ctl)),
             ("Einstellungen", SettingsPage(ctl)),
         ]
