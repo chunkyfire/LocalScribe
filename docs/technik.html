@@ -175,7 +175,7 @@
 </header>
 <h1 id="localscribe--technische-dokumentation">LocalScribe – Technische
 Dokumentation</h1>
-<p>Stand: Version 0.15.1. Für Betrieb, IT und alle, die den Code lesen
+<p>Stand: Version 0.15.2. Für Betrieb, IT und alle, die den Code lesen
 oder prüfen wollen. Die Bedienung steht im <a
 href="https://chunkyfire.github.io/LocalScribe/">Handbuch</a>, die
 Messwerte mit Methode in <a
@@ -244,11 +244,11 @@ Verteilung</h2>
 <li>Auf <a
 href="https://github.com/chunkyfire/LocalScribe/releases/latest">https://github.com/chunkyfire/LocalScribe/releases/latest</a>
 eines der beiden Pakete laden:
-<code>LocalScribe-&lt;Version&gt;-windows-komplett.zip</code> (rund 1
-GB; Sprachmodell und Stimmmodell für die Sprechertrennung liegen bei,
-kein Internet nötig) oder
-<code>LocalScribe-&lt;Version&gt;-windows.zip</code> (rund 100 MB, lädt
-das Sprachmodell beim ersten Start).</li>
+<code>LocalScribe-&lt;Version&gt;-windows-komplett.zip</code> (rund 1,3
+GB; Sprachmodell, Stimmmodell für die Sprechertrennung und
+Namenserkennung für den Schutz vor dem Versand liegen bei, kein Internet
+nötig) oder <code>LocalScribe-&lt;Version&gt;-windows.zip</code> (rund
+100 MB, lädt das Sprachmodell beim ersten Start).</li>
 <li>Entpacken (Rechtsklick, „Alle extrahieren“), zum Beispiel nach
 <code>Dokumente\LocalScribe</code>.</li>
 <li><code>LocalScribe.exe</code> starten. Die Datei ist nicht signiert;
@@ -631,7 +631,23 @@ Für eine Firewall genügt es, nach dem ersten Start alles zu sperren.</p>
 <p>Ist ein Sprachmodell-Server außerhalb des Rechners eingetragen,
 ersetzt <code>schutz.py</code> vor dem Versand Namen, Geburts- und
 andere Daten, Orte, Nummern und Kontaktangaben durch Platzhalter und
-setzt sie in der Antwort wieder ein. Das senkt das Risiko, ersetzt aber
+setzt sie in der Antwort wieder ein. Zwei Stufen: Regeln (Daten,
+Nummern, Kontaktdaten, Anschriften, Namen hinter Anrede oder Titel) und
+ein Erkennungsmodell für Namen, Orte und Einrichtungen (GLiNER multi PII
+als ONNX, 293 MB, CPU; im Komplettpaket, sonst per Knopf geladen).
+<strong>Fehlt das Erkennungsmodell, wird nichts gesendet</strong>
+(<code>schutz.blocked</code>): Nachbearbeitung und „Visite &amp;
+Übergabe“ melden das, die Fachkorrektur lässt den Text unverändert. Der
+Schutz gilt für alle drei Wege und lässt sich je Anbieter abschalten;
+für Server im eigenen Netz (localhost, private Adressen) gilt er
+nicht.</p>
+<p>Gemessen (<code>werkzeug/messen/schutz.py</code>, 17 erfundene
+klinische Sätze mit 34 persönlichen Angaben): Regeln allein ersetzen 20,
+beide Stufen zusammen alle 34; Fachbegriffe wie Parkinson und Messwerte
+bleiben stehen. Das ist eine kleine Stichprobe. Was die Erkennung
+übersieht oder die Spracherkennung falsch schreibt, geht lesbar hinaus,
+und auch der ersetzte Text bleibt klinischer Text über eine Person
+(pseudonymisiert, nicht anonym). Das senkt das Risiko, ersetzt aber
 keine Vereinbarung zur Auftragsverarbeitung; ob klinischer Text an einen
 solchen Server gehen darf, entscheidet der Betreiber.</p>
 <p><strong>Sprachmodell im eigenen Haus:</strong> Die Schnittstelle ist

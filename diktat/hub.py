@@ -1701,8 +1701,9 @@ class LlmPage(Page):
         self.shield_btn.setVisible(not ready)
         self.shield.setText("Namenserkennung geladen: Namen werden auch ohne Anrede erkannt. Kein Verfahren findet alles."
                             if ready else
-                            "Ohne Namenserkennung greifen nur Regeln: Daten, Nummern, Anschriften und Namen hinter Anrede "
-                            "oder Titel. Ein Name ohne Anrede rutscht durch.")
+                            "Die Namenserkennung fehlt auf diesem Rechner. Solange der Schutz eingeschaltet ist, geht "
+                            "deshalb nichts an einen Server außerhalb: Die Regeln allein lassen Namen ohne Anrede durch. "
+                            "Im Komplettpaket liegt sie bei.")
 
     def _shield_load(self):
         self.shield_btn.setEnabled(False)

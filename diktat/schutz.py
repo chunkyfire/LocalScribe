@@ -9,8 +9,10 @@ gilt sie als unbrauchbar.
 Zwei Stufen:
   1. Regeln (immer): Muster für Daten, Nummern, Kontaktdaten, Anschriften und Namen hinter Anrede oder Titel.
   2. Ein Erkennungsmodell für Namen, Orte und Einrichtungen ohne solche Hinweise (GLiNER multi PII, 293 MB,
-     läuft auf der CPU, wird beim ersten Einschalten geladen). Ohne das Modell rutscht ein Name ohne Anrede
-     („Meier kam heute Nacht“) durch.
+     läuft auf der CPU; liegt im Komplettpaket, sonst per Knopf geladen). Ohne das Modell rutscht ein Name ohne
+     Anrede („Meier kam heute Nacht“) durch. Deshalb geht ohne das Modell gar nichts an einen fremden Server
+     (blocked): An 17 erfundenen klinischen Sätzen mit 34 persönlichen Angaben ersetzten die Regeln allein rund
+     die Hälfte, beide Stufen zusammen alle 34.
 
 Medizinische Fachbegriffe bleiben stehen, auch wenn sie wie Namen aussehen (Parkinson, Crohn, Hodgkin).
 Kein Verfahren findet alles: Das ist eine Schutzschicht, kein Beweis der Anonymität.
@@ -161,9 +163,11 @@ def find(text: str, model: bool = True, lenient: bool = False):
             continue                                        # „Herr Hat“ gibt es nicht
         if not STRONG_RX.match(m.group(1)) and not titles and first not in SURE and first.lower() in known:
             continue                                        # „Patientin Zustand nach“ – hinter einer Rolle nur echte Namen
-        keep = [first]
+        keep, strong = [first], bool(STRONG_RX.match(m.group(1))) or bool(titles)
         for w in names[1:]:                                 # weitere Namensteile, aber keine Folgewörter des Satzes
-            if w.lower() in fach.load()[0] or w.lower() in STOP or (w.lower() in known and w not in SURE):
+            # Die Liste bekannter Wörter enthält auch viele Nachnamen (Demirci, Baumgartner). Hinter Anrede oder
+            # Titel zählt deshalb jedes großgeschriebene Wort zum Namen, solange es kein Fachbegriff ist.
+            if w.lower() in fach.load()[0] or w.lower() in STOP or (not strong and w.lower() in known and w not in SURE):
                 break
             keep.append(w)
         length = len(" ".join(titles + keep))
@@ -220,6 +224,17 @@ class Mask:
         for tag, value in self.back.items():
             text = text.replace(tag, value)
         return text
+
+
+MISSING = ("Es wurde nichts gesendet: Für diesen Server ist der Schutz persönlicher Angaben eingeschaltet, aber die "
+           "Namenserkennung liegt nicht auf diesem Rechner. Ohne sie würden Namen ohne Anrede lesbar hinausgehen. "
+           "Im Komplettpaket liegt sie bei; sonst unter KI-Nachbearbeitung „Namenserkennung laden“.")
+
+
+def blocked(llm_cfg: dict) -> bool:
+    """Darf dieser Text gerade NICHT hinaus? Ja, wenn der Schutz gilt, die Namenserkennung aber fehlt: Die Regeln
+    allein lassen etwa die Hälfte der Namen durch (gemessen), das ist kein Schutz, auf den man sich berufen kann."""
+    return needed(llm_cfg) and not ready()
 
 
 def needed(llm_cfg: dict) -> bool:

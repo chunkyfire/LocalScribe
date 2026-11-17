@@ -1,3 +1,14 @@
+## LocalScribe 0.15.2
+
+- **Schutz vor dem Versand nachgeprüft und verschärft**: Geht Text an ein Sprachmodell außerhalb des Rechners,
+  ersetzt LocalScribe persönliche Angaben durch Platzhalter. Nachgemessen an 17 erfundenen klinischen Sätzen mit 34
+  Angaben: Mit der Namenserkennung wurden alle 34 ersetzt, mit den Regeln allein nur 20. Deshalb gilt jetzt: **Fehlt
+  die Namenserkennung auf dem Rechner, wird nichts gesendet.** Vorher ging der Text dann nur mit den Regeln geschützt
+  hinaus. Die Namenserkennung (293 MB) liegt jetzt im Komplettpaket (rund 1,3 GB).
+- Namen aus mehreren Wörtern hinter Anrede oder Titel („Frau Aylin Demirci“) ersetzen auch die Regeln jetzt ganz.
+- Beenden ist endgültig: Drei Sekunden nach „Beenden“ ist der Prozess in jedem Fall weg, damit kein unsichtbarer
+  Rest den Programmordner festhält.
+
 ## LocalScribe 0.15.1
 
 - **Ordner ließ sich nicht löschen, LocalScribe.exe tauchte wieder auf**: Ursache war eine Fassung, die im

@@ -128,6 +128,8 @@ def analyse(cfg: dict, text: str, ask=None) -> dict:
     """Fall auswerten. ask(system, user) ersetzt in Tests den Aufruf des Sprachmodells."""
     server = dict(cfg.get("llm") or {})
     server["timeout"] = max(float(server.get("timeout") or 0), 120)      # die Auswertung ist lang
+    if ask is None and schutz.blocked(server):
+        raise llm.LlmError(schutz.MISSING)
     shield = schutz.Mask() if ask is None and schutz.needed(server) else None
     system = prompt(cfg)
     if shield:

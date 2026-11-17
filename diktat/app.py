@@ -241,6 +241,11 @@ class Diktat(QtCore.QObject):
         llm.release(self.cfg["llm"])       # lokales Sprachmodell aus dem Grafikspeicher nehmen
         self.tray.hide()
         self.app.quit()
+        # Kein Rest im Hintergrund: Bleibt nach dem Beenden ein Thread hängen (Audiotreiber, Netz), liefe der Prozess
+        # unsichtbar weiter und hielte den Programmordner fest. Nach drei Sekunden ist deshalb in jedem Fall Schluss.
+        last = threading.Timer(3.0, lambda: os._exit(0))
+        last.daemon = True
+        last.start()
 
     # ---------- Modell und Arbeitsschlange ----------
     def _load(self):

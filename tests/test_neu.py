@@ -282,6 +282,20 @@ check("Schutz: derselbe Name bekommt denselben Platzhalter", schutz.Mask(model=F
 check("Schutz gilt für fremde Server, nicht für den eigenen Rechner",
       schutz.needed({"base_url": "https://openrouter.ai/api/v1"}) and not schutz.needed({"base_url": "http://localhost:11434/v1"})
       and not schutz.needed({"base_url": "https://openrouter.ai/api/v1", "protect": False}))
+_ready, schutz.ready = schutz.ready, lambda: False
+check("Ohne Namenserkennung geht nichts an fremde Server",
+      schutz.blocked({"base_url": "https://openrouter.ai/api/v1"}) and not schutz.blocked({"base_url": "http://localhost:11434/v1"})
+      and not schutz.blocked({"base_url": "https://openrouter.ai/api/v1", "protect": False}))
+try:
+    llm.run({"base_url": "https://openrouter.ai/api/v1", "model": "m"}, "Glätten", "Herr Meier kam.")
+    check("Ohne Namenserkennung: Nachbearbeitung sendet nicht", False)
+except llm.LlmError as e:
+    check("Ohne Namenserkennung: Nachbearbeitung sendet nicht", "nichts gesendet" in str(e))
+check("Ohne Namenserkennung: Fachkorrektur lässt den Text unverändert und sendet nicht",
+      korrektor.correct("Herr Meier hat Hahnstau.", {"base_url": "https://openrouter.ai/api/v1", "model": "m"}) == ("Herr Meier hat Hahnstau.", []))
+schutz.ready = lambda: True          # ab hier wie mit geladenem Modell; die Tests unten rechnen nur mit Regeln (Mask(model=False))
+check("Name aus mehreren Wörtern hinter der Anrede wird ganz ersetzt",
+      "Demirci" not in schutz.Mask(model=False).hide("Frau Aylin Demirci kam heute.") and "Lindqvist" not in schutz.Mask(model=False).hide("Hausarzt ist Dr. med. Petra Lindqvist."))
 sent = {}
 def fake(system, user):
     sent["text"] = user

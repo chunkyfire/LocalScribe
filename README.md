@@ -7,7 +7,7 @@ In den Einstellungen stehen zwei weitere Modelle zur Wahl: ein genaueres, langsa
 (NVIDIA Canary 1B v2) und ein mehrsprachiges (NVIDIA Parakeet v3, 25 europäische Sprachen).
 
 **Download:** [aktuelle Version](https://github.com/chunkyfire/LocalScribe/releases/latest) – `…-windows-komplett.zip`
-(rund 1 GB, alle Modelle liegen bei, kein Internet nötig) oder `…-windows.zip` (rund 100 MB, lädt das Sprachmodell
+(rund 1,3 GB, alle Modelle liegen bei, kein Internet nötig) oder `…-windows.zip` (rund 100 MB, lädt das Sprachmodell
 beim ersten Start).
 
 **Wie gut und wie schnell** (Methode und Einzelwerte in [`werkzeug/messen/ERGEBNIS.md`](werkzeug/messen/ERGEBNIS.md)):
@@ -30,7 +30,7 @@ Wenige Sprecher, ruhige Umgebung; Dialekt und Lärm sind nicht gemessen.
 
 ## Installieren (ohne Adminrechte)
 
-1. Unter **Releases** eines der beiden Pakete herunterladen: `LocalScribe-…-windows-komplett.zip` (rund 1 GB,
+1. Unter **Releases** eines der beiden Pakete herunterladen: `LocalScribe-…-windows-komplett.zip` (rund 1,3 GB,
    Sprachmodell und Stimmmodell liegen bei; für Klinikrechner und Rechner ohne Internet) oder `LocalScribe-…-windows.zip`
    (rund 100 MB, lädt das Sprachmodell beim ersten Start). Die Prüfsummen stehen daneben in `SHA256SUMS.txt`.
 2. Entpacken, zum Beispiel nach `Dokumente\LocalScribe`.
@@ -132,7 +132,10 @@ Einstellungen in den Programmordner (Ordner `daten`). Die Sprachmodelle können 
   ersetzt LocalScribe vorher auf dem Rechner Namen, Geburts- und andere Daten, Telefonnummern, E-Mail-Adressen,
   Anschriften und lange Nummern durch Platzhalter (`[NAME_1]`, `[DATUM_1]`) und übersetzt die Antwort zurück.
   Regeln finden Daten, Nummern, Kontaktdaten und Namen hinter Anrede oder Titel; die Namenserkennung (GLiNER,
-  293 MB, auf Knopfdruck geladen, läuft auf der CPU) findet Namen, Orte und Einrichtungen auch ohne solche Hinweise.
+  293 MB, im Komplettpaket, sonst auf Knopfdruck geladen, läuft auf der CPU) findet Namen, Orte und Einrichtungen
+  auch ohne solche Hinweise. **Fehlt die Namenserkennung, sendet LocalScribe nichts an einen fremden Server.**
+  Gemessen an 17 erfundenen klinischen Sätzen mit 34 persönlichen Angaben (`werkzeug/messen/schutz.py`): Regeln
+  allein ersetzen 20, mit Namenserkennung alle 34. Das ist eine kleine Stichprobe, kein Nachweis.
   Fachbegriffe wie Parkinson oder Crohn bleiben stehen. Kein Verfahren findet alles: Das ist eine Schutzschicht,
   kein Nachweis der Anonymität. Der Schutz ist für fremde Server ab Werk an und lässt sich je Anbieter abschalten.
 - **Stimmabdrücke.** „Sprecher trennen“ berechnet Stimmabdrücke der Sprecher. Sie leben nur im

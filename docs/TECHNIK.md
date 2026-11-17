@@ -1,6 +1,6 @@
 # LocalScribe – Technische Dokumentation
 
-Stand: Version 0.15.1. Für Betrieb, IT und alle, die den Code lesen oder prüfen wollen. Die Bedienung steht im
+Stand: Version 0.15.2. Für Betrieb, IT und alle, die den Code lesen oder prüfen wollen. Die Bedienung steht im
 [Handbuch](LocalScribe-Handbuch.pdf), die Messwerte mit Methode in [`werkzeug/messen/ERGEBNIS.md`](../werkzeug/messen/ERGEBNIS.md).
 
 ## 1. Was die App ist
@@ -39,8 +39,8 @@ Risikobegrenzung an, ihn nur Fachärztinnen und Fachärzten zu geben, die jede A
 Einzelner Rechner:
 
 1. Auf <https://github.com/chunkyfire/LocalScribe/releases/latest> eines der beiden Pakete laden:
-   `LocalScribe-<Version>-windows-komplett.zip` (rund 1 GB; Sprachmodell und Stimmmodell für die Sprechertrennung
-   liegen bei, kein Internet nötig) oder
+   `LocalScribe-<Version>-windows-komplett.zip` (rund 1,3 GB; Sprachmodell, Stimmmodell für die Sprechertrennung und
+   Namenserkennung für den Schutz vor dem Versand liegen bei, kein Internet nötig) oder
    `LocalScribe-<Version>-windows.zip` (rund 100 MB, lädt das Sprachmodell beim ersten Start).
 2. Entpacken (Rechtsklick, „Alle extrahieren“), zum Beispiel nach `Dokumente\LocalScribe`.
 3. `LocalScribe.exe` starten. Die Datei ist nicht signiert; Windows SmartScreen fragt beim ersten Mal nach:
@@ -214,8 +214,18 @@ Start alles zu sperren.
 
 Ist ein Sprachmodell-Server außerhalb des Rechners eingetragen, ersetzt `schutz.py` vor dem Versand Namen,
 Geburts- und andere Daten, Orte, Nummern und Kontaktangaben durch Platzhalter und setzt sie in der Antwort wieder
-ein. Das senkt das Risiko, ersetzt aber keine Vereinbarung zur Auftragsverarbeitung; ob klinischer Text an einen
-solchen Server gehen darf, entscheidet der Betreiber.
+ein. Zwei Stufen: Regeln (Daten, Nummern, Kontaktdaten, Anschriften, Namen hinter Anrede oder Titel) und ein
+Erkennungsmodell für Namen, Orte und Einrichtungen (GLiNER multi PII als ONNX, 293 MB, CPU; im Komplettpaket, sonst
+per Knopf geladen). **Fehlt das Erkennungsmodell, wird nichts gesendet** (`schutz.blocked`): Nachbearbeitung und
+„Visite & Übergabe“ melden das, die Fachkorrektur lässt den Text unverändert. Der Schutz gilt für alle drei Wege und
+lässt sich je Anbieter abschalten; für Server im eigenen Netz (localhost, private Adressen) gilt er nicht.
+
+Gemessen (`werkzeug/messen/schutz.py`, 17 erfundene klinische Sätze mit 34 persönlichen Angaben): Regeln allein
+ersetzen 20, beide Stufen zusammen alle 34; Fachbegriffe wie Parkinson und Messwerte bleiben stehen. Das ist eine
+kleine Stichprobe. Was die Erkennung übersieht oder die Spracherkennung falsch schreibt, geht lesbar hinaus, und
+auch der ersetzte Text bleibt klinischer Text über eine Person (pseudonymisiert, nicht anonym). Das senkt das Risiko,
+ersetzt aber keine Vereinbarung zur Auftragsverarbeitung; ob klinischer Text an einen solchen Server gehen darf,
+entscheidet der Betreiber.
 
 **Sprachmodell im eigenen Haus:** Die Schnittstelle ist OpenAI-kompatibel. Damit lässt sich jedes lokal betriebene
 Sprachmodell anschließen: auf dem eigenen Rechner oder auf einem Rechner mit Grafikkarte im Kliniknetz, zum Beispiel

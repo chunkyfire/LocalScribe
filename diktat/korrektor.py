@@ -172,6 +172,9 @@ def correct(text: str, cfg_llm: dict, ask=None, memory=None):
     Namen, Daten und Nummern sind durch Platzhalter ersetzt. Ersetzt wird im Originaltext.
     """
     from . import schutz
+    if ask is None and schutz.blocked(cfg_llm):
+        log.warning("Fachkorrektur übersprungen: %s", schutz.MISSING)
+        return text, []
     shield = schutz.Mask(lenient=True) if ask is None and schutz.needed(cfg_llm) else None
     if ask is None:
         cfg_llm = dict(cfg_llm, timeout=min(float(cfg_llm.get("timeout") or 30), WAIT))

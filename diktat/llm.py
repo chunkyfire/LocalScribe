@@ -130,6 +130,8 @@ def run(llm: dict, instruction: str, transcript: str, key=None) -> str:
     if not (llm.get("model") or "").strip():
         raise LlmError("Kein Modell ausgewählt.")
     from . import schutz
+    if schutz.blocked(llm):
+        raise LlmError(schutz.MISSING)
     shield = schutz.Mask() if schutz.needed(llm) else None      # Namen, Daten, Nummern verlassen den Rechner nicht
     system = SYSTEM + instruction.strip()
     if shield:
