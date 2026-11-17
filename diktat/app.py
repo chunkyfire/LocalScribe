@@ -229,6 +229,12 @@ class Diktat(QtCore.QObject):
             log.exception("Modell konnte nicht geladen werden")
             self.sig_ready.emit(str(e) or type(e).__name__)
 
+    def retry_load(self):
+        """Noch einmal versuchen, das Sprachmodell zu laden (Knopf in der Fehlermeldung)."""
+        self.hub.set_error("")
+        self.set_status("Modell lädt …")
+        threading.Thread(target=self._load, daemon=True).start()
+
     def on_status(self, text):
         self.set_status(text)
         self.overlay.set_mode("message", text)
@@ -249,9 +255,11 @@ class Diktat(QtCore.QObject):
     def on_ready(self, error):
         self.download = None
         self.hub.set_download(None, "")
+        self.hub.set_error("")
         if error:
-            self.set_status("Modellfehler (siehe diktat.log)")
-            self.hub.set_download(None, error)
+            self.set_status("Sprachmodell fehlt – Details im Fenster")
+            self.hub.set_error(error)
+            self.hub.open()
             self.overlay.flash("Modell konnte nicht geladen werden", 6000)
             return
         self.ready = True

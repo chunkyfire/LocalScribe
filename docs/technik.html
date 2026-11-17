@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="de" xml:lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>LocalScribe ��� Technische Dokumentation</title>
+  <style>
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      background-color: #1a1a1a;
+      border: none;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+  <style>body{font:15px/1.55 "Segoe UI",Arial,sans-serif;color:#151515;max-width:860px;margin:40px auto;padding:0 24px}
+  h1{font-size:28px}h2{font-size:20px;margin-top:34px;border-bottom:1px solid #ddd;padding-bottom:4px}
+  code{background:#f1f1f1;padding:1px 4px;border-radius:3px;font-size:13px}pre{background:#f1f1f1;padding:12px;border-radius:6px;overflow:auto}pre code{padding:0}
+  table{border-collapse:collapse;width:100%;margin:14px 0;font-size:14px}th,td{border:1px solid #ccc;padding:6px 9px;text-align:left;vertical-align:top}th{background:#f1f1f1}
+  a{color:#0b57a4}@page{margin:16mm 14mm}</style>
+</head>
+<body>
+<header id="title-block-header">
+
+</header>
+<h1 id="localscribe--technische-dokumentation">LocalScribe – Technische
+Dokumentation</h1>
+<p>Stand: Version 0.14.2. Für Betrieb, IT und alle, die den Code lesen
+oder prüfen wollen. Die Bedienung steht im <a
+href="https://chunkyfire.github.io/LocalScribe/">Handbuch</a>, die
+Messwerte mit Methode in <a
+href="https://github.com/chunkyfire/LocalScribe/blob/main/werkzeug/messen/ERGEBNIS.md"><code>werkzeug/messen/ERGEBNIS.md</code></a>.</p>
+<h2 id="1-was-die-app-ist">1. Was die App ist</h2>
+<p>LocalScribe ist ein Diktierprogramm für Windows. Taste halten,
+sprechen, loslassen: Der Text steht dort, wo der Cursor ist. Die
+Spracherkennung läuft vollständig auf dem Prozessor des Rechners; Ton
+verlässt den Rechner nicht. Es gibt kein Installationsprogramm, keinen
+Dienst, keinen Treiber und keinen Bedarf an Adminrechten.</p>
+<p>LocalScribe ist ein Dokumentationswerkzeug und kein Medizinprodukt im
+Sinne der Verordnung (EU) 2017/745. Es stellt keine Diagnosen, gibt
+keine Therapieempfehlungen und trägt kein CE-Zeichen. Funktionen, die
+Modelle vergleichen oder Texte von einem Sprachmodell bearbeiten lassen,
+dienen Forschung, Lehre und Benchmarking. Jeder Text ist vor der
+Verwendung zu lesen.</p>
+<p>Eine Ausnahme in der Sache ist der Bereich „Visite &amp; Übergabe“
+(<code>diktat/visite.py</code>), eine klinische
+Entscheidungsunterstützung im Versuchsstadium: Ein Sprachmodell erzeugt
+aus einem Fall Hinweise auf Risiken und gezielte Rückfragen, zieht also
+medizinische Schlüsse. In der Versorgung eingesetzt wäre das Software
+mit medizinischer Zweckbestimmung (MDCG 2019-11, Regel 11, mindestens
+Klasse IIa). Der Bereich ist deshalb ein <strong>experimenteller Modus
+für Benchmarking</strong>: Er soll Messwerte liefern, mit denen ein Haus
+entscheiden kann, ob sich eine eigene Entwicklung unter der
+Inhouse-Ausnahme (Art. 5 Abs. 5 MDR, mit Qualitätsmanagement und
+Dokumentation) lohnt. Bis dahin fließen seine Ausgaben in keine
+Behandlungsentscheidung. Für eine Pilotphase bietet sich als
+Risikobegrenzung an, ihn nur Fachärztinnen und Fachärzten zu geben, die
+jede Ausgabe selbst beurteilen können.</p>
+<h2 id="2-systemvoraussetzungen">2. Systemvoraussetzungen</h2>
+<table>
+<tbody>
+<tr class="odd">
+<td>Betriebssystem</td>
+<td>Windows 10 oder 11, 64 Bit</td>
+</tr>
+<tr class="even">
+<td>Prozessor</td>
+<td>x86-64 mit AVX2; getestet auf Intel Core i7-13700KF</td>
+</tr>
+<tr class="odd">
+<td>Arbeitsspeicher</td>
+<td>rund 1,5 GB für die App mit geladenem Modell</td>
+</tr>
+<tr class="even">
+<td>Platte</td>
+<td>250 MB entpackt (Download 101 MB), dazu 910 MB Sprachmodell</td>
+</tr>
+<tr class="odd">
+<td>Rechte</td>
+<td>normale Benutzerrechte; geschrieben wird nur unter
+<code>%LOCALAPPDATA%\LocalScribe</code></td>
+</tr>
+<tr class="even">
+<td>Netz</td>
+<td>nur für den einmaligen Download des Sprachmodells; danach läuft
+alles ohne Netz</td>
+</tr>
+</tbody>
+</table>
+<h2 id="3-installation-und-verteilung">3. Installation und
+Verteilung</h2>
+<p>Einzelner Rechner:</p>
+<ol type="1">
+<li>Auf <a
+href="https://github.com/chunkyfire/LocalScribe/releases/latest">https://github.com/chunkyfire/LocalScribe/releases/latest</a>
+eines der beiden Pakete laden:
+<code>LocalScribe-&lt;Version&gt;-windows-komplett.zip</code> (rund 1
+GB, das Sprachmodell liegt bei, kein Internet nötig) oder
+<code>LocalScribe-&lt;Version&gt;-windows.zip</code> (rund 100 MB, lädt
+das Sprachmodell beim ersten Start).</li>
+<li>Entpacken (Rechtsklick, „Alle extrahieren“), zum Beispiel nach
+<code>Dokumente\LocalScribe</code>.</li>
+<li><code>LocalScribe.exe</code> starten. Die Datei ist nicht signiert;
+Windows SmartScreen fragt beim ersten Mal nach: „Weitere Informationen“,
+dann „Trotzdem ausführen“.</li>
+<li>Das kleine Paket lädt beim ersten Start das Sprachmodell (910 MB)
+und zeigt dabei einen Fortschrittsbalken. Beim Komplettpaket entfällt
+das. Danach erscheint das Symbol neben der Uhr; steht dort „Bereit“,
+kann diktiert werden.</li>
+</ol>
+<p>Klinikrechner, Rechner ohne Internet, Verteilung an viele Rechner:
+das Komplettpaket. Das Modell liegt dort im Ordner <code>modelle</code>
+neben <code>LocalScribe.exe</code>; die App sucht es zuerst dort
+(<code>diktat/modelle.py</code>) und lädt dann nichts. Der
+Programmordner darf auf einem Netzlaufwerk liegen und von mehreren
+Konten gestartet werden, er wird nur gelesen. Er lässt sich kopieren
+oder per Softwareverteilung ausrollen.</p>
+<p>Scheitert der Download des Modells (Proxy, Firewall), zeigt das
+Fenster den Grund im Klartext, dazu die Knöpfe „Erneut versuchen“,
+„Komplettpaket herunterladen“ und „Protokoll öffnen“.</p>
+<p>Aktualisieren: neuen ZIP entpacken, alten Programmordner ersetzen.
+Einstellungen, Verlauf und Modell liegen getrennt davon und bleiben
+erhalten. Entfernen: Programmordner und
+<code>%LOCALAPPDATA%\LocalScribe</code> löschen.</p>
+<p>Prüfsumme: Beim Bau entsteht <code>dist\SHA256SUMS.txt</code> mit den
+SHA-256-Summen beider ZIP-Dateien.</p>
+<h2 id="4-aufbau">4. Aufbau</h2>
+<p>Python 3.11, Oberfläche mit PySide6 (Qt), Spracherkennung mit ONNX
+Runtime auf der CPU über <code>onnx-asr</code>. Gepackt mit PyInstaller
+zu einem Ordner mit <code>LocalScribe.exe</code>; <code>build.ps1</code>
+streicht dabei ungenutzte Qt-Teile.</p>
+<table>
+<thead>
+<tr class="header">
+<th>Modul</th>
+<th>Aufgabe</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>run.pyw</code></td>
+<td>Start; ein Absturz beim Start landet in
+<code>absturz.log</code></td>
+</tr>
+<tr class="even">
+<td><code>diktat/app.py</code></td>
+<td>Ablauf: Tastenkürzel, Aufnahme, Erkennung, Nachbearbeitung,
+Einfügen</td>
+</tr>
+<tr class="odd">
+<td><code>diktat/engine.py</code></td>
+<td>Mikrofon, Pausenerkennung, Laden und Aufruf des Sprachmodells,
+regelbasierte Nachbearbeitung</td>
+</tr>
+<tr class="even">
+<td><code>diktat/beam.py</code></td>
+<td>Dekodieren mit mehreren Lesarten und Wortschatz-Bonus</td>
+</tr>
+<tr class="odd">
+<td><code>diktat/wortschatz.py</code></td>
+<td>Wortschatz dafür: Kernliste, eigene Begriffe, gelernte
+Fachwörter</td>
+</tr>
+<tr class="even">
+<td><code>diktat/fach.py</code></td>
+<td>Fachbegriffe am Klang reparieren (Lexikon mit 39.600 Begriffen,
+Wirkstoffendungen)</td>
+</tr>
+<tr class="odd">
+<td><code>diktat/training.py</code></td>
+<td>Lernen aus vorgelesenen Sätzen und aus Aufnahmen mit Transkript</td>
+</tr>
+<tr class="even">
+<td><code>diktat/visite.py</code></td>
+<td>Visite &amp; Übergabe: Fall auswerten lassen (Arztbrief-Entwurf,
+Sicherheitsnetz, Rückfragen), Fallablage mit Papierkorb</td>
+</tr>
+<tr class="odd">
+<td><code>diktat/sprecher.py</code></td>
+<td>Sprecher trennen (WeSpeaker ResNet34, ONNX, CPU)</td>
+</tr>
+<tr class="even">
+<td><code>diktat/vad.py</code></td>
+<td>Sprache oder Stille (Silero VAD)</td>
+</tr>
+<tr class="odd">
+<td><code>diktat/longform.py</code></td>
+<td>lange Aufnahmen und Tondateien stückweise</td>
+</tr>
+<tr class="even">
+<td><code>diktat/modelle.py</code></td>
+<td>Sprachmodelle finden, einmal laden, Fortschritt melden</td>
+</tr>
+<tr class="odd">
+<td><code>diktat/llm.py</code>, <code>korrektor.py</code></td>
+<td>optionale Nachbearbeitung und Fachkorrektur über eine
+OpenAI-kompatible Schnittstelle</td>
+</tr>
+<tr class="even">
+<td><code>diktat/schutz.py</code></td>
+<td>Namen, Daten, Orte, Nummern ersetzen, bevor Text an einen fremden
+Server geht</td>
+</tr>
+<tr class="odd">
+<td><code>diktat/handy.py</code></td>
+<td>Handy als Mikrofon: HTTPS-Seite im eigenen Netz</td>
+</tr>
+<tr class="even">
+<td><code>diktat/winio.py</code></td>
+<td>Windows: globale Tasten, Einfügen, Zielfenster, Autostart</td>
+</tr>
+<tr class="odd">
+<td><code>diktat/hub.py</code>, <code>ui.py</code></td>
+<td>Fenster, Statusleiste, Tray-Symbol, Verlauf</td>
+</tr>
+<tr class="even">
+<td><code>diktat/config.py</code></td>
+<td>Einstellungen und Ablageorte</td>
+</tr>
+</tbody>
+</table>
+<h2 id="5-vom-ton-zum-text">5. Vom Ton zum Text</h2>
+<ol type="1">
+<li><strong>Aufnahme</strong> mit 16 kHz mono
+(<code>sounddevice</code>). Der Ton liegt nur im Arbeitsspeicher.</li>
+<li><strong>Stücke</strong>: Die Pausenerkennung teilt an Sprechpausen
+in Stücke von wenigen Sekunden.</li>
+<li><strong>Sprachmodell</strong>: primeline-Parakeet (NVIDIA Parakeet
+TDT 0.6B, auf Deutsch nachtrainiert, CC BY 4.0) als ONNX. Der Encoder
+ist auf 8 Bit gekürzt (je Kanal, 840 MB), Decoder und Joint 69 MB.</li>
+<li><strong>Dekodieren</strong> (<code>beam.py</code>): Acht Lesarten
+laufen nebeneinander. Eine Lesart, deren entstehendes Wort der Anfang
+eines Begriffs aus dem Wortschatz ist, bekommt je Wortstück einen Bonus;
+er wird abgezogen, wenn am Wortende kein ganzer Begriff dasteht. Liefert
+die Suche deutlich weniger Wörter als das einfache Dekodieren, gilt das
+einfache. Abschaltbar mit <code>"beam": 0</code>.</li>
+<li><strong>Nachbearbeitung</strong> ohne Sprachmodell
+(<code>engine.postprocess</code>): persönliches Wörterbuch,
+Basiswörterbuch bekannter Fehlschreibungen, Reparatur am Klang gegen das
+Fachlexikon (<code>fach.correct</code>), diktierte Satzzeichen,
+Leerzeichen.</li>
+<li><strong>Optional</strong>: Fachkorrektur oder Umformulieren durch
+ein Sprachmodell (siehe 8). Ab Werk aus.</li>
+<li><strong>Einfügen</strong> über die Zwischenablage in das aktive oder
+das gemerkte Zielfenster; die vorherige Zwischenablage wird
+wiederhergestellt, der Eintrag ist vom Windows-Zwischenablageverlauf
+ausgenommen.</li>
+</ol>
+<p>Geschwindigkeit (i7-13700KF, 45 Sekunden Diktat): rund 2 Sekunden mit
+Wortschatz, 1,4 Sekunden ohne. Wichtig dafür ist
+<code>session.intra_op.allow_spinning = 0</code> für beide
+ONNX-Sitzungen; sonst bremsen sich die Rechen-Threads von Encoder und
+Decoder gegenseitig (vorher 6 Sekunden).</p>
+<h2 id="6-lernen">6. Lernen</h2>
+<p>Nichts davon verändert das Sprachmodell; gelernt wird in Wörterbuch
+und Wortschatz, beides in der Einstellungsdatei.</p>
+<table>
+<thead>
+<tr class="header">
+<th>Weg</th>
+<th>Was gelernt wird</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Diktieren</td>
+<td>Fachwörter aus dem Lexikon, die im fertigen Text stehen, kommen in
+den Wortschatz (<code>learn_terms</code>)</td>
+</tr>
+<tr class="even">
+<td>Stimmtraining, Sätze vorlesen</td>
+<td>Verhörer: „was die Erkennung schrieb“ → „was dastand“, wenn es
+ähnlich klingt und kein echtes Wort ist</td>
+</tr>
+<tr class="odd">
+<td>Stimmtraining, Aufnahme mit Transkript</td>
+<td>beides: Verhörer aus dem Vergleich, Fachwörter aus dem
+Transkript</td>
+</tr>
+<tr class="even">
+<td>Stimmtraining, eigene Texte</td>
+<td>Fachwörter aus Briefen oder Befunden (docx, odt, txt, rtf,
+html)</td>
+</tr>
+<tr class="odd">
+<td>Wörterbuch, Wort einsprechen und Meine Begriffe</td>
+<td>einzelne Begriffe von Hand</td>
+</tr>
+<tr class="even">
+<td>Aus Korrektur lernen</td>
+<td>Verhörer aus dem berichtigten letzten Diktat</td>
+</tr>
+</tbody>
+</table>
+<p>In den Wortschatz kommen nur einzelne Wörter, die im mitgelieferten
+Lexikon stehen, höchstens 4.000. Sätze und Namen von Patienten können so
+nicht hineingeraten. Tondateien werden beim Lernen nur gelesen.</p>
+<p>Material für ein Nachtraining: Auf Wunsch
+(<code>training_keep</code>, ab Werk aus) hebt das Stimmtraining die
+vorgelesenen, erfundenen Sätze als WAV mit Text in
+<code>training\</code> auf, nie Diktate oder eingelesene Aufnahmen. Ob
+ein Nachtraining des Sprachmodells auf die eigene Stimme die Erkennung
+verbessert, ist nicht gemessen; mit künstlichen Stimmen brachte es
+nichts (<code>ERGEBNIS.md</code>). Das Training selbst läuft außerhalb
+der App (<code>werkzeug/training</code>, braucht eine Grafikkarte) und
+würde nur den kleinen Schreibteil des Modells (69 MB) ersetzen.</p>
+<h2 id="7-daten-auf-dem-rechner">7. Daten auf dem Rechner</h2>
+<p>Alles liegt unter <code>%LOCALAPPDATA%\LocalScribe</code> (nicht im
+Roaming-Profil, wandert also nicht durchs Firmennetz). Das gilt auch für
+das Protokoll und auch dann, wenn das Programm auf einem Netzlaufwerk
+liegt: Der Programmordner wird oft von mehreren geteilt und ist häufig
+schreibgeschützt, Verlauf und Protokoll gehören dort nicht hin. Bei
+einem Sammelkonto teilen sich alle, die es benutzen, dieselben
+Einstellungen und denselben Verlauf. Lässt sich
+<code>%LOCALAPPDATA%</code> ausnahmsweise nicht beschreiben, weicht die
+App auf <code>%APPDATA%</code>, das Benutzerverzeichnis und zuletzt
+<code>%TEMP%</code> aus (<code>config._dir</code>).</p>
+<table>
+<thead>
+<tr class="header">
+<th>Datei oder Ordner</th>
+<th>Inhalt</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>config.json</code></td>
+<td>Einstellungen, Wörterbuch, Wortschatz, Textbausteine. Keine
+Schlüssel.</td>
+</tr>
+<tr class="even">
+<td><code>verlauf.sqlite</code></td>
+<td>Verlauf der Diktate als Text, mit einstellbarer Aufbewahrungsfrist;
+abschaltbar</td>
+</tr>
+<tr class="odd">
+<td><code>modelle\</code></td>
+<td>Sprachmodell, Stimmmodell für die Sprechertrennung</td>
+</tr>
+<tr class="even">
+<td><code>diktat.log</code>, <code>absturz.log</code></td>
+<td>Betriebsmeldungen: Dauer, Zeichenzahl, Fehler. Kein diktierter
+Text.</td>
+</tr>
+<tr class="odd">
+<td><code>aufnahmen\</code></td>
+<td>Sicherung einer laufenden langen Aufnahme; wird gelöscht, sobald der
+Text fertig ist</td>
+</tr>
+<tr class="even">
+<td><code>visite.sqlite</code></td>
+<td>Fälle aus „Visite &amp; Übergabe“: Eingabe und Ergebnis als Text,
+mit Papierkorb</td>
+</tr>
+<tr class="odd">
+<td><code>training\</code></td>
+<td>nur wenn eingeschaltet: vorgelesene Sätze des Stimmtrainings als
+Ton</td>
+</tr>
+</tbody>
+</table>
+<p>Der Schlüssel für ein Sprachmodell-Konto liegt in der
+Windows-Anmeldeinformationsverwaltung (<code>keyring</code>), nicht in
+einer Datei. Ton aus Diktaten per Taste wird nie auf die Platte
+geschrieben.</p>
+<h2 id="8-netzwerkverbindungen">8. Netzwerkverbindungen</h2>
+<p>Ab Werk baut die App genau eine Art von Verbindung auf: den
+einmaligen Download der Modelle.</p>
+<table>
+<thead>
+<tr class="header">
+<th>Ziel</th>
+<th>Wann</th>
+<th>Was geht hinaus</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>github.com</code> (Release
+<code>modell-primeline-1</code>)</td>
+<td>erster Start</td>
+<td>nichts außer der Anfrage</td>
+</tr>
+<tr class="even">
+<td><code>huggingface.co</code></td>
+<td>Ausweichquelle für das Modell; Stimmmodell beim ersten Einschalten
+der Sprechertrennung</td>
+<td>nichts außer der Anfrage</td>
+</tr>
+<tr class="odd">
+<td>selbst eingetragener Sprachmodell-Server</td>
+<td>nur wenn KI-Nachbearbeitung oder Fachkorrektur eingeschaltet sind
+oder in „Visite &amp; Übergabe“ auf „Auswerten“ gedrückt wird</td>
+<td>der diktierte Text bzw. der Fall, nach dem Schutz aus
+<code>schutz.py</code></td>
+</tr>
+<tr class="even">
+<td>eigenes Netz, Port 8765</td>
+<td>nur wenn „Handy als Mikrofon“ eingeschaltet ist</td>
+<td>nichts; das Telefon schickt Ton an den Rechner</td>
+</tr>
+</tbody>
+</table>
+<p>Telemetrie, Lizenzabfragen oder automatische Updates gibt es nicht.
+Für eine Firewall genügt es, nach dem ersten Start alles zu sperren.</p>
+<p>Ist ein Sprachmodell-Server außerhalb des Rechners eingetragen,
+ersetzt <code>schutz.py</code> vor dem Versand Namen, Geburts- und
+andere Daten, Orte, Nummern und Kontaktangaben durch Platzhalter und
+setzt sie in der Antwort wieder ein. Das senkt das Risiko, ersetzt aber
+keine Vereinbarung zur Auftragsverarbeitung; ob klinischer Text an einen
+solchen Server gehen darf, entscheidet der Betreiber.</p>
+<p><strong>Sprachmodell im eigenen Haus:</strong> Die Schnittstelle ist
+OpenAI-kompatibel. Damit lässt sich jedes lokal betriebene Sprachmodell
+anschließen: auf dem eigenen Rechner oder auf einem Rechner mit
+Grafikkarte im Kliniknetz, zum Beispiel über Ollama, LM Studio,
+llama.cpp oder vLLM. Der eigene Rechner und private IP-Adressen (10.x,
+172.16–31.x, 192.168.x) gelten als lokal; Fachkorrektur und „Visite
+&amp; Übergabe“ arbeiten dann, ohne dass Text das Haus verlässt, und
+ohne Kosten je Anfrage.</p>
+<p>Handy als Mikrofon: Die App öffnet einen HTTPS-Server mit eigenem
+Zertifikat im lokalen Netz. Zugang nur mit einem zufälligen Schlüssel
+aus dem QR-Code. Ab Werk aus.</p>
+<h2 id="9-einstellungen">9. Einstellungen</h2>
+<p><code>config.json</code>, die wichtigsten Schlüssel (alle über die
+Oberfläche erreichbar, außer den markierten):</p>
+<table>
+<thead>
+<tr class="header">
+<th>Schlüssel</th>
+<th>Bedeutung</th>
+<th>ab Werk</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>hotkey_hold</code>, <code>hotkey_lock</code>,
+<code>hotkey_paste_last</code>, <code>hotkey_target</code>,
+<code>hotkey_next_field</code></td>
+<td>Tasten</td>
+<td>Strg+Win, Leertaste, Umschalt+F7, F9, F8</td>
+</tr>
+<tr class="even">
+<td><code>model_choice</code></td>
+<td><code>de</code> (primeline-Parakeet), <code>genau</code> (NVIDIA
+Canary 1B v2, genauer und langsamer; ohne Wortschatz-Bonus) oder
+<code>multi</code> (Parakeet v3, 25 Sprachen)</td>
+<td><code>de</code></td>
+</tr>
+<tr class="odd">
+<td><code>beam</code> (nur Datei)</td>
+<td>Zahl der Lesarten beim Dekodieren; 0 schaltet den Wortschatz-Bonus
+ab</td>
+<td>8</td>
+</tr>
+<tr class="even">
+<td><code>learn_terms</code>, <code>learned</code></td>
+<td>Wortschatz aus Diktaten mitlernen; die gelernten Wörter</td>
+<td>an, leer</td>
+</tr>
+<tr class="odd">
+<td><code>vocabulary</code>, <code>dictionary</code></td>
+<td>Meine Begriffe; Wörterbuch „falsch → richtig“</td>
+<td>leer</td>
+</tr>
+<tr class="even">
+<td><code>base_dictionary</code></td>
+<td>mitgeliefertes medizinisches Wörterbuch und Lexikon anwenden</td>
+<td>an</td>
+</tr>
+<tr class="odd">
+<td><code>speakers</code></td>
+<td>Sprecher trennen bei Aufnahme und Datei</td>
+<td>aus</td>
+</tr>
+<tr class="even">
+<td><code>spoken_punctuation</code></td>
+<td>„Punkt“, „Komma“, „neue Zeile“ als Zeichen schreiben</td>
+<td>aus</td>
+</tr>
+<tr class="odd">
+<td><code>llm</code>, <code>llm_fix</code></td>
+<td>Sprachmodell-Server und Fachkorrektur</td>
+<td>aus</td>
+</tr>
+<tr class="even">
+<td><code>visite_prompt</code></td>
+<td>eigene Anweisung für „Visite &amp; Übergabe“; leer = die
+mitgelieferte</td>
+<td>leer</td>
+</tr>
+<tr class="odd">
+<td><code>training_keep</code></td>
+<td>vorgelesene Sätze als Ton aufheben</td>
+<td>aus</td>
+</tr>
+<tr class="even">
+<td><code>phone</code></td>
+<td>Handy als Mikrofon</td>
+<td>aus</td>
+</tr>
+<tr class="odd">
+<td><code>threads</code> (nur Datei)</td>
+<td>Zahl der Rechen-Threads; 0 überlässt es der Laufzeit</td>
+<td>0</td>
+</tr>
+</tbody>
+</table>
+<h2 id="10-bauen-und-prüfen">10. Bauen und Prüfen</h2>
+<p>Bauen: <code>build.ps1</code> (braucht <code>uv</code>, keine
+Adminrechte) erzeugt <code>dist\LocalScribe\</code> und den ZIP samt
+Prüfsumme. Abhängigkeiten stehen in <code>requirements.txt</code>,
+Lizenzen in <code>THIRD_PARTY.md</code>.</p>
+<p>Prüfen:</p>
+<table>
+<tbody>
+<tr class="odd">
+<td><code>tests/test_neu.py</code></td>
+<td>Einheiten: Nachbearbeitung, Wörterbuch, Schutz, Wortschatz,
+Training, Visite, Handy-Server, Einstellungen</td>
+</tr>
+<tr class="even">
+<td><code>tests/test_woerterbuch.py</code></td>
+<td>Fachlexikon: was repariert wird und was unangetastet bleiben
+muss</td>
+</tr>
+<tr class="odd">
+<td><code>tests/test_flow.py</code></td>
+<td>Ablauf mit Oberfläche: Diktat, Einfügen, Verlauf,
+Nachbearbeitung</td>
+</tr>
+<tr class="even">
+<td><code>tests/test_download.py</code>, <code>test_long.py</code>,
+<code>test_llm.py</code>, <code>test_hotkey.py</code></td>
+<td>Modell-Download, lange Aufnahmen, Sprachmodell-Anbindung,
+Tasten</td>
+</tr>
+<tr class="odd">
+<td><code>LocalScribe.exe --selftest &lt;wav&gt;</code></td>
+<td>die gepackte App erkennt eine Datei und meldet Dauer und Text</td>
+</tr>
+</tbody>
+</table>
+<p>Messwerkzeuge liegen in <code>werkzeug/messen</code> (Wortfehlerrate
+an eigenen Diktaten, Corti Med-Dictate, GraSCCo, MultiMed;
+Sprechertrennung; Geschwindigkeit), das Werkzeug zum Kürzen des Modells
+in <code>werkzeug/modell</code>, der Bau des Lexikons in
+<code>werkzeug/woerterbuch</code>, die Versuche zum Nachtraining in
+<code>werkzeug/training</code>.</p>
+<h2 id="11-benchmark-ergebnisse">11. Benchmark-Ergebnisse</h2>
+<p>Wortfehlerrate nach der Nachbearbeitung, ohne Sprachmodell-Korrektur.
+Methode, Einzelwerte und Einschränkungen in
+<code>ERGEBNIS.md</code>.</p>
+<table>
+<thead>
+<tr class="header">
+<th>Material</th>
+<th>LocalScribe</th>
+<th>zum Vergleich</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>fünf eigene ärztliche Diktate (412 Wörter, ein Sprecher)</td>
+<td>8,3 %</td>
+<td>Whisper Large v3 Turbo Deutsch mit Wortliste 14,1 %, VibeVoice 16,3
+%</td>
+</tr>
+<tr class="even">
+<td>Corti Med-Dictate, neun echte Diktate, 33 Minuten</td>
+<td>15,4 % mit Kernliste; 11,1 % mit dem Wortschatz aus den eigenen
+Texten</td>
+<td>16,6 % ohne Wortschatz beim Dekodieren</td>
+</tr>
+<tr class="odd">
+<td>dieselben mit Fachkorrektur durch ein Sprachmodell (älterer Stand,
+ohne Wortschatz beim Dekodieren)</td>
+<td>7,5 % und 13,7 %</td>
+<td>–</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr class="header">
+<th>Weitere Größen</th>
+<th>Wert</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Rechenzeit für 45 s Diktat (i7-13700KF, nur Prozessor)</td>
+<td>2,0 s mit Wortschatz, 1,4 s ohne</td>
+</tr>
+<tr class="even">
+<td>allererster Start mit Modell-Download (910 MB)</td>
+<td>61 s; jeder weitere Start 2 s</td>
+</tr>
+<tr class="odd">
+<td>Sprechertrennung</td>
+<td>88,6 % richtig zugeordnete Sprechzeit bei Interviews, 75,4 % am
+Telefon</td>
+</tr>
+<tr class="even">
+<td>Arbeitsspeicher im Betrieb</td>
+<td>rund 1,4 GB</td>
+</tr>
+</tbody>
+</table>
+<p>Modellgröße: Der Encoder mit 8 Bit je Kanal hat 841 MB. Geprüft und
+verworfen sind die verbreitete Fassung mit 654 MB (eigene Diktate 18,0 %
+statt 14,3 % vor dem Wörterbuch-Ausbau) und eine 4-Bit-Fassung der
+Matrizen mit 655 MB (eigene Diktate 10,0 % statt 9,0 %, Corti 17,4 %
+statt 16,6 %, dazu 1,8-mal so lange Rechenzeit).</p>
+<h2 id="12-bekannte-grenzen">12. Bekannte Grenzen</h2>
+<ul>
+<li>Der Wortschatz-Bonus hilft nur für Wörter, die im Wortschatz stehen.
+Am ersten Tag ist das die Kernliste.</li>
+<li>Die Programmdatei ist nicht signiert; SmartScreen warnt beim ersten
+Start.</li>
+<li>Nur Windows. Keine Anbindung an ein Krankenhausinformationssystem;
+der Text wird wie getippt eingefügt.</li>
+<li>Dialekt, laute Umgebung und mehrere gleichzeitig Sprechende sind
+nicht gemessen.</li>
+<li>Ein Nachtraining des Sprachmodells auf die eigene Stimme ist nicht
+eingebaut und nicht gemessen; die App kann nur das Material dafür
+sammeln. Versuche mit künstlichen Stimmen brachten an echten Stimmen
+keinen Gewinn.</li>
+<li>„Visite &amp; Übergabe“ ist so gut wie das eingestellte
+Sprachmodell. Die Ausgaben sind ungeprüfte Entwürfe.</li>
+<li>Die Seite für das Handy als Mikrofon ist bisher nur mit simuliertem
+Mikrofon geprüft.</li>
+</ul>
+<h2 id="13-lizenz">13. Lizenz</h2>
+<p>GPL-3.0-or-later. Sprachmodell primeline-Parakeet (CC BY 4.0),
+Stimmmodell WeSpeaker (CC BY 4.0), Silero VAD (MIT); alle Bestandteile
+in <code>THIRD_PARTY.md</code>.</p>
+</body>
+</html>

@@ -1,6 +1,6 @@
 # LocalScribe – Technische Dokumentation
 
-Stand: Version 0.14.1. Für Betrieb, IT und alle, die den Code lesen oder prüfen wollen. Die Bedienung steht im
+Stand: Version 0.14.2. Für Betrieb, IT und alle, die den Code lesen oder prüfen wollen. Die Bedienung steht im
 [Handbuch](LocalScribe-Handbuch.pdf), die Messwerte mit Methode in [`werkzeug/messen/ERGEBNIS.md`](../werkzeug/messen/ERGEBNIS.md).
 
 ## 1. Was die App ist
@@ -38,22 +38,28 @@ Risikobegrenzung an, ihn nur Fachärztinnen und Fachärzten zu geben, die jede A
 
 Einzelner Rechner:
 
-1. Auf <https://github.com/chunkyfire/LocalScribe/releases/latest> die Datei `LocalScribe-<Version>-windows.zip` laden.
+1. Auf <https://github.com/chunkyfire/LocalScribe/releases/latest> eines der beiden Pakete laden:
+   `LocalScribe-<Version>-windows-komplett.zip` (rund 1 GB, das Sprachmodell liegt bei, kein Internet nötig) oder
+   `LocalScribe-<Version>-windows.zip` (rund 100 MB, lädt das Sprachmodell beim ersten Start).
 2. Entpacken (Rechtsklick, „Alle extrahieren“), zum Beispiel nach `Dokumente\LocalScribe`.
 3. `LocalScribe.exe` starten. Die Datei ist nicht signiert; Windows SmartScreen fragt beim ersten Mal nach:
    „Weitere Informationen“, dann „Trotzdem ausführen“.
-4. Beim ersten Start lädt die App das Sprachmodell (910 MB) und zeigt dabei einen Fortschrittsbalken. Danach
-   erscheint das Symbol neben der Uhr; steht dort „Bereit“, kann diktiert werden.
+4. Das kleine Paket lädt beim ersten Start das Sprachmodell (910 MB) und zeigt dabei einen Fortschrittsbalken.
+   Beim Komplettpaket entfällt das. Danach erscheint das Symbol neben der Uhr; steht dort „Bereit“, kann diktiert
+   werden.
 
-Rechner ohne Internet oder Verteilung an viele Rechner: Den Ordner
-`%LOCALAPPDATA%\LocalScribe\modelle` eines Rechners, auf dem die App einmal gestartet wurde, als Ordner `modelle`
-neben `LocalScribe.exe` legen. Die App sucht das Modell zuerst dort (`diktat/modelle.py`) und lädt dann nichts.
-Der so vorbereitete Programmordner lässt sich kopieren oder per Softwareverteilung ausrollen.
+Klinikrechner, Rechner ohne Internet, Verteilung an viele Rechner: das Komplettpaket. Das Modell liegt dort im
+Ordner `modelle` neben `LocalScribe.exe`; die App sucht es zuerst dort (`diktat/modelle.py`) und lädt dann nichts.
+Der Programmordner darf auf einem Netzlaufwerk liegen und von mehreren Konten gestartet werden, er wird nur
+gelesen. Er lässt sich kopieren oder per Softwareverteilung ausrollen.
+
+Scheitert der Download des Modells (Proxy, Firewall), zeigt das Fenster den Grund im Klartext, dazu die Knöpfe
+„Erneut versuchen“, „Komplettpaket herunterladen“ und „Protokoll öffnen“.
 
 Aktualisieren: neuen ZIP entpacken, alten Programmordner ersetzen. Einstellungen, Verlauf und Modell liegen
 getrennt davon und bleiben erhalten. Entfernen: Programmordner und `%LOCALAPPDATA%\LocalScribe` löschen.
 
-Prüfsumme: Beim Bau entsteht `dist\SHA256SUMS.txt` mit der SHA-256-Summe des ZIP.
+Prüfsumme: Beim Bau entsteht `dist\SHA256SUMS.txt` mit den SHA-256-Summen beider ZIP-Dateien.
 
 ## 4. Aufbau
 
@@ -125,7 +131,12 @@ Grafikkarte) und würde nur den kleinen Schreibteil des Modells (69 MB) ersetzen
 
 ## 7. Daten auf dem Rechner
 
-Alles liegt unter `%LOCALAPPDATA%\LocalScribe` (nicht im Roaming-Profil, wandert also nicht durchs Firmennetz):
+Alles liegt unter `%LOCALAPPDATA%\LocalScribe` (nicht im Roaming-Profil, wandert also nicht durchs Firmennetz).
+Das gilt auch für das Protokoll und auch dann, wenn das Programm auf einem Netzlaufwerk liegt: Der Programmordner
+wird oft von mehreren geteilt und ist häufig schreibgeschützt, Verlauf und Protokoll gehören dort nicht hin. Bei
+einem Sammelkonto teilen sich alle, die es benutzen, dieselben Einstellungen und denselben Verlauf. Lässt sich
+`%LOCALAPPDATA%` ausnahmsweise nicht beschreiben, weicht die App auf `%APPDATA%`, das Benutzerverzeichnis und
+zuletzt `%TEMP%` aus (`config._dir`).
 
 | Datei oder Ordner | Inhalt |
 |---|---|

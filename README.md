@@ -6,23 +6,24 @@ landet im gerade aktiven Textfeld. Die Spracherkennung läuft vollständig auf d
 In den Einstellungen stehen zwei weitere Modelle zur Wahl: ein genaueres, langsameres deutsches
 (NVIDIA Canary 1B v2) und ein mehrsprachiges (NVIDIA Parakeet v3, 25 europäische Sprachen).
 
-**Technische Dokumentation:** [docs/TECHNIK.md](docs/TECHNIK.md) – Aufbau, Datenablage, Netzwerkverbindungen, Verteilung.
+**Technische Dokumentation:** [online](https://chunkyfire.github.io/LocalScribe/technik.html), als [PDF](docs/LocalScribe-Technik.pdf) oder [docs/TECHNIK.md](docs/TECHNIK.md) – Aufbau, Datenablage, Netzwerkverbindungen, Verteilung.
 
 **Handbuch mit Bildern:** [docs/LocalScribe-Handbuch.pdf](docs/LocalScribe-Handbuch.pdf) – Installieren, Starten, Diktieren, alle Funktionen und Messwerte. Online: <https://chunkyfire.github.io/LocalScribe/>
 
 ## Installieren (ohne Adminrechte)
 
-1. Unter **Releases** die Datei `LocalScribe-…-windows.zip` herunterladen. Die Prüfsumme steht
-   daneben in `SHA256SUMS.txt`.
+1. Unter **Releases** eines der beiden Pakete herunterladen: `LocalScribe-…-windows-komplett.zip` (rund 1 GB,
+   das Sprachmodell liegt bei; für Klinikrechner und Rechner ohne Internet) oder `LocalScribe-…-windows.zip`
+   (rund 100 MB, lädt das Sprachmodell beim ersten Start). Die Prüfsummen stehen daneben in `SHA256SUMS.txt`.
 2. Entpacken, zum Beispiel nach `Dokumente\LocalScribe`.
 3. `LocalScribe.exe` starten. Meldet Windows „Der Computer wurde geschützt“: **Weitere Informationen →
    Trotzdem ausführen** (die Datei ist nicht signiert).
-4. Beim ersten Start lädt die App einmalig das Sprachmodell (910 MB). Ein Balken im Fenster, in der
+4. Nur beim kleinen Paket: Beim ersten Start lädt die App einmalig das Sprachmodell (910 MB). Ein Balken im Fenster, in der
    Statusleiste am unteren Bildschirmrand und im Infobereich zeigt, wie weit der Download ist; erst wenn er
    voll ist, lässt sich diktieren. Das Modell bleibt danach dauerhaft unter
    `%LOCALAPPDATA%\LocalScribe\modelle` liegen (ohne Adminrechte beschreibbar) und wird nie erneut geladen.
    Ab dann arbeitet die App ohne Internet.
-   Rechner ohne Internet: den Ordner `modelle` von einem anderen Rechner neben `LocalScribe.exe` kopieren.
+   Sperrt das Netz den Download, nennt das Fenster den Grund; dann das Komplettpaket nehmen.
 5. Verknüpfungen für Desktop und Startmenü: im Fenster unter **Einstellungen**.
 
 Deinstallieren: Ordner löschen, dazu `%LOCALAPPDATA%\LocalScribe` (Einstellungen, Verlauf, Sprachmodelle).

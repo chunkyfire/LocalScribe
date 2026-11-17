@@ -11,7 +11,14 @@ try:
 except SystemExit:
     raise
 except BaseException:
-    folder = pathlib.Path(os.environ.get("LOCALAPPDATA") or os.environ.get("APPDATA") or str(pathlib.Path.home())) / "LocalScribe"
-    folder.mkdir(parents=True, exist_ok=True)
-    (folder / "absturz.log").write_text(traceback.format_exc(), encoding="utf-8")
+    import tempfile
+    text = traceback.format_exc()
+    for base in (os.environ.get("LOCALAPPDATA"), os.environ.get("APPDATA"), tempfile.gettempdir()):
+        try:
+            folder = pathlib.Path(base) / "LocalScribe"
+            folder.mkdir(parents=True, exist_ok=True)
+            (folder / "absturz.log").write_text(text, encoding="utf-8")
+            break
+        except (OSError, TypeError):
+            continue
     raise

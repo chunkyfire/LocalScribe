@@ -416,7 +416,12 @@ class Transcriber:
                 path = modelle.fetch_release(entry["release"], progress)
             except Exception as e:
                 log.warning("Verbessertes Modell nicht ladbar (%s), nehme die bisherige Fassung", e)
-                path = modelle.fetch(repo, rev, files, progress)
+                try:
+                    path = modelle.fetch(repo, rev, files, progress)
+                except Exception as e2:
+                    log.warning("Auch die bisherige Fassung ist nicht ladbar (%s)", e2)
+                    raise RuntimeError("Das Sprachmodell muss einmalig heruntergeladen werden, aber weder GitHub noch "
+                                       f"Hugging Face waren von diesem Rechner aus erreichbar. Technischer Grund: {e.__cause__ or e}") from e2
         else:
             path = modelle.fetch(repo, rev, files, progress)
         model = onnx_asr.load_model(config.MODELS[choice].get("type", "nemo-conformer-tdt"), path, **kw)

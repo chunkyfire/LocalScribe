@@ -1,3 +1,15 @@
+## LocalScribe 0.14.2
+
+- **Komplettpaket** `LocalScribe-…-windows-komplett.zip` (rund 1 GB): Das Sprachmodell liegt schon im Ordner, die
+  App braucht kein Internet. Gedacht für Klinikrechner, deren Netz den Download des Modells sperrt. Das kleine Paket
+  (rund 100 MB) gibt es weiter.
+- Scheitert der Download des Sprachmodells, zeigt das Fenster jetzt den Grund im Klartext, mit den Knöpfen „Erneut
+  versuchen“, „Komplettpaket herunterladen“ und „Protokoll öffnen“. Bisher stand dort nur „Modellfehler“.
+- Einstellungen, Verlauf und Protokoll bleiben im eigenen Benutzerkonto (`%LOCALAPPDATA%\LocalScribe`), auch wenn
+  das Programm auf einem Netzlaufwerk liegt. Lässt sich dort nicht schreiben, weicht die App selbst aus.
+- Im Programmordner liegen keine Markdown-Dateien mehr: `LIESMICH.txt`, das Handbuch als PDF, Lizenzen als Text.
+  Die technische Dokumentation gibt es als PDF und online.
+
 ## LocalScribe 0.14.1
 
 - „Visite & Übergabe“ ist als **experimenteller Modus für Benchmarking** beschriftet: Er soll Messwerte liefern, mit

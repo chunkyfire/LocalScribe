@@ -12,7 +12,27 @@ import time
 from pathlib import Path
 
 APP = "LocalScribe"
-DIR = Path(os.environ.get("LOCALAPPDATA") or os.environ.get("APPDATA") or str(Path.home())) / APP
+
+def _dir() -> Path:
+    """Der erste Ordner, in den sich schreiben lässt. Nie der Programmordner: Der liegt oft auf einem
+    Netzlaufwerk, das sich mehrere teilen, und dort hätten Verlauf und Protokoll nichts zu suchen."""
+    import tempfile
+    for base in (os.environ.get("LOCALAPPDATA"), os.environ.get("APPDATA"), str(Path.home()), tempfile.gettempdir()):
+        if not base:
+            continue
+        path = Path(base) / APP
+        try:
+            path.mkdir(parents=True, exist_ok=True)
+            probe = path / ".schreibtest"
+            probe.write_text("", encoding="utf-8")
+            probe.unlink()
+            return path
+        except OSError:
+            continue
+    return Path(tempfile.gettempdir()) / APP
+
+
+DIR = _dir()
 RECORDINGS = "aufnahmen"
 FILE = DIR / "config.json"
 LOG = DIR / "diktat.log"

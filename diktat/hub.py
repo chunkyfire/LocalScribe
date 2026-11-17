@@ -2137,6 +2137,17 @@ class Hub(QtWidgets.QWidget):
         bl.addWidget(self.banner_title)
         bl.addWidget(self.banner_text)
         bl.addWidget(self.banner_bar)
+        self.banner_retry = button("Erneut versuchen", lambda: self.ctl.retry_load(), "primary")
+        self.banner_log = button("Protokoll öffnen", lambda: QtGui.QDesktopServices.openUrl(
+            QtCore.QUrl.fromLocalFile(str(config.LOG))))
+        self.banner_get = button("Komplettpaket herunterladen", lambda: QtGui.QDesktopServices.openUrl(
+            QtCore.QUrl("https://github.com/chunkyfire/LocalScribe/releases/latest")))
+        self.banner_actions = QtWidgets.QWidget()
+        al = hbox(self.banner_retry, self.banner_get, self.banner_log, None)
+        al.setContentsMargins(0, 4, 0, 0)
+        self.banner_actions.setLayout(al)
+        self.banner_actions.hide()
+        bl.addWidget(self.banner_actions)
         self.banner.hide()
         right = QtWidgets.QVBoxLayout()
         right.setContentsMargins(0, 0, 0, 0)
@@ -2181,6 +2192,21 @@ class Hub(QtWidgets.QWidget):
             self.banner_bar.setValue(int(fraction * 1000))
             self.banner_text.setText(text.split(" · ", 1)[-1] + ". Nur beim ersten Start – danach bleibt das Modell auf diesem "
                                      "Rechner. Diktieren geht, sobald der Balken voll ist.")
+
+    def set_error(self, error):
+        """Das Sprachmodell ließ sich nicht laden: Grund und Ausweg im Fenster zeigen, nicht nur im Protokoll."""
+        failed = bool(error)
+        self.banner_actions.setVisible(failed)
+        self.banner_bar.setVisible(not failed)
+        self.banner_title.setText("Das Sprachmodell konnte nicht geladen werden" if failed
+                                  else "Das Sprachmodell wird einmalig heruntergeladen")
+        if failed:
+            self.banner_text.setText(
+                error + "\n\nIn Netzen, die solche Downloads sperren (häufig in Kliniken), hilft das Komplettpaket: "
+                "Dort liegt das Sprachmodell schon im Ordner, LocalScribe braucht dann kein Internet. "
+                f"Das Protokoll liegt unter {config.LOG}.")
+            self.banner_wrap.show()
+            self.banner.show()
 
     def busy(self) -> bool:
         """Läuft gerade eine lange Aufnahme oder Transkription?"""

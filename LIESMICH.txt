@@ -1,0 +1,38 @@
+LocalScribe - lokales Diktieren für Windows
+===========================================
+
+Starten
+-------
+Doppelklick auf LocalScribe.exe. Kein Installationsprogramm, keine Adminrechte.
+Fragt Windows nach ("Der Computer wurde geschützt"): "Weitere Informationen",
+dann "Trotzdem ausführen".
+
+Diktieren
+---------
+Strg + Windows-Taste halten, sprechen, loslassen. Der Text landet dort, wo der
+Cursor steht. Das Fenster öffnet ein Klick auf das Symbol neben der Uhr.
+
+Sprachmodell
+------------
+Liegt neben LocalScribe.exe ein Ordner "modelle" (Komplettpaket), braucht die
+App kein Internet. Sonst lädt sie das Sprachmodell beim ersten Start einmal
+herunter (910 MB) und zeigt dabei einen Balken. Sperrt das Netz den Download,
+nennt das Fenster den Grund. Dann das Komplettpaket verwenden:
+https://github.com/chunkyfire/LocalScribe/releases/latest
+
+Wo die Daten liegen
+-------------------
+Einstellungen, Verlauf und Protokoll (diktat.log) liegen im eigenen
+Benutzerkonto, nicht im Programmordner:
+    %LOCALAPPDATA%\LocalScribe
+Öffnen: Windows-Taste + R, die Zeile oben einfügen, Enter.
+
+Mehr
+----
+Handbuch:                LocalScribe-Handbuch.pdf (in diesem Ordner)
+Online:                  https://chunkyfire.github.io/LocalScribe/
+Technische Dokumentation: https://chunkyfire.github.io/LocalScribe/technik.html
+Lizenzen:                LICENSE.txt, THIRD_PARTY.txt
+
+Kein Medizinprodukt. "Visite & Übergabe" ist ein experimenteller Modus nur für
+Forschung, Lehre und den Vergleich von Modellen.
