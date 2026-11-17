@@ -6,6 +6,21 @@ landet im gerade aktiven Textfeld. Die Spracherkennung läuft vollständig auf d
 In den Einstellungen stehen zwei weitere Modelle zur Wahl: ein genaueres, langsameres deutsches
 (NVIDIA Canary 1B v2) und ein mehrsprachiges (NVIDIA Parakeet v3, 25 europäische Sprachen).
 
+**Download:** [aktuelle Version](https://github.com/chunkyfire/LocalScribe/releases/latest) – `…-windows-komplett.zip`
+(rund 1 GB, alle Modelle liegen bei, kein Internet nötig) oder `…-windows.zip` (rund 100 MB, lädt das Sprachmodell
+beim ersten Start).
+
+**Wie gut und wie schnell** (Methode und Einzelwerte in [`werkzeug/messen/ERGEBNIS.md`](werkzeug/messen/ERGEBNIS.md)):
+
+| Messung | LocalScribe | zum Vergleich |
+|---|---|---|
+| Wortfehlerrate, fünf ärztliche Diktate eines Sprechers (412 Wörter) | **8,3 %** | Cloud: Tandem 8,3 %, Orpheus 9,7 %, Heidi 9,7 %. Lokal: Whisper Large v3 Turbo Deutsch 14,1 % |
+| Wortfehlerrate, neun echte Arztdiktate (Corti Med-Dictate, 33 Minuten) | **11,1 %** mit eigenem Wortschatz, 15,4 % ohne | 16,6 % ohne Wortschatz beim Dekodieren |
+| Rechenzeit für 45 Sekunden Diktat (Büro-PC, nur Prozessor) | **2 Sekunden** | |
+| Sprechertrennung, richtig zugeordnete Sprechzeit | 89 % Interviews, 75 % Telefon | |
+
+Wenige Sprecher, ruhige Umgebung; Dialekt und Lärm sind nicht gemessen.
+
 **Technische Dokumentation:** [online](https://chunkyfire.github.io/LocalScribe/technik.html), als [PDF](docs/LocalScribe-Technik.pdf) oder [docs/TECHNIK.md](docs/TECHNIK.md) – Aufbau, Datenablage, Netzwerkverbindungen, Verteilung.
 
 **Handbuch mit Bildern:** [docs/LocalScribe-Handbuch.pdf](docs/LocalScribe-Handbuch.pdf) – Installieren, Starten, Diktieren, alle Funktionen und Messwerte. Online: <https://chunkyfire.github.io/LocalScribe/>
@@ -53,7 +68,7 @@ beendet sie nicht; sie bleibt im Infobereich (Rechtsklick → Beenden).
 - **Verlauf** – alle Diktate, Klick kopiert, „KI“ bearbeitet einen Eintrag nachträglich.
   Einträge werden nach 7 Tagen gelöscht (einstellbar).
 - **Aufnahme** – einmal drücken startet, noch einmal drücken beendet, auch nach einer Stunde.
-  Der Text läuft live mit: Nach jeder Sprechpause erscheint, was gerade gesagt wurde.
+  Der Text läuft live mit: beim Sprechen grau als Vorschau, nach jeder Sprechpause als gültiger Text.
 - **Datei** – Audio- oder Videodatei hineinziehen (MP3, M4A, WAV, FLAC, OGG, MP4 …).
 - **Sprecher trennen** (Häkchen bei Aufnahme und Datei) – für Gespräche: Der Text bekommt Zeilen
   „Sprecher 1: …“, „Sprecher 2: …“. Läuft auf der CPU dieses Rechners; beim ersten Einschalten wird einmalig
@@ -85,7 +100,10 @@ beendet sie nicht; sie bleibt im Infobereich (Rechtsklick → Beenden).
   übernommen wird nur, was selbst ein Fachbegriff ist, ähnlich klingt und keine Zahl ändert.
 - **Einstellungen** – Tasten, Mikrofon, Töne, Autostart, Aufbewahrung, Verknüpfungen.
 
-Dateien: `%LOCALAPPDATA%\LocalScribe\` (`config.json`, `verlauf.sqlite`, `diktat.log`).
+Dateien: `%LOCALAPPDATA%\LocalScribe\` (`config.json`, `verlauf.sqlite`, `diktat.log`), also je Windows-Konto; dort
+liegt auch alles Gelernte. Wer seine Daten lieber beim Programm hat (eigene Fassung je Ordner), legt sie unter
+Einstellungen in den Programmordner (Ordner `daten`). Die Sprachmodelle können in einem gemeinsamen Ordner liegen
+(Einstellungen, „Modellordner“, oder ein Ordner `modelle` neben den Programmordnern).
 
 ## Was mit den Daten geschieht
 

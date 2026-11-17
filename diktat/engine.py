@@ -3,6 +3,7 @@ import collections
 import json
 import logging
 import re
+import threading
 import time
 
 import numpy as np
@@ -22,6 +23,7 @@ RATE = 16000
 # Deshalb bekommt das Modell immer nur eine zusammenhängende Äußerung: Geschnitten wird an jeder
 # Sprechpause ab MIN_PAUSE, und kein Stück wird länger als MAX_LEN.
 MIN_PAUSE, MAX_LEN, PAD = 0.3, 12.0, 0.2
+GLIMPSE = 1.0        # Vorschau auf die laufende Äußerung: frühestens nach so vielen Sekunden neuem Ton
 GAP = "[Stelle nicht erkannt]"
 
 
@@ -353,6 +355,7 @@ class Transcriber:
         self.model = None
         self.loaded = None       # Schlüssel des geladenen Modells aus config.MODELS
         self.kw = {}             # Zusatzangaben für das Modell (Sprache)
+        self.lock = threading.Lock()   # Diktat per Taste, lange Aufnahme und Vorschau teilen sich ein Modell
         self.armed = None        # Stand des Wortschatzes, mit dem das Dekodieren eingerichtet ist
 
     def arm(self):
@@ -372,11 +375,28 @@ class Transcriber:
             log.exception("Dekodieren mit Wortschatz nicht einrichtbar, es bleibt beim einfachen")
         self.armed = stamp
 
+    def glimpse(self, audio: np.ndarray) -> str:
+        """Schneller Blick auf eine Äußerung, die noch läuft: einfaches Dekodieren ohne Wortschatz-Suche.
+        Nur zur Anzeige; der gültige Text entsteht wie immer aus der ganzen Äußerung (recognize)."""
+        from . import beam
+        with self.lock:
+            asr = beam._inner(self.model)
+            plain, full = getattr(asr, "_decoding_plain", None), getattr(asr, "_decoding", None)
+            try:
+                if plain is not None:
+                    asr._decoding = plain
+                text = (self.model.recognize(audio, sample_rate=RATE, **self.kw) or "").strip()
+            finally:
+                if plain is not None:
+                    asr._decoding = full
+        return "" if text.strip(" .!?,").lower() in PHANTOMS else LEADING.sub("", text).rstrip(".")
+
     def recognize(self, chunk: np.ndarray) -> str:
         """Ein Stück erkennen. Kurze englische Einwürfe verwirft die deutsche Erkennung: Aus einem
         Atemzug oder Räuspern vor dem ersten Wort macht das Modell gelegentlich „Hey!“ oder „Hello.“"""
         self.arm()
-        text = (self.model.recognize(chunk, sample_rate=RATE, **self.kw) or "").strip()
+        with self.lock:
+            text = (self.model.recognize(chunk, sample_rate=RATE, **self.kw) or "").strip()
         if self.loaded in config.GERMAN:
             if len(chunk) < 2.5 * RATE and text.strip(" .!?,").lower() in PHANTOMS:
                 return ""
@@ -389,6 +409,7 @@ class Transcriber:
         import onnxruntime as ort
 
         cfg = self.cfg
+        modelle.extra = (cfg.get("model_dir") or "").strip()
         so = ort.SessionOptions()
         if cfg.get("threads"):
             so.intra_op_num_threads = int(cfg["threads"])
@@ -432,10 +453,15 @@ class Transcriber:
         self.loaded = choice
         log.info("Modell %s bereit nach %.1f s", choice, time.time() - t)
 
-    def transcribe_stream(self, blocks, on_part=None, cancelled=lambda: False, stats=None) -> str:
+    def transcribe_stream(self, blocks, on_part=None, cancelled=lambda: False, stats=None,
+                          idle=None, on_glimpse=None) -> str:
         """Beliebig langen Audiostrom stückweise erkennen.
 
         on_part(bisheriger_text, sekunden_fertig) wird nach jedem Stück aufgerufen.
+        Live vom Mikrofon (idle und on_glimpse gesetzt) kommt dazwischen eine Vorschau: Solange jemand spricht,
+        wird die laufende Äußerung etwa jede Sekunde schnell mitgelesen und on_glimpse(vorläufiger_text) gemeldet.
+        Am Ergebnis ändert das nichts, der gültige Text entsteht weiter aus der ganzen Äußerung. idle() sagt, ob
+        gerade kein Ton wartet; hinkt der Rechner hinterher, entfällt die Vorschau.
         Scheitert ein einzelnes Stück, läuft der Rest weiter; an der Stelle steht dann GAP im Text
         und stats["failed"] zählt mit – die Tonaufnahme darf in dem Fall nicht gelöscht werden.
         Es gibt bewusst keine feste Lautstärke-Schwelle: Auch sehr leise Sprache wird erkannt.
@@ -444,7 +470,33 @@ class Transcriber:
         stats = stats if stats is not None else {}
         stats.setdefault("failed", 0)
         stats.setdefault("chunks", 0)
-        for chunk, still in stream_chunks(blocks, stats):
+        seg, seen, cost = Segmenter(), 0, 0.0
+
+        def pieces():
+            nonlocal seen, cost, idle
+            for block in blocks:
+                if block is None or not len(block):
+                    continue
+                got = seg.feed(block)
+                if got:
+                    seen = 0
+                    yield from got
+                n = len(seg.cur)
+                if (idle and on_glimpse and seg.speech and (n - seen) * FRAME >= max(GLIMPSE, 3 * cost) * RATE
+                        and idle() and not cancelled()):
+                    began = time.time()
+                    try:
+                        text = self.glimpse(np.concatenate(seg.cur))
+                    except Exception:
+                        log.exception("Vorschau nicht berechenbar")
+                        idle = None                     # nicht bei jedem Block erneut scheitern
+                        text = ""
+                    seen, cost = n, time.time() - began
+                    if text:
+                        on_glimpse(text)
+            yield from seg.flush()
+
+        for chunk, still in pieces():
             if cancelled():
                 break
             done += len(chunk) / RATE

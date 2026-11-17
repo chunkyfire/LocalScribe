@@ -1,6 +1,6 @@
 # LocalScribe – Technische Dokumentation
 
-Stand: Version 0.14.4. Für Betrieb, IT und alle, die den Code lesen oder prüfen wollen. Die Bedienung steht im
+Stand: Version 0.14.5. Für Betrieb, IT und alle, die den Code lesen oder prüfen wollen. Die Bedienung steht im
 [Handbuch](LocalScribe-Handbuch.pdf), die Messwerte mit Methode in [`werkzeug/messen/ERGEBNIS.md`](../werkzeug/messen/ERGEBNIS.md).
 
 ## 1. Was die App ist
@@ -54,6 +54,12 @@ Ordner `modelle` neben `LocalScribe.exe`; die App sucht es zuerst dort (`diktat/
 Der Programmordner darf auf einem Netzlaufwerk liegen und von mehreren Konten gestartet werden, er wird nur
 gelesen. Er lässt sich kopieren oder per Softwareverteilung ausrollen.
 
+Mehrere Personen, viele Programmordner: Die Modelle müssen nicht in jedem Ordner liegen. Die App sucht sie in
+dieser Reihenfolge (`modelle.places`): `modelle` neben `LocalScribe.exe`; der in den Einstellungen angegebene
+Modellordner (`model_dir`); `modelle` eine Ebene über dem Programmordner; der Datenordner. Ein Ordner `modelle`
+aus dem Komplettpaket, einmal neben die Programmordner gelegt, versorgt also alle, die daneben das kleine Paket
+entpackt haben.
+
 Scheitert der Download des Modells (Proxy, Firewall), zeigt das Fenster den Grund im Klartext, dazu die Knöpfe
 „Erneut versuchen“, „Komplettpaket herunterladen“ und „Protokoll öffnen“.
 
@@ -103,7 +109,12 @@ Gepackt mit PyInstaller zu einem Ordner mit `LocalScribe.exe`; `build.ps1` strei
 ## 5. Vom Ton zum Text
 
 1. **Aufnahme** mit 16 kHz mono (`sounddevice`). Der Ton liegt nur im Arbeitsspeicher.
-2. **Stücke**: Die Pausenerkennung teilt an Sprechpausen in Stücke von wenigen Sekunden.
+2. **Stücke**: Die Pausenerkennung teilt an Sprechpausen (ab 0,3 Sekunden) in Stücke von höchstens 12 Sekunden.
+   Auf der Seite Aufnahme kommt eine **Vorschau** dazu: Solange jemand spricht, liest die App die laufende
+   Äußerung etwa jede Sekunde schnell mit (einfaches Dekodieren, `Transcriber.glimpse`) und zeigt das Ergebnis
+   grau an. Der gültige Text entsteht weiter aus der ganzen Äußerung; das Endergebnis ist mit und ohne Vorschau
+   dasselbe. Die Vorschau entfällt von selbst, wenn der Rechner mit dem Ton nicht nachkommt, und ist mit
+   `"live_preview": false` abschaltbar.
 3. **Sprachmodell**: primeline-Parakeet (NVIDIA Parakeet TDT 0.6B, auf Deutsch nachtrainiert, CC BY 4.0) als ONNX.
    Der Encoder ist auf 8 Bit gekürzt (je Kanal, 840 MB), Decoder und Joint 69 MB.
 4. **Dekodieren** (`beam.py`): Acht Lesarten laufen nebeneinander. Eine Lesart, deren entstehendes Wort der Anfang
@@ -144,8 +155,13 @@ Grafikkarte) und würde nur den kleinen Schreibteil des Modells (69 MB) ersetzen
 
 ## 7. Daten auf dem Rechner
 
-Alles liegt unter `%LOCALAPPDATA%\LocalScribe` (nicht im Roaming-Profil, wandert also nicht durchs Firmennetz).
-Das gilt auch für das Protokoll und auch dann, wenn das Programm auf einem Netzlaufwerk liegt: Der Programmordner
+Alles Eigene, auch der gelernte Wortschatz, liegt unter `%LOCALAPPDATA%\LocalScribe`, also je Windows-Konto
+(nicht im Roaming-Profil, wandert also nicht durchs Firmennetz). Ausnahme auf Wunsch: Gibt es neben
+`LocalScribe.exe` einen Ordner `daten`, liegt alles dort (Einstellungen, „Daten in diesem Programmordner ablegen“).
+So hat jede Person mit eigenem Programmordner ihre eigene Fassung mit eigenem Wortschatz und Verlauf, auch auf einem
+Sammelkonto. Das gehört nur in einen Ordner, den sonst niemand lesen kann. Bei einem Update aus ZIP zieht `daten`
+mit. Ohne diesen Ordner gilt:
+Die Daten, auch das Protokoll, bleiben im Konto, selbst wenn das Programm auf einem Netzlaufwerk liegt: Der Programmordner
 wird oft von mehreren geteilt und ist häufig schreibgeschützt, Verlauf und Protokoll gehören dort nicht hin. Bei
 einem Sammelkonto teilen sich alle, die es benutzen, dieselben Einstellungen und denselben Verlauf. Lässt sich
 `%LOCALAPPDATA%` ausnahmsweise nicht beschreiben, weicht die App auf `%APPDATA%`, das Benutzerverzeichnis und
@@ -209,6 +225,8 @@ zufälligen Schlüssel aus dem QR-Code. Ab Werk aus.
 | `visite_prompt` | eigene Anweisung für „Visite & Übergabe“; leer = die mitgelieferte | leer |
 | `training_keep` | vorgelesene Sätze als Ton aufheben | aus |
 | `phone` | Handy als Mikrofon | aus |
+| `model_dir` | eigener Ordner mit den Sprachmodellen, zum Beispiel ein Netzlaufwerk | leer |
+| `live_preview` (nur Datei) | Vorschau auf die laufende Äußerung in der Aufnahme | an |
 | `threads` (nur Datei) | Zahl der Rechen-Threads; 0 überlässt es der Laufzeit | 0 |
 
 ## 10. Bauen und Prüfen
@@ -237,7 +255,7 @@ Wortfehlerrate nach der Nachbearbeitung, ohne Sprachmodell-Korrektur. Methode, E
 
 | Material | LocalScribe | zum Vergleich |
 |---|---|---|
-| fünf eigene ärztliche Diktate (412 Wörter, ein Sprecher) | 8,3 % | Whisper Large v3 Turbo Deutsch mit Wortliste 14,1 %, VibeVoice 16,3 % |
+| fünf eigene ärztliche Diktate (412 Wörter, ein Sprecher) | 8,3 % | Cloud-Dienste: Tandem 8,3 %, Orpheus 9,7 %, Heidi 9,7 %. Lokal: Whisper Large v3 Turbo Deutsch mit Wortliste 14,1 %, VibeVoice 16,3 % |
 | Corti Med-Dictate, neun echte Diktate, 33 Minuten | 15,4 % mit Kernliste; 11,1 % mit dem Wortschatz aus den eigenen Texten | 16,6 % ohne Wortschatz beim Dekodieren |
 | dieselben mit Fachkorrektur durch ein Sprachmodell (älterer Stand, ohne Wortschatz beim Dekodieren) | 7,5 % und 13,7 % | – |
 

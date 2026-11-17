@@ -3,8 +3,11 @@
 Gesucht wird in dieser Reihenfolge, und nur wenn nirgends etwas liegt, wird heruntergeladen:
   1. Ordner „modelle“ neben dem Programm (so lässt sich LocalScribe samt Modell auf einen Rechner
      ohne Internet kopieren),
-  2. %LOCALAPPDATA%\\LocalScribe\\modelle (hierhin wird heruntergeladen; ohne Adminrechte beschreibbar),
-  3. der allgemeine Hugging-Face-Zwischenspeicher (frühere Fassungen haben dort abgelegt).
+  2. der in den Einstellungen angegebene Modellordner (ein gemeinsamer Ort für viele Programmordner),
+  3. Ordner „modelle“ eine Ebene über dem Programmordner (dasselbe ganz ohne Einstellung: mehrere
+     Programmordner nebeneinander teilen sich ein „modelle“),
+  4. der Datenordner (hierhin wird heruntergeladen; ohne Adminrechte beschreibbar),
+  5. der allgemeine Hugging-Face-Zwischenspeicher (frühere Fassungen haben dort abgelegt).
 """
 import fnmatch
 import logging
@@ -22,6 +25,7 @@ os.environ.setdefault("HF_HUB_DISABLE_XET", "1")
 
 log = logging.getLogger("diktat")
 MARK = ".vollstaendig"
+extra = ""               # Modellordner aus den Einstellungen (cfg["model_dir"]); setzt die App beim Laden
 
 
 def folder() -> Path:
@@ -44,6 +48,18 @@ def _beside() -> Path:
     return base / "modelle"
 
 
+def places():
+    """Alle Ordner, in denen fertige Modelle liegen können, in Suchreihenfolge."""
+    beside = _beside()
+    out = [beside]
+    if extra:
+        out.append(Path(extra))
+    if getattr(sys, "frozen", False):
+        out.append(beside.parent.parent / "modelle")
+    out.append(folder())
+    return out
+
+
 def _size(path: Path) -> int:
     total = 0
     for root, _, files in os.walk(path):
@@ -57,7 +73,7 @@ def _size(path: Path) -> int:
 
 def find(repo: str, revision: str, patterns):
     """Pfad des vorhandenen Modells oder None. Geht nie ins Netz."""
-    for base in (_beside(), folder()):
+    for base in places():
         path = base / _name(repo, revision)
         if (path / _mark(patterns)).exists():
             return str(path)
@@ -111,7 +127,7 @@ def fetch(repo: str, revision: str, patterns, progress=None) -> str:
 
 def find_release(release: dict):
     """Pfad eines schon geladenen Modells aus einem GitHub-Release oder None."""
-    for base in (_beside(), folder()):
+    for base in places():
         path = base / release["name"]
         if (path / MARK).exists():
             return str(path)

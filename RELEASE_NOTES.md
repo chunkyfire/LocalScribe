@@ -1,3 +1,15 @@
+## LocalScribe 0.14.5
+
+- **Aufnahme mit Live-Vorschau**: Schon beim Sprechen steht der Text grau da und wächst etwa jede Sekunde mit; nach
+  der Sprechpause wird daraus der gültige Text. Das Endergebnis ist dasselbe wie ohne Vorschau (gemessen), die
+  Genauigkeit ändert sich nicht.
+- **Eigene Fassung je Programmordner** (Einstellungen, „Daten in diesem Programmordner ablegen“): Einstellungen,
+  Verlauf, Wörterbuch und Gelerntes liegen dann im Ordner `daten` neben dem Programm statt im Windows-Konto. Für
+  Rechner, an denen sich mehrere ein Konto teilen.
+- **Gemeinsamer Modellordner** (Einstellungen, „Modellordner“): Die Sprachmodelle müssen nicht in jedem
+  Programmordner liegen. Ohne Einstellung genügt ein Ordner `modelle` neben den Programmordnern.
+- Webseite, README und Handbuch zeigen vorn die Messwerte und den Download der aktuellen Version.
+
 ## LocalScribe 0.14.4
 
 - **Sprecher trennen ohne Internet**: Das Komplettpaket bringt jetzt auch das Stimmmodell (26 MB) mit. Bisher wurde

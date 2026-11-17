@@ -1,4 +1,8 @@
-"""Einstellungen und Daten liegen unter %LOCALAPPDATA%\\LocalScribe.
+"""Einstellungen und Daten liegen unter %LOCALAPPDATA%\\LocalScribe, also je Windows-Konto.
+
+Ausnahme: Liegt neben LocalScribe.exe ein Ordner „daten“, liegt alles dort. So hat jede Person, die das Programm in
+ihrem eigenen Ordner hält, ihre eigenen Einstellungen, ihren Verlauf und ihren gelernten Wortschatz, auch auf einem
+Windows-Konto, das sich mehrere teilen.
 
 Bewusst nicht unter %APPDATA% (Roaming): Dort würden Verlauf und Aufnahmen in Firmennetzen
 mit dem Benutzerprofil auf einen Server wandern.
@@ -12,15 +16,19 @@ import time
 from pathlib import Path
 
 APP = "LocalScribe"
+PORTABLE = "daten"       # Ordner neben LocalScribe.exe: gibt es ihn, liegen dort alle eigenen Daten
 
 def _dir() -> Path:
-    """Der erste Ordner, in den sich schreiben lässt. Nie der Programmordner: Der liegt oft auf einem
-    Netzlaufwerk, das sich mehrere teilen, und dort hätten Verlauf und Protokoll nichts zu suchen."""
+    """Der erste Ordner, in den sich schreiben lässt: „daten“ neben dem Programm, wenn es ihn gibt, sonst das
+    eigene Windows-Konto. Von sich aus legt die App nie Daten in den Programmordner: Der liegt oft auf einem
+    Netzlaufwerk, das sich mehrere teilen, und dort hätten Verlauf und Protokoll ungefragt nichts zu suchen."""
+    import sys
     import tempfile
-    for base in (os.environ.get("LOCALAPPDATA"), os.environ.get("APPDATA"), str(Path.home()), tempfile.gettempdir()):
-        if not base:
-            continue
-        path = Path(base) / APP
+    own = Path(sys.executable).parent / PORTABLE if getattr(sys, "frozen", False) else None
+    places = [own] if own is not None and own.is_dir() else []
+    places += [Path(base) / APP for base in (os.environ.get("LOCALAPPDATA"), os.environ.get("APPDATA"),
+                                             str(Path.home()), tempfile.gettempdir()) if base]
+    for path in places:
         try:
             path.mkdir(parents=True, exist_ok=True)
             probe = path / ".schreibtest"
@@ -82,6 +90,8 @@ DEFAULTS = {
     "mic_warm": False,            # Mikrofon dauerhaft offen halten: kein Startverzug, erste Silbe bleibt
     "speakers": False,            # Sprecher trennen bei Aufnahme und Datei
     "training_keep": False,       # Stimmtraining: vorgelesene (erfundene) Sätze als Ton aufheben, für ein Nachtraining
+    "live_preview": True,         # Aufnahme: laufende Äußerung schon beim Sprechen vorläufig anzeigen
+    "model_dir": "",              # eigener Ordner mit Sprachmodellen (z. B. ein gemeinsames Netzlaufwerk); leer = keiner
     "visite_prompt": "",          # Visite & Übergabe: eigene Anweisung an das Sprachmodell; leer = die mitgelieferte
     "training_done": [],          # Stimmtraining: schon gelesene Sätze
     "phone": {"enabled": False, "port": 8765, "token": ""},   # Handy als Mikrofon (Webseite im eigenen Netz)

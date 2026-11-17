@@ -404,6 +404,8 @@ if sys.platform == "win32":
     (_prog / "modelle" / "stimme" / "g").write_text("alt")
     (_prog / "modelle" / "m" / "gewichte").write_text("alt")
     (_prog / "LocalScribe.exe").write_text("alt")
+    (_prog / "daten").mkdir()
+    (_prog / "daten" / "config.json").write_text("{}")
     _pack = _base / "neu.zip"
     with _zip.ZipFile(_pack, "w") as _z:
         _z.writestr("LocalScribe/LocalScribe.exe", "neu")
@@ -421,6 +423,7 @@ if sys.platform == "win32":
           and (_prog / "_internal" / "x.dll").exists())
     check("Pflege: Sprachmodell wandert mit", (_prog / "modelle" / "m" / "gewichte").read_text() == "alt")
     check("Pflege: mitgeliefertes Modell gewinnt", (_prog / "modelle" / "stimme" / "g").read_text() == "neu")
+    check("Pflege: eigene Daten im Programmordner ziehen mit", (_prog / "daten" / "config.json").exists())
     check("Pflege: nichts bleibt liegen", sorted(p.name for p in _base.iterdir()) == ["LocalScribe", "neu.zip"],
           sorted(p.name for p in _base.iterdir()))
     try:
@@ -434,5 +437,13 @@ if sys.platform == "win32":
             break
         _time.sleep(0.2)
     check("Pflege: Entfernen löscht den Programmordner", not _prog.exists())
+# Modellordner: der eingestellte Ordner wird gefunden, ohne Netz
+_shared = pathlib.Path(tempfile.mkdtemp())
+(_shared / "fremd--modell--abcdefabcdef").mkdir()
+(_shared / "fremd--modell--abcdefabcdef" / modelle._mark(["x.onnx"])).write_text("")
+modelle.extra = str(_shared)
+check("Modellordner aus den Einstellungen wird durchsucht",
+      modelle.find("fremd/modell", "abcdefabcdef0000", ["x.onnx"]) == str(_shared / "fremd--modell--abcdefabcdef"))
+modelle.extra = ""
 print("FEHLER:" if failed else "ALLES OK", failed or "")
 sys.exit(1 if failed else 0)

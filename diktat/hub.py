@@ -427,17 +427,30 @@ class Transcript(QtWidgets.QWidget):
         for b in (self.save, self.ki):
             b.setEnabled(has and not busy)
 
-    def set_text(self, text):
-        """Text ersetzen. Wer gerade weiter oben mitliest, bleibt dort; sonst läuft das Ende mit."""
+    def set_text(self, text, glimpse=""):
+        """Text ersetzen. Wer gerade weiter oben mitliest, bleibt dort; sonst läuft das Ende mit.
+        glimpse: vorläufiger Text der Äußerung, die gerade gesprochen wird; steht grau am Ende."""
         bar = self.text.verticalScrollBar()
         follow = bar.value() >= bar.maximum() - 4
         position = bar.value()
+        self.final = text
         self.text.setPlainText(text)
+        if glimpse:
+            cursor = self.text.textCursor()
+            cursor.movePosition(QtGui.QTextCursor.End)
+            grey = QtGui.QTextCharFormat()
+            grey.setForeground(QtGui.QColor("#7A7A7A"))
+            cursor.insertText((" " if text else "") + glimpse + " …", grey)
         bar.setValue(bar.maximum() if follow else position)
         self.copy.setEnabled(bool(text.strip()))
 
+    def set_glimpse(self, glimpse):
+        self.set_text(getattr(self, "final", ""), glimpse)
+
     def _copy(self):
-        QtGui.QGuiApplication.clipboard().setMimeData(private_mime(self.text.toPlainText()))
+        # während der Aufnahme nur den gültigen Text kopieren, nicht die graue Vorschau
+        text = getattr(self, "final", "") if self.busy else self.text.toPlainText()
+        QtGui.QGuiApplication.clipboard().setMimeData(private_mime(text))
         self.note.setText("Kopiert")
         QTimer.singleShot(1500, lambda: self.note.setText(""))
 
@@ -483,6 +496,7 @@ class LongPage(Page):
         self.ctl, self.source = ctl, source
         self.job = LongJob(ctl)
         self.job.part.connect(self.on_part)
+        self.job.glimpse.connect(lambda text: self.out.set_glimpse(text))
         self.job.finished.connect(self.on_finished)
         self.started = 0.0
         self.out = Transcript(ctl)
@@ -556,7 +570,8 @@ class RecordPage(LongPage):
     def __init__(self, ctl):
         super().__init__(ctl, "Aufnahme",
                          "Einmal drücken startet, noch einmal drücken beendet – auch nach einer Stunde. "
-                         "Der Text läuft live mit: Nach jeder Sprechpause erscheint, was du gerade gesagt hast. "
+                         "Der Text läuft live mit: Schon beim Sprechen steht er grau als Vorschau da, nach jeder Sprechpause "
+                         "wird daraus der gültige Text. "
                          "Der Ton wird nebenbei gesichert und gelöscht, sobald der Text vollständig ist.",
                          "Aufnahme")
         self.btn = button("Start", self.toggle, "rec")
@@ -1933,13 +1948,19 @@ class SettingsPage(Page):
         self.model = QtWidgets.QComboBox()
         for key, m in config.MODELS.items():
             self.model.addItem(m["label"], key)
+        self.model_dir = QtWidgets.QLineEdit(placeholderText="leer: Modelle liegen beim Programm oder in deinem Konto")
         self.body.addWidget(card(
             label("Sprachmodell", "h2"), form(("Modell", self.model)),
             label("Deutsch ist das schnellste Modell. Das genauere deutsche Modell macht bei medizinischen Diktaten "
                   "weniger Fehler, braucht aber etwa doppelt so lange und beim ersten Wechsel einmalig 1 GB. "
                   "Mehrsprachig erkennt die gesprochene Sprache selbst, darunter Englisch, Französisch und "
                   "Spanisch (670 MB). Das medizinische Basiswörterbuch gilt für beide deutschen Modelle.",
-                  "muted", wrap=True)))
+                  "muted", wrap=True),
+            form(("Modellordner", hbox(self.model_dir, button("Ordner wählen …", self._pick_models)))),
+            label("Optional: ein gemeinsamer Ordner mit den Sprachmodellen, zum Beispiel auf einem Netzlaufwerk. "
+                  "Gemeint ist der Ordner „modelle“ aus dem Komplettpaket. Dann braucht nicht jeder Programmordner "
+                  "sein eigenes Modell. Ohne Einstellung geht dasselbe, wenn ein Ordner „modelle“ direkt neben den "
+                  "Programmordnern liegt. Gilt ab dem nächsten Start.", "muted", wrap=True)))
         self.body.addWidget(card(
             label("Tasten", "h2"),
             form(("Diktieren (halten)", self.hold), ("Freihand (dazu drücken)", self.lock),
@@ -1977,6 +1998,16 @@ class SettingsPage(Page):
             self.prompt,
             hbox(button("Speichern", self._prompt_save, name="primary"),
                  button("Standard wiederherstellen", self._prompt_reset), None, self.prompt_note)))
+        self.own_note = label("", "muted", wrap=True)
+        self.body.addWidget(card(
+            label("Eigene Daten", "h2"),
+            label("Einstellungen, Verlauf, Wörterbuch und alles Gelernte liegen in deinem Windows-Konto. Teilen sich "
+                  "mehrere ein Konto, teilen sie auch das. Wer seine eigene Fassung will, legt die Daten in diesen "
+                  "Programmordner: Dann gehört zu jedem Programmordner ein eigener Wortschatz, ein eigener Verlauf "
+                  "und eigene Einstellungen. Nur in einem Ordner sinnvoll, den nur du öffnen kannst, denn dort "
+                  "liegen dann auch Verlauf und Fälle.", "muted", wrap=True),
+            hbox(button("Daten in diesem Programmordner ablegen", self._own), None),
+            self.own_note))
         self.care_note = label("", "muted", wrap=True)
         self.body.addWidget(card(
             label("Aktualisieren und entfernen", "h2"),
@@ -1993,6 +2024,31 @@ class SettingsPage(Page):
         self.body.addStretch(1)
 
     sig_unpacked = Signal(str, str)      # Ordner der neuen Fassung, Fehlertext
+
+    def _pick_models(self):
+        path = QtWidgets.QFileDialog.getExistingDirectory(self, "Ordner mit den Sprachmodellen", self.model_dir.text())
+        if path:
+            self.model_dir.setText(os.path.normpath(path))
+
+    def _own(self):
+        """Eigene Daten künftig im Programmordner: Ordner „daten“ anlegen, Einstellungen und Wortschatz mitnehmen."""
+        prog = pflege.program()
+        if not prog:
+            return self.saved(self.own_note, "Diese Fassung läuft aus dem Quelltext, dort gibt es keinen Programmordner.", ok=False)
+        target = prog / config.PORTABLE
+        if config.DIR == target:
+            return self.saved(self.own_note, f"Die Daten liegen schon hier: {target}", ok=False)
+        try:
+            target.mkdir(exist_ok=True)
+            config.save(self.ctl.cfg)
+            import shutil
+            shutil.copy2(config.FILE, target / config.FILE.name)
+        except OSError as e:
+            return self.saved(self.own_note, f"In diesem Ordner lässt sich nichts anlegen ({e.strerror or e}).", ok=False)
+        restyle(self.own_note, "ok")
+        self.own_note.setText(f"Angelegt: {target}. Einstellungen, Wörterbuch und Gelerntes sind dorthin kopiert, der "
+                              "bisherige Verlauf bleibt im Konto. Gilt ab dem nächsten Start: LocalScribe über das "
+                              "Symbol neben der Uhr beenden und neu starten. Rückgängig: den Ordner „daten“ löschen.")
 
     def _care_ready(self) -> bool:
         if self.ctl.hub.busy():
@@ -2068,6 +2124,7 @@ class SettingsPage(Page):
         cfg = self.ctl.cfg
         self.hold.setText("+".join(cfg["hotkey_hold"]))
         self.model.setCurrentIndex(max(0, self.model.findData(cfg.get("model_choice", "de"))))
+        self.model_dir.setText(cfg.get("model_dir") or "")
         self.lock.setText(cfg.get("hotkey_lock") or "")
         self.paste.setText("+".join(cfg.get("hotkey_paste_last") or []))
         self.field.setText("+".join(cfg.get("hotkey_next_field") or []))
@@ -2134,7 +2191,8 @@ class SettingsPage(Page):
                             restore_clipboard=self.clip.isChecked(), mic_warm=self.warm.isChecked(),
                             spoken_punctuation=self.signs.isChecked(),
                             history_days=self.days.value(),
-                            history_enabled=self.history.isChecked())
+                            history_enabled=self.history.isChecked(),
+                            model_dir=self.model_dir.text().strip())
         phone = dict(self.ctl.cfg.get("phone") or {})
         phone.update(enabled=self.phone.isChecked(), token=phone.get("token") or secrets.token_urlsafe(9),
                      port=phone.get("port") or handy.PORT)

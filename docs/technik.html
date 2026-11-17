@@ -175,7 +175,7 @@
 </header>
 <h1 id="localscribe--technische-dokumentation">LocalScribe – Technische
 Dokumentation</h1>
-<p>Stand: Version 0.14.4. Für Betrieb, IT und alle, die den Code lesen
+<p>Stand: Version 0.14.5. Für Betrieb, IT und alle, die den Code lesen
 oder prüfen wollen. Die Bedienung steht im <a
 href="https://chunkyfire.github.io/LocalScribe/">Handbuch</a>, die
 Messwerte mit Methode in <a
@@ -266,6 +266,15 @@ neben <code>LocalScribe.exe</code>; die App sucht es zuerst dort
 Programmordner darf auf einem Netzlaufwerk liegen und von mehreren
 Konten gestartet werden, er wird nur gelesen. Er lässt sich kopieren
 oder per Softwareverteilung ausrollen.</p>
+<p>Mehrere Personen, viele Programmordner: Die Modelle müssen nicht in
+jedem Ordner liegen. Die App sucht sie in dieser Reihenfolge
+(<code>modelle.places</code>): <code>modelle</code> neben
+<code>LocalScribe.exe</code>; der in den Einstellungen angegebene
+Modellordner (<code>model_dir</code>); <code>modelle</code> eine Ebene
+über dem Programmordner; der Datenordner. Ein Ordner
+<code>modelle</code> aus dem Komplettpaket, einmal neben die
+Programmordner gelegt, versorgt also alle, die daneben das kleine Paket
+entpackt haben.</p>
 <p>Scheitert der Download des Modells (Proxy, Firewall), zeigt das
 Fenster den Grund im Klartext, dazu die Knöpfe „Erneut versuchen“,
 „Komplettpaket herunterladen“ und „Protokoll öffnen“.</p>
@@ -393,7 +402,15 @@ Server geht</td>
 <li><strong>Aufnahme</strong> mit 16 kHz mono
 (<code>sounddevice</code>). Der Ton liegt nur im Arbeitsspeicher.</li>
 <li><strong>Stücke</strong>: Die Pausenerkennung teilt an Sprechpausen
-in Stücke von wenigen Sekunden.</li>
+(ab 0,3 Sekunden) in Stücke von höchstens 12 Sekunden. Auf der Seite
+Aufnahme kommt eine <strong>Vorschau</strong> dazu: Solange jemand
+spricht, liest die App die laufende Äußerung etwa jede Sekunde schnell
+mit (einfaches Dekodieren, <code>Transcriber.glimpse</code>) und zeigt
+das Ergebnis grau an. Der gültige Text entsteht weiter aus der ganzen
+Äußerung; das Endergebnis ist mit und ohne Vorschau dasselbe. Die
+Vorschau entfällt von selbst, wenn der Rechner mit dem Ton nicht
+nachkommt, und ist mit <code>"live_preview": false</code>
+abschaltbar.</li>
 <li><strong>Sprachmodell</strong>: primeline-Parakeet (NVIDIA Parakeet
 TDT 0.6B, auf Deutsch nachtrainiert, CC BY 4.0) als ONNX. Der Encoder
 ist auf 8 Bit gekürzt (je Kanal, 840 MB), Decoder und Joint 69 MB.</li>
@@ -474,16 +491,23 @@ nichts (<code>ERGEBNIS.md</code>). Das Training selbst läuft außerhalb
 der App (<code>werkzeug/training</code>, braucht eine Grafikkarte) und
 würde nur den kleinen Schreibteil des Modells (69 MB) ersetzen.</p>
 <h2 id="7-daten-auf-dem-rechner">7. Daten auf dem Rechner</h2>
-<p>Alles liegt unter <code>%LOCALAPPDATA%\LocalScribe</code> (nicht im
-Roaming-Profil, wandert also nicht durchs Firmennetz). Das gilt auch für
-das Protokoll und auch dann, wenn das Programm auf einem Netzlaufwerk
-liegt: Der Programmordner wird oft von mehreren geteilt und ist häufig
-schreibgeschützt, Verlauf und Protokoll gehören dort nicht hin. Bei
-einem Sammelkonto teilen sich alle, die es benutzen, dieselben
-Einstellungen und denselben Verlauf. Lässt sich
-<code>%LOCALAPPDATA%</code> ausnahmsweise nicht beschreiben, weicht die
-App auf <code>%APPDATA%</code>, das Benutzerverzeichnis und zuletzt
-<code>%TEMP%</code> aus (<code>config._dir</code>).</p>
+<p>Alles Eigene, auch der gelernte Wortschatz, liegt unter
+<code>%LOCALAPPDATA%\LocalScribe</code>, also je Windows-Konto (nicht im
+Roaming-Profil, wandert also nicht durchs Firmennetz). Ausnahme auf
+Wunsch: Gibt es neben <code>LocalScribe.exe</code> einen Ordner
+<code>daten</code>, liegt alles dort (Einstellungen, „Daten in diesem
+Programmordner ablegen“). So hat jede Person mit eigenem Programmordner
+ihre eigene Fassung mit eigenem Wortschatz und Verlauf, auch auf einem
+Sammelkonto. Das gehört nur in einen Ordner, den sonst niemand lesen
+kann. Bei einem Update aus ZIP zieht <code>daten</code> mit. Ohne diesen
+Ordner gilt: Die Daten, auch das Protokoll, bleiben im Konto, selbst
+wenn das Programm auf einem Netzlaufwerk liegt: Der Programmordner wird
+oft von mehreren geteilt und ist häufig schreibgeschützt, Verlauf und
+Protokoll gehören dort nicht hin. Bei einem Sammelkonto teilen sich
+alle, die es benutzen, dieselben Einstellungen und denselben Verlauf.
+Lässt sich <code>%LOCALAPPDATA%</code> ausnahmsweise nicht beschreiben,
+weicht die App auf <code>%APPDATA%</code>, das Benutzerverzeichnis und
+zuletzt <code>%TEMP%</code> aus (<code>config._dir</code>).</p>
 <table>
 <thead>
 <tr class="header">
@@ -668,6 +692,17 @@ mitgelieferte</td>
 <td>aus</td>
 </tr>
 <tr class="odd">
+<td><code>model_dir</code></td>
+<td>eigener Ordner mit den Sprachmodellen, zum Beispiel ein
+Netzlaufwerk</td>
+<td>leer</td>
+</tr>
+<tr class="even">
+<td><code>live_preview</code> (nur Datei)</td>
+<td>Vorschau auf die laufende Äußerung in der Aufnahme</td>
+<td>an</td>
+</tr>
+<tr class="odd">
 <td><code>threads</code> (nur Datei)</td>
 <td>Zahl der Rechen-Threads; 0 überlässt es der Laufzeit</td>
 <td>0</td>
@@ -731,7 +766,8 @@ Methode, Einzelwerte und Einschränkungen in
 <tr class="odd">
 <td>fünf eigene ärztliche Diktate (412 Wörter, ein Sprecher)</td>
 <td>8,3 %</td>
-<td>Whisper Large v3 Turbo Deutsch mit Wortliste 14,1 %, VibeVoice 16,3
+<td>Cloud-Dienste: Tandem 8,3 %, Orpheus 9,7 %, Heidi 9,7 %. Lokal:
+Whisper Large v3 Turbo Deutsch mit Wortliste 14,1 %, VibeVoice 16,3
 %</td>
 </tr>
 <tr class="even">

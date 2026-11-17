@@ -26,6 +26,8 @@ Einstellungen, Verlauf und Protokoll (diktat.log) liegen im eigenen
 Benutzerkonto, nicht im Programmordner:
     %LOCALAPPDATA%\LocalScribe
 Öffnen: Windows-Taste + R, die Zeile oben einfügen, Enter.
+Liegt neben LocalScribe.exe ein Ordner "daten", liegen sie stattdessen dort
+(Einstellungen, "Daten in diesem Programmordner ablegen").
 
 Aktualisieren und entfernen
 ---------------------------

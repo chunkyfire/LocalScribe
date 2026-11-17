@@ -26,6 +26,7 @@ log = logging.getLogger("diktat")
 class LongJob(QtCore.QObject):
     """Ein Auftrag: Datei transkribieren oder vom Mikrofon aufnehmen, bis stop_recording() kommt."""
     part = Signal(str, float, float)      # bisheriger Text, Sekunden fertig, Gesamtdauer (-1 = offen)
+    glimpse = Signal(str)                 # Vorschau auf die Äußerung, die gerade gesprochen wird (nur live)
     finished = Signal(str, float, str)    # Text, Sekunden Audio, Fehlermeldung
 
     def __init__(self, ctl):
@@ -63,6 +64,7 @@ class LongJob(QtCore.QObject):
         """Öffnet das Mikrofon; wirft bei Fehlern sofort (im Hauptthread)."""
         import sounddevice as sd
         self._begin()
+        self._live = True
         self._queue = queue.Queue()
         device = engine._device_index(self.ctl.cfg.get("microphone"))
         try:
@@ -158,7 +160,11 @@ class LongJob(QtCore.QObject):
             def on_part(so_far, secs):
                 done[0] = secs
                 self.part.emit(so_far, secs, total or -1.0)
-            text = self.ctl.transcriber.transcribe_stream(blocks, on_part, lambda: self._cancel, stats)
+            if self._live and self.ctl.cfg.get("live_preview", True):
+                text = self.ctl.transcriber.transcribe_stream(blocks, on_part, lambda: self._cancel, stats,
+                                                              idle=self._queue.empty, on_glimpse=self.glimpse.emit)
+            else:
+                text = self.ctl.transcriber.transcribe_stream(blocks, on_part, lambda: self._cancel, stats)
         except Exception as e:
             log.exception("Transkription abgebrochen")
             error = str(e) or type(e).__name__
@@ -203,6 +209,6 @@ class LongJob(QtCore.QObject):
         self.stop_recording()
 
     def _begin(self):
-        self.running, self._cancel = True, False
+        self.running, self._cancel, self._live = True, False, False
         self.wav_path = self.kept = None
         self.failed = self.overflows = 0
