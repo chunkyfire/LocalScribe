@@ -398,7 +398,8 @@ if sys.platform == "win32":
     import zipfile as _zip
     from diktat import pflege
     _base = pathlib.Path(tempfile.mkdtemp())
-    _prog = _base / "LocalScribe"
+    _base = _base / "Oberärzte" / "Özel & Co"          # Umlaute, Leerzeichen und & im Pfad wie auf Kliniklaufwerken
+    _prog = _base / "LocalScribe v2"
     (_prog / "modelle" / "m").mkdir(parents=True)
     (_prog / "modelle" / "stimme").mkdir()
     (_prog / "modelle" / "stimme" / "g").write_text("alt")
@@ -424,7 +425,7 @@ if sys.platform == "win32":
     check("Pflege: Sprachmodell wandert mit", (_prog / "modelle" / "m" / "gewichte").read_text() == "alt")
     check("Pflege: mitgeliefertes Modell gewinnt", (_prog / "modelle" / "stimme" / "g").read_text() == "neu")
     check("Pflege: eigene Daten im Programmordner ziehen mit", (_prog / "daten" / "config.json").exists())
-    check("Pflege: nichts bleibt liegen", sorted(p.name for p in _base.iterdir()) == ["LocalScribe", "neu.zip"],
+    check("Pflege: nichts bleibt liegen", sorted(p.name for p in _base.iterdir()) == ["LocalScribe v2", "neu.zip"],
           sorted(p.name for p in _base.iterdir()))
     try:
         pflege.unpack(pathlib.Path(__file__), _prog)

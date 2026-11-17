@@ -1,3 +1,13 @@
+## LocalScribe 0.14.6
+
+- **Update aus ZIP repariert**: Lag der Programmordner in einem Pfad mit Umlauten (zum Beispiel `Oberärzte`), fand
+  das Tausch-Skript ihn nicht, das Update scheiterte nach einer Minute und die App startete nicht wieder. Die Pfade
+  gehen jetzt unabhängig von der Codepage an das Skript.
+- Beim Aktualisieren und Entfernen poppt kein schwarzes Fenster mehr auf. Vorher erschien während des Wartens jede
+  Sekunde eines.
+- Wer von 0.14.3 bis 0.14.5 kommt und Umlaute im Pfad hat: dieses eine Mal noch von Hand in einen neuen Ordner
+  entpacken, danach funktioniert das Update aus der App.
+
 ## LocalScribe 0.14.5
 
 - **Aufnahme mit Live-Vorschau**: Schon beim Sprechen steht der Text grau da und wächst etwa jede Sekunde mit; nach

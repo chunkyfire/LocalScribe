@@ -94,9 +94,10 @@ class Diktat(QtCore.QObject):
         from . import pflege
         if pflege.failed():
             QTimer.singleShot(800, lambda: QtWidgets.QMessageBox.warning(
-                self.hub, "LocalScribe", "Das Update hat nicht geklappt: Der Programmordner ließ sich nicht ersetzen, "
-                "weil noch Dateien daraus geöffnet waren. Es läuft weiter die bisherige Fassung. Bitte alle Fenster "
-                "dieses Ordners schließen und es noch einmal versuchen."))
+                self.hub, "LocalScribe", "Das Update hat nicht geklappt: Der Programmordner ließ sich binnen einer Minute nicht "
+                "ersetzen. Meist sind noch Dateien daraus geöffnet. Es läuft weiter die bisherige Fassung. Bitte alle "
+                "Fenster dieses Ordners schließen und es noch einmal versuchen, sonst die neue Fassung von Hand in "
+                "einen neuen Ordner entpacken."))
 
     # ---------- Schnittstelle für das App-Fenster ----------
     parse_keys = staticmethod(winio.parse_keys)

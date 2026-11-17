@@ -1,6 +1,6 @@
 # LocalScribe – Technische Dokumentation
 
-Stand: Version 0.14.5. Für Betrieb, IT und alle, die den Code lesen oder prüfen wollen. Die Bedienung steht im
+Stand: Version 0.14.6. Für Betrieb, IT und alle, die den Code lesen oder prüfen wollen. Die Bedienung steht im
 [Handbuch](LocalScribe-Handbuch.pdf), die Messwerte mit Methode in [`werkzeug/messen/ERGEBNIS.md`](../werkzeug/messen/ERGEBNIS.md).
 
 ## 1. Was die App ist
@@ -65,7 +65,8 @@ Scheitert der Download des Modells (Proxy, Firewall), zeigt das Fenster den Grun
 
 Aktualisieren: Einstellungen, „Aus ZIP-Datei aktualisieren“. Die App entpackt das Paket neben den Programmordner
 (`<Ordner>.neu`), beendet sich, und ein Skript im Temp-Ordner tauscht die Ordner, sobald die Dateien frei sind, und
-startet neu (`diktat/pflege.py`). Modelle, die das Paket nicht mitbringt, wandern aus dem Ordner `modelle` der alten
+startet neu (`diktat/pflege.py`). Das Skript läuft unsichtbar, enthält nur ASCII und bekommt alle Pfade als
+Umgebungsvariablen, damit Umlaute und Leerzeichen im Pfad (`Oberärzte\…`) unabhängig von der Codepage stimmen. Modelle, die das Paket nicht mitbringt, wandern aus dem Ordner `modelle` der alten
 Fassung in die neue; für ein Update genügt deshalb das kleine Paket. Ob sich der Ordner überhaupt ersetzen lässt,
 prüft die App vorher: Netzwerkordner erlauben oft das Anlegen, aber nicht das Umbenennen oder Löschen. Dann sagt sie
 das und ändert nichts. Wird der alte Ordner binnen 60 Sekunden nicht frei, startet die bisherige Fassung wieder und

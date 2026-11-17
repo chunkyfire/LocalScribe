@@ -16,7 +16,9 @@ from . import config
 
 EXE = "LocalScribe.exe"
 FAILED = "update-fehlgeschlagen"       # legt das Skript in den Datenordner, wenn der alte Ordner nicht frei wurde
-HEAD = "@echo off\r\nchcp 65001 >nul\r\n"
+# Die Skripte enthalten nur ASCII; alle Pfade kommen als Umgebungsvariablen (LS_…). In einer Batchdatei selbst
+# gehen Umlaute je nach Codepage kaputt („Oberärzte“ wurde zu „OberÃ¤rzte“, der Ordner nicht gefunden).
+HEAD = "@echo off\r\n"
 WAIT = "ping -n 2 127.0.0.1 >nul\r\n"   # eine Sekunde; „timeout“ verweigert ohne Konsole den Dienst
 
 
@@ -48,13 +50,18 @@ def blocked(prog: Path) -> str:
                 "Das ist bei Netzwerkordnern häufig so.")
 
 
-def _run(script: str) -> Path:
-    """Skript in den Temp-Ordner schreiben und losgelöst starten (läuft weiter, wenn die App endet)."""
+def _run(script: str, **paths) -> Path:
+    """Skript in den Temp-Ordner schreiben und unsichtbar starten (läuft weiter, wenn die App endet).
+
+    Nur CREATE_NO_WINDOW: Das gibt dem Skript eine versteckte Konsole, die auch seine Hilfsprogramme benutzen.
+    Mit DETACHED_PROCESS hätte es gar keine, und jedes „ping“ der Warteschleife öffnete ein eigenes Fenster."""
+    assert script.isascii(), "Pfade gehören in die Umgebung, nicht ins Skript"
     fd, name = tempfile.mkstemp(suffix=".cmd", prefix="localscribe-")
-    with os.fdopen(fd, "w", encoding="utf-8", newline="") as f:
+    with os.fdopen(fd, "w", encoding="ascii", newline="") as f:
         f.write(script)
-    flags = getattr(subprocess, "CREATE_NO_WINDOW", 0) | getattr(subprocess, "DETACHED_PROCESS", 0)
-    subprocess.Popen(["cmd.exe", "/c", name], cwd=tempfile.gettempdir(), creationflags=flags, close_fds=True,
+    env = dict(os.environ, **{key: str(value) for key, value in paths.items()})
+    subprocess.Popen(["cmd.exe", "/c", name], cwd=tempfile.gettempdir(), env=env, close_fds=True,
+                     creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
                      stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     return Path(name)
 
@@ -93,26 +100,28 @@ def swap(prog: Path, new: Path, start=True) -> Path:
     Modelle, die das neue Paket nicht mitbringt, wandern aus dem Ordner „modelle“ der alten Fassung in die neue:
     Für ein Update genügt deshalb das kleine Paket. Ein Ordner „daten“ (eigene Daten im Programmordner) zieht mit."""
     old = prog.with_name(prog.name + ".alt")
-    launch = f'start "" "{prog / EXE}"\r\n' if start else ""
+    launch = 'start "" "%LS_PROG%\\%LS_EXE%"\r\n' if start else ""
     return _run(HEAD + f'''set N=0
 :warten
-ren "{prog}" "{old.name}" 2>nul && goto frei
+ren "%LS_PROG%" "%LS_OLDNAME%" 2>nul && goto frei
 set /a N+=1
 if %N% geq 60 goto fehler
 {WAIT}goto warten
 :frei
-if not exist "{new}\\modelle" mkdir "{new}\\modelle"
-for /d %%D in ("{old}\\modelle\\*") do if not exist "{new}\\modelle\\%%~nxD" move "%%D" "{new}\\modelle\\" >nul
-if exist "{old}\\{config.PORTABLE}" move "{old}\\{config.PORTABLE}" "{new}\\{config.PORTABLE}" >nul
-ren "{new}" "{prog.name}"
-{launch}rmdir /s /q "{old}"
+if not exist "%LS_NEW%\\modelle" mkdir "%LS_NEW%\\modelle"
+for /d %%D in ("%LS_OLD%\\modelle\\*") do if not exist "%LS_NEW%\\modelle\\%%~nxD" move "%%D" "%LS_NEW%\\modelle\\" >nul
+if exist "%LS_OLD%\\%LS_DATA%" move "%LS_OLD%\\%LS_DATA%" "%LS_NEW%\\%LS_DATA%" >nul
+ren "%LS_NEW%" "%LS_NAME%"
+{launch}rmdir /s /q "%LS_OLD%"
 goto ende
 :fehler
-rmdir /s /q "{new}"
-echo x> "{config.DIR / FAILED}"
+rmdir /s /q "%LS_NEW%"
+echo x> "%LS_FAILED%"
 {launch}:ende
 del "%~f0"
-''')
+'''.replace("\n", "\r\n").replace("\r\r\n", "\r\n"),
+                LS_PROG=prog, LS_NEW=new, LS_OLD=old, LS_OLDNAME=old.name, LS_NAME=prog.name, LS_EXE=EXE,
+                LS_DATA=config.PORTABLE, LS_FAILED=config.DIR / FAILED)
 
 
 def failed() -> bool:
@@ -131,13 +140,14 @@ def remove(prog, data: bool) -> Path:
     if prog:
         lines += f'''set N=0
 :warten
-rmdir /s /q "{prog}" 2>nul
-if not exist "{prog}" goto frei
+rmdir /s /q "%LS_PROG%" 2>nul
+if not exist "%LS_PROG%" goto frei
 set /a N+=1
 if %N% geq 60 goto frei
 {WAIT}goto warten
 :frei
 '''
     if data:
-        lines += f'rmdir /s /q "{config.DIR}"\r\n'
-    return _run(lines + 'del "%~f0"\r\n')
+        lines += 'rmdir /s /q "%LS_DIR%"\n'
+    lines += 'del "%~f0"\n'
+    return _run(lines.replace("\n", "\r\n").replace("\r\r\n", "\r\n"), LS_PROG=prog or "", LS_DIR=config.DIR)
