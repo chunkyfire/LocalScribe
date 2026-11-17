@@ -17,7 +17,7 @@ os.environ.setdefault("DO_NOT_TRACK", "1")
 from PySide6 import QtCore, QtGui, QtNetwork, QtWidgets
 from PySide6.QtCore import QTimer, Signal
 
-from . import config, engine, felder, handy, korrektor, llm, winio, wortschatz
+from . import __version__, config, engine, felder, handy, korrektor, llm, winio, wortschatz
 from .hub import Hub, keys_text
 from .ui import Overlay, Store, make_icon, make_pixmap, private_mime
 
@@ -609,6 +609,29 @@ def main():
     app.setQuitOnLastWindowClosed(False)
     app.setApplicationName(config.APP)
     app.setWindowIcon(make_icon())
+    if getattr(sys, "frozen", False):
+        # Läuft LocalScribe schon aus einem ANDEREN Ordner? Dann würde hier nur dessen Fenster aufgehen, und der
+        # andere Ordner bliebe gesperrt (nicht löschbar), ohne dass man sieht, warum.
+        here = os.path.normcase(os.path.dirname(sys.executable))
+        elsewhere = [(pid, path) for pid, path in winio.others()
+                     if os.path.normcase(os.path.dirname(path)) != here]
+        if elsewhere:
+            box = QtWidgets.QMessageBox()
+            box.setWindowTitle("LocalScribe läuft schon")
+            box.setIcon(QtWidgets.QMessageBox.Question)
+            box.setText("LocalScribe läuft bereits, aber aus einem anderen Ordner:\n\n"
+                        + "\n".join(sorted({os.path.dirname(path) for _, path in elsewhere}))
+                        + f"\n\nDu startest gerade die Fassung {__version__} aus:\n\n{os.path.dirname(sys.executable)}"
+                        "\n\nSolange die andere läuft, lässt sich ihr Ordner nicht löschen.")
+            mine = box.addButton("Die andere beenden und diese starten", QtWidgets.QMessageBox.AcceptRole)
+            box.addButton("Bei der anderen bleiben", QtWidgets.QMessageBox.RejectRole)
+            box.exec()
+            if box.clickedButton() is mine:
+                if not winio.end([pid for pid, _ in elsewhere]):
+                    QtWidgets.QMessageBox.warning(None, "LocalScribe", "Die andere Fassung ließ sich nicht beenden. "
+                                                  "Bitte über den Task-Manager beenden (Reiter Details, LocalScribe.exe).")
+                    return
+                QtNetwork.QLocalServer.removeServer(INSTANCE)
     if already_running():
         return
     if not config.ICON.exists():  # Symbol für die Verknüpfungen
@@ -625,6 +648,8 @@ def main():
     server.listen(INSTANCE)
     if "--hidden" not in sys.argv:
         diktat.hub.open()
+    if getattr(sys, "frozen", False):
+        threading.Thread(target=winio.follow, daemon=True).start()
     sys.exit(app.exec())
 
 

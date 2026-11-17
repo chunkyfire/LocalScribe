@@ -333,6 +333,98 @@ foreach ($dir in @([Environment]::GetFolderPath('Desktop'), [Environment]::GetFo
 """
 
 
+def others(name=None):
+    """Andere laufende Programme gleichen Namens in dieser Windows-Sitzung: [(Prozessnummer, Pfad der exe)].
+    So findet LocalScribe eine Fassung, die aus einem anderen Ordner läuft (nach einem Update von Hand, über eine
+    alte Verknüpfung oder den Autostart) und dessen Ordner festhält."""
+    from ctypes import wintypes
+
+    class Entry(ctypes.Structure):
+        _fields_ = [("dwSize", wintypes.DWORD), ("cntUsage", wintypes.DWORD), ("th32ProcessID", wintypes.DWORD),
+                    ("th32DefaultHeapID", ctypes.c_void_p), ("th32ModuleID", wintypes.DWORD),
+                    ("cntThreads", wintypes.DWORD), ("th32ParentProcessID", wintypes.DWORD),
+                    ("pcPriClassBase", ctypes.c_long), ("dwFlags", wintypes.DWORD), ("szExeFile", ctypes.c_wchar * 260)]
+
+    k32 = ctypes.windll.kernel32
+    k32.CreateToolhelp32Snapshot.restype = wintypes.HANDLE
+    k32.OpenProcess.restype = wintypes.HANDLE
+    name = (name or Path(sys.executable).name).lower()
+    me, session, found = os.getpid(), wintypes.DWORD(), []
+    k32.ProcessIdToSessionId(me, ctypes.byref(session))
+    snap = k32.CreateToolhelp32Snapshot(0x2, 0)          # TH32CS_SNAPPROCESS
+    entry = Entry()
+    entry.dwSize = ctypes.sizeof(Entry)
+    more = k32.Process32FirstW(wintypes.HANDLE(snap), ctypes.byref(entry))
+    while more:
+        pid = entry.th32ProcessID
+        if pid != me and entry.szExeFile.lower() == name:
+            theirs = wintypes.DWORD()
+            k32.ProcessIdToSessionId(pid, ctypes.byref(theirs))
+            handle = k32.OpenProcess(0x1000, False, pid)     # PROCESS_QUERY_LIMITED_INFORMATION
+            if handle and theirs.value == session.value:
+                buf, size = ctypes.create_unicode_buffer(1024), wintypes.DWORD(1024)
+                if k32.QueryFullProcessImageNameW(wintypes.HANDLE(handle), 0, buf, ctypes.byref(size)):
+                    found.append((pid, buf.value))
+            if handle:
+                k32.CloseHandle(wintypes.HANDLE(handle))
+        more = k32.Process32NextW(wintypes.HANDLE(snap), ctypes.byref(entry))
+    k32.CloseHandle(wintypes.HANDLE(snap))
+    return found
+
+
+def end(pids, wait=8.0) -> bool:
+    """Prozesse beenden und warten, bis sie weg sind (ihre Dateien sind dann wieder frei)."""
+    from ctypes import wintypes
+    k32 = ctypes.windll.kernel32
+    k32.OpenProcess.restype = wintypes.HANDLE
+    handles = []
+    for pid in pids:
+        handle = k32.OpenProcess(0x100001, False, pid)       # SYNCHRONIZE | PROCESS_TERMINATE
+        if handle:
+            k32.TerminateProcess(wintypes.HANDLE(handle), 0)
+            handles.append(handle)
+    gone = True
+    for handle in handles:
+        gone = k32.WaitForSingleObject(wintypes.HANDLE(handle), int(wait * 1000)) == 0 and gone
+        k32.CloseHandle(wintypes.HANDLE(handle))
+    return gone and len(handles) == len(pids)
+
+
+FOLLOW_SCRIPT = """
+$ws = New-Object -ComObject WScript.Shell
+foreach ($dir in @([Environment]::GetFolderPath('Desktop'), [Environment]::GetFolderPath('Programs'))) {
+    $p = Join-Path $dir 'LocalScribe.lnk'
+    if (Test-Path $p) {
+        $l = $ws.CreateShortcut($p)
+        if ($l.TargetPath -ne $env:DIKTAT_EXE) {
+            $l.TargetPath = $env:DIKTAT_EXE
+            $l.Arguments = $env:DIKTAT_ARGS
+            $l.WorkingDirectory = $env:DIKTAT_DIR
+            $l.Save()
+        }
+    }
+}
+"""
+
+
+def follow():
+    """Autostart und vorhandene Verknüpfungen auf den Ordner zeigen lassen, aus dem die App gerade läuft. Sonst
+    startet nach einem Umzug oder Update von Hand weiter die alte Fassung und hält ihren Ordner fest."""
+    try:
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, RUN_KEY, 0, winreg.KEY_QUERY_VALUE | winreg.KEY_SET_VALUE) as k:
+            if winreg.QueryValueEx(k, "LocalScribe")[0] != _launch_command():
+                winreg.SetValueEx(k, "LocalScribe", 0, winreg.REG_SZ, _launch_command())
+    except OSError:
+        pass                                  # kein Autostart eingerichtet
+    exe, args, folder = launch_target()
+    env = dict(os.environ, DIKTAT_EXE=exe, DIKTAT_ARGS=args, DIKTAT_DIR=folder)
+    try:
+        subprocess.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", FOLLOW_SCRIPT],
+                       env=env, capture_output=True, timeout=60, creationflags=subprocess.CREATE_NO_WINDOW)
+    except Exception:
+        log.exception("Verknüpfungen nicht prüfbar")
+
+
 def create_shortcuts(icon: str):
     """Verknüpfungen auf dem Desktop und im Startmenü anlegen (ohne Adminrechte)."""
     exe, args, folder = launch_target()

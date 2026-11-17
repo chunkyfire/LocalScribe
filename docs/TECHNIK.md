@@ -1,6 +1,6 @@
 # LocalScribe – Technische Dokumentation
 
-Stand: Version 0.15.0. Für Betrieb, IT und alle, die den Code lesen oder prüfen wollen. Die Bedienung steht im
+Stand: Version 0.15.1. Für Betrieb, IT und alle, die den Code lesen oder prüfen wollen. Die Bedienung steht im
 [Handbuch](LocalScribe-Handbuch.pdf), die Messwerte mit Methode in [`werkzeug/messen/ERGEBNIS.md`](../werkzeug/messen/ERGEBNIS.md).
 
 ## 1. Was die App ist
@@ -75,9 +75,16 @@ beenden, neues ZIP in einen neuen Ordner entpacken.
 
 Entfernen: Einstellungen, „LocalScribe entfernen“. Löscht die Verknüpfungen, den Autostart-Eintrag und den
 Programmordner, auf Wunsch auch `%LOCALAPPDATA%\LocalScribe` und die Schlüssel in der Anmeldeinformationsverwaltung.
-Von Hand: App beenden, Programmordner und `%LOCALAPPDATA%\LocalScribe` löschen. Meldet Windows dabei „Zugriff
-verweigert“, läuft das Programm noch (auch in einer anderen Sitzung), oder das Konto darf in diesem Netzwerkordner
-nicht löschen.
+Von Hand: App beenden, Programmordner und `%LOCALAPPDATA%\LocalScribe` löschen. Lässt sich der Ordner nicht löschen
+oder erscheint `LocalScribe.exe` auf einem Netzlaufwerk nach dem Löschen wieder, läuft das Programm noch aus diesem
+Ordner: Das Fenster zu schließen beendet es nicht (es bleibt im Infobereich), und ein Server gibt eine geöffnete
+Datei erst frei, wenn der Prozess endet. Beenden über das Symbol neben der Uhr oder im Task-Manager (Details,
+`LocalScribe.exe`).
+
+Eine Fassung je Sitzung: Startet jemand LocalScribe aus einem zweiten Ordner, während es aus einem anderen läuft,
+fragt die App, welche bleiben soll, und beendet auf Wunsch die andere (`winio.others`, `winio.end`). Vorher ging
+still das Fenster der laufenden Fassung auf, und deren Ordner blieb gesperrt. Autostart-Eintrag und vorhandene
+Verknüpfungen zieht die App beim Start auf den Ordner nach, aus dem sie läuft (`winio.follow`).
 
 Prüfsumme: Beim Bau entsteht `dist\SHA256SUMS.txt` mit den SHA-256-Summen beider ZIP-Dateien.
 

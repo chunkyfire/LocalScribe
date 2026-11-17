@@ -1,3 +1,13 @@
+## LocalScribe 0.15.1
+
+- **Ordner ließ sich nicht löschen, LocalScribe.exe tauchte wieder auf**: Ursache war eine Fassung, die im
+  Hintergrund aus dem alten Ordner weiterlief. Startete man die neue aus einem anderen Ordner, ging nur das Fenster
+  der alten auf. Jetzt merkt LocalScribe beim Start, dass es schon aus einem anderen Ordner läuft, nennt beide
+  Ordner und beendet auf Wunsch die andere Fassung. Danach ist der alte Ordner frei.
+- Autostart und vorhandene Verknüpfungen zeigen nach einem Umzug von selbst auf den Ordner, aus dem die App läuft.
+  Vorher starteten sie weiter die alte Fassung.
+- Unter Einstellungen, „Über LocalScribe“ steht, aus welchem Ordner die App läuft und wo ihre Daten liegen.
+
 ## LocalScribe 0.15.0
 
 - **Sprecher trennen, neues Verfahren**: Die App erkennt Sprecherwechsel jetzt auch ohne Sprechpause. Dafür hört

@@ -2038,6 +2038,7 @@ class SettingsPage(Page):
         self.body.addWidget(card(
             label("Über LocalScribe", "h2"),
             link(f'LocalScribe {__version__} · by <a href="{SITE}" {a}>cemmec.ai</a> · Dr. Cem Özel'),
+            label(f"Läuft aus: {pflege.program() or 'dem Quelltext'}  ·  Daten in: {config.DIR}", "muted", wrap=True),
             link(f'Support, Rückfragen und Änderungswünsche: <a href="{LINKEDIN}" {a}>Cem Özel auf LinkedIn</a>. '
                  f'Fehler melden und Quelltext: <a href="{REPO}" {a}>GitHub</a>. '
                  f'Handbuch: <a href="https://chunkyfire.github.io/LocalScribe/" {a}>online</a>.')))
