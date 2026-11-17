@@ -8,7 +8,7 @@ In den Einstellungen stehen zwei weitere Modelle zur Wahl: ein genaueres, langsa
 
 **Technische Dokumentation:** [docs/TECHNIK.md](docs/TECHNIK.md) – Aufbau, Datenablage, Netzwerkverbindungen, Verteilung.
 
-**Handbuch mit Bildern:** [docs/LocalScribe-Handbuch.pdf](docs/LocalScribe-Handbuch.pdf) – Installieren, Starten, Diktieren und alle Funktionen auf neun Seiten.
+**Handbuch mit Bildern:** [docs/LocalScribe-Handbuch.pdf](docs/LocalScribe-Handbuch.pdf) – Installieren, Starten, Diktieren, alle Funktionen und Messwerte. Online: <https://chunkyfire.github.io/LocalScribe/>
 
 ## Installieren (ohne Adminrechte)
 
@@ -60,6 +60,10 @@ beendet sie nicht; sie bleibt im Infobereich (Rechtsklick → Beenden).
   Fachwörter aus deinen Diktaten mit; über **Aus eigenen Texten lernen** (Seite Stimmtraining) liest es sie aus eigenen
   Briefen und Befunden, nur einzelne Lexikonwörter, keine Sätze, keine Namen. An echten Arztdiktaten mit passendem
   Wortschatz: 16,6 → 11,1 % Wortfehler.
+- **Visite & Übergabe** – aus einem diktierten Fall erzeugt ein selbst gewähltes Sprachmodell einen Arztbrief-Entwurf,
+  ein Sicherheitsnetz, gezielte Rückfragen, einen Kodiervorschlag und eine Patienteninfo; mit Fallliste und Papierkorb.
+  Nur für Forschung, Lehre und den Vergleich von Modellen, kein Medizinprodukt. Die Anweisung ist unter Einstellungen
+  änderbar.
 - **Wörterbuch** – falsch Erkanntes automatisch ersetzen. Unter **Meine Begriffe** reicht die richtige Schreibweise
   (RIVA, Trimbow, ein Name): Was ähnlich klingt und kein echtes Wort ist, wird so geschrieben. Mit **Wort einsprechen** lernt die App
   dazu: richtige Schreibweise eintippen, Knopf halten, Wort sprechen. Was die Erkennung daraus
@@ -296,8 +300,8 @@ Wörterbuch und lässt sich dort ändern oder löschen.
 **Aus Aufnahme mit Transkript lernen**: Wer Diktate mit dem fertigen Text dazu hat, wählt die Tondateien aus; das
 Transkript liegt als Textdatei mit gleichem Namen daneben (`befund1.wav` und `befund1.txt` oder `.docx`). LocalScribe
 erkennt die Aufnahme, vergleicht mit dem Transkript und lernt Verhörer fürs Wörterbuch und Fachwörter für den
-Wortschatz. Der Ton wird nur gelesen. LocalScribe speichert keinen Ton aus dem Stimmtraining, auch nicht auf Wunsch
-(bis 0.12.1 ging das; alte Aufnahmen zeigt die Seite zum Löschen an).
+Wortschatz. Der Ton wird nur gelesen. Auf Wunsch (ab Werk aus) hebt das Stimmtraining die vorgelesenen, erfundenen
+Sätze als Ton auf, als Material für ein mögliches Nachtraining auf die eigene Stimme; Diktate nie.
 
 ## Sprecher trennen
 

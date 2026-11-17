@@ -61,6 +61,8 @@ DEFAULTS = {
     "learned": [],                # gelernte Fachwörter (aus Diktaten und eingelesenen Texten)
     "mic_warm": False,            # Mikrofon dauerhaft offen halten: kein Startverzug, erste Silbe bleibt
     "speakers": False,            # Sprecher trennen bei Aufnahme und Datei
+    "training_keep": False,       # Stimmtraining: vorgelesene (erfundene) Sätze als Ton aufheben, für ein Nachtraining
+    "visite_prompt": "",          # Visite & Übergabe: eigene Anweisung an das Sprachmodell; leer = die mitgelieferte
     "training_done": [],          # Stimmtraining: schon gelesene Sätze
     "phone": {"enabled": False, "port": 8765, "token": ""},   # Handy als Mikrofon (Webseite im eigenen Netz)
     "config_version": 3,

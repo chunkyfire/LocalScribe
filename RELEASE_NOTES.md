@@ -1,3 +1,20 @@
+## LocalScribe 0.14.0
+
+- **Visite & Übergabe** (neuer Bereich, aus WacheNG übernommen): Fall diktieren oder tippen, ein Sprachmodell erzeugt
+  daraus einen Arztbrief-Entwurf, ein Sicherheitsnetz, drei gezielte Rückfragen, einen Kodiervorschlag und eine
+  Patienteninfo, jeweils zum Kopieren. Mit „Neuer Patient“, „Fallliste“ und „Papierkorb“; jede Eingabe wird
+  gesichert, Löschen führt zuerst in den Papierkorb. Die Anweisung an das Sprachmodell steht unter Einstellungen und
+  ist änderbar. Liegt das Sprachmodell außerhalb des Rechners, sieht es nur die geschützte Fassung ohne Namen und
+  Daten. **Nur für Forschung, Lehre und den Vergleich von Modellen; kein Medizinprodukt.**
+- **Schlanker**: Der Download hat 101 statt 123 MB, entpackt 246 statt 302 MB (ungenutzte Qt-Teile für 3D, Web und
+  PDF und ein ungenutzter Lader entfernt); toter Code ist gestrichen.
+- **Material für ein Nachtraining**: Das Stimmtraining kann die vorgelesenen, erfundenen Sätze als Ton aufheben
+  (ab Werk aus, nie Diktate). Ob ein Nachtraining auf die eigene Stimme hilft, ist noch nicht gemessen.
+- Geprüft und nicht übernommen: ein kleineres Sprachmodell mit 655 MB (4 Bit). Es ist an echten Diktaten
+  schlechter (10,0 % statt 9,0 %, Corti 17,4 % statt 16,6 %) und 1,8-mal langsamer.
+- Handbuch mit den Abschnitten „Visite & Übergabe“ und „Wie gut und wie schnell“ (Messwerte); technische
+  Dokumentation erweitert.
+
 ## LocalScribe 0.13.0
 
 - **Aus Aufnahme mit Transkript lernen** (Seite Stimmtraining): Tondateien auswählen, das Transkript liegt als

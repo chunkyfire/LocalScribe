@@ -117,7 +117,7 @@ an denselben fünf Diktaten, volle Gewichte:
 
 ## Wort-Boosting beim Dekodieren: gemessen, nicht eingebaut
 
-`werkzeug/messen/boost.py` gibt beim Dekodieren Wortstücken einen Zuschlag, die das entstehende Wort zum Anfang
+Ein früher Versuch (`boost.py`, inzwischen entfernt und durch `diktat/beam.py` ersetzt) gab beim Dekodieren Wortstücken einen Zuschlag, die das entstehende Wort zum Anfang
 eines Kernbegriffs machen. Mit der alten int8-Fassung: eigene Diktate 20,4 → 19,4 %, die unabhängigen Aufnahmen
 12,48 → 12,56 %. Ein Punkt Gewinn hier, ein Zehntel Verlust dort; mit dem genaueren Modell bleibt davon wenig.
 
@@ -343,3 +343,11 @@ Decoder nach jedem Aufruf weiter und bremsten sich im Wechsel gegenseitig. i7-13
 Nicht besser: feste Thread-Zahlen (8, 12, 16), Bindung an die schnellen Kerne, Decoder mit einem Thread, erst alle
 Stücke durch den Encoder und dann dekodieren. In der Suche bleiben Wortstücke außen vor, die das Modell für um mehr
 als 7 (logarithmisch) unwahrscheinlicher hält als das beste; Corti unverändert 11,08 %.
+
+### Kleineres Modell (0.14.0): geprüft, nicht übernommen
+
+Encoder mit 4-Bit-Matrizen (`MatMulNBits`, Blockgröße 32, aus den vollen Gewichten): 655 MB statt 841 MB. Eigene fünf
+Diktate ohne Wortschatz beim Dekodieren: 10,0 % statt 9,0 % nach der Nachbearbeitung (roh 19,4 % statt 19,7 %).
+Corti: 17,37 % statt 16,59 % (Fachbegriffe 63,5 % statt 65,2 %). Rechenzeit für die fünf Diktate: 12,7 s statt 7,1 s.
+190 MB weniger Download wiegen das nicht auf. Die 654-MB-Fassung, die alles auf 8 Bit kürzt, war schon in 0.9 deutlich schlechter
+(Tabelle oben). Kleiner ginge es nur mit einem anderen, kleineren Modell.

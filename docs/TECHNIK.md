@@ -1,6 +1,6 @@
 # LocalScribe – Technische Dokumentation
 
-Stand: Version 0.13.0. Für Betrieb, IT und alle, die den Code lesen oder prüfen wollen. Die Bedienung steht im
+Stand: Version 0.14.0. Für Betrieb, IT und alle, die den Code lesen oder prüfen wollen. Die Bedienung steht im
 [Handbuch](LocalScribe-Handbuch.pdf), die Messwerte mit Methode in [`werkzeug/messen/ERGEBNIS.md`](../werkzeug/messen/ERGEBNIS.md).
 
 ## 1. Was die App ist
@@ -14,6 +14,12 @@ stellt keine Diagnosen, gibt keine Therapieempfehlungen und trägt kein CE-Zeich
 vergleichen oder Texte von einem Sprachmodell bearbeiten lassen, dienen Forschung, Lehre und Benchmarking. Jeder
 Text ist vor der Verwendung zu lesen.
 
+Eine Ausnahme in der Sache ist der Bereich „Visite & Übergabe“ (`diktat/visite.py`): Dort erzeugt ein Sprachmodell
+aus einem Fall Hinweise auf Risiken und gezielte Rückfragen, zieht also medizinische Schlüsse. Für die Versorgung
+eingesetzt wäre das Software mit medizinischer Zweckbestimmung (MDCG 2019-11, Regel 11). Der Bereich ist deshalb
+ausdrücklich auf Forschung, Lehre und Modellvergleich mit erfundenen oder anonymisierten Fällen beschränkt und so
+beschriftet; ein Einsatz an Patienten setzt eine eigene Bewertung des Betreibers voraus.
+
 ## 2. Systemvoraussetzungen
 
 | | |
@@ -21,7 +27,7 @@ Text ist vor der Verwendung zu lesen.
 | Betriebssystem | Windows 10 oder 11, 64 Bit |
 | Prozessor | x86-64 mit AVX2; getestet auf Intel Core i7-13700KF |
 | Arbeitsspeicher | rund 1,5 GB für die App mit geladenem Modell |
-| Platte | 300 MB entpackt, dazu 910 MB Sprachmodell |
+| Platte | 250 MB entpackt (Download 101 MB), dazu 910 MB Sprachmodell |
 | Rechte | normale Benutzerrechte; geschrieben wird nur unter `%LOCALAPPDATA%\LocalScribe` |
 | Netz | nur für den einmaligen Download des Sprachmodells; danach läuft alles ohne Netz |
 
@@ -49,7 +55,7 @@ Prüfsumme: Beim Bau entsteht `dist\SHA256SUMS.txt` mit der SHA-256-Summe des ZI
 ## 4. Aufbau
 
 Python 3.11, Oberfläche mit PySide6 (Qt), Spracherkennung mit ONNX Runtime auf der CPU über `onnx-asr`.
-Gepackt mit PyInstaller zu einem Ordner mit `LocalScribe.exe`.
+Gepackt mit PyInstaller zu einem Ordner mit `LocalScribe.exe`; `build.ps1` streicht dabei ungenutzte Qt-Teile.
 
 | Modul | Aufgabe |
 |---|---|
@@ -60,6 +66,7 @@ Gepackt mit PyInstaller zu einem Ordner mit `LocalScribe.exe`.
 | `diktat/wortschatz.py` | Wortschatz dafür: Kernliste, eigene Begriffe, gelernte Fachwörter |
 | `diktat/fach.py` | Fachbegriffe am Klang reparieren (Lexikon mit 39.600 Begriffen, Wirkstoffendungen) |
 | `diktat/training.py` | Lernen aus vorgelesenen Sätzen und aus Aufnahmen mit Transkript |
+| `diktat/visite.py` | Visite & Übergabe: Fall auswerten lassen (Arztbrief-Entwurf, Sicherheitsnetz, Rückfragen), Fallablage mit Papierkorb |
 | `diktat/sprecher.py` | Sprecher trennen (WeSpeaker ResNet34, ONNX, CPU) |
 | `diktat/vad.py` | Sprache oder Stille (Silero VAD) |
 | `diktat/longform.py` | lange Aufnahmen und Tondateien stückweise |
@@ -105,9 +112,13 @@ Nichts davon verändert das Sprachmodell; gelernt wird in Wörterbuch und Wortsc
 | Aus Korrektur lernen | Verhörer aus dem berichtigten letzten Diktat |
 
 In den Wortschatz kommen nur einzelne Wörter, die im mitgelieferten Lexikon stehen, höchstens 4.000. Sätze und
-Namen von Patienten können so nicht hineingeraten. Tondateien werden beim Lernen nur gelesen. Bis Version 0.12.1
-ließen sich Aufnahmen des Stimmtrainings auf Wunsch aufheben; das gibt es nicht mehr, vorhandene alte Aufnahmen
-zeigt die Seite Stimmtraining zum Löschen an.
+Namen von Patienten können so nicht hineingeraten. Tondateien werden beim Lernen nur gelesen.
+
+Material für ein Nachtraining: Auf Wunsch (`training_keep`, ab Werk aus) hebt das Stimmtraining die vorgelesenen,
+erfundenen Sätze als WAV mit Text in `training\` auf, nie Diktate oder eingelesene Aufnahmen. Ob ein Nachtraining
+des Sprachmodells auf die eigene Stimme die Erkennung verbessert, ist nicht gemessen; mit künstlichen Stimmen
+brachte es nichts (`ERGEBNIS.md`). Das Training selbst läuft außerhalb der App (`werkzeug/training`, braucht eine
+Grafikkarte) und würde nur den kleinen Schreibteil des Modells (69 MB) ersetzen.
 
 ## 7. Daten auf dem Rechner
 
@@ -120,6 +131,8 @@ Alles liegt unter `%LOCALAPPDATA%\LocalScribe` (nicht im Roaming-Profil, wandert
 | `modelle\` | Sprachmodell, Stimmmodell für die Sprechertrennung |
 | `diktat.log`, `absturz.log` | Betriebsmeldungen: Dauer, Zeichenzahl, Fehler. Kein diktierter Text. |
 | `aufnahmen\` | Sicherung einer laufenden langen Aufnahme; wird gelöscht, sobald der Text fertig ist |
+| `visite.sqlite` | Fälle aus „Visite & Übergabe“: Eingabe und Ergebnis als Text, mit Papierkorb |
+| `training\` | nur wenn eingeschaltet: vorgelesene Sätze des Stimmtrainings als Ton |
 
 Der Schlüssel für ein Sprachmodell-Konto liegt in der Windows-Anmeldeinformationsverwaltung (`keyring`), nicht in
 einer Datei. Ton aus Diktaten per Taste wird nie auf die Platte geschrieben.
@@ -132,7 +145,7 @@ Ab Werk baut die App genau eine Art von Verbindung auf: den einmaligen Download 
 |---|---|---|
 | `github.com` (Release `modell-primeline-1`) | erster Start | nichts außer der Anfrage |
 | `huggingface.co` | Ausweichquelle für das Modell; Stimmmodell beim ersten Einschalten der Sprechertrennung | nichts außer der Anfrage |
-| selbst eingetragener Sprachmodell-Server | nur wenn KI-Nachbearbeitung oder Fachkorrektur eingeschaltet sind | der diktierte Text, nach dem Schutz aus `schutz.py` |
+| selbst eingetragener Sprachmodell-Server | nur wenn KI-Nachbearbeitung oder Fachkorrektur eingeschaltet sind oder in „Visite & Übergabe“ auf „Auswerten“ gedrückt wird | der diktierte Text bzw. der Fall, nach dem Schutz aus `schutz.py` |
 | eigenes Netz, Port 8765 | nur wenn „Handy als Mikrofon“ eingeschaltet ist | nichts; das Telefon schickt Ton an den Rechner |
 
 Telemetrie, Lizenzabfragen oder automatische Updates gibt es nicht. Für eine Firewall genügt es, nach dem ersten
@@ -162,6 +175,8 @@ zufälligen Schlüssel aus dem QR-Code. Ab Werk aus.
 | `speakers` | Sprecher trennen bei Aufnahme und Datei | aus |
 | `spoken_punctuation` | „Punkt“, „Komma“, „neue Zeile“ als Zeichen schreiben | aus |
 | `llm`, `llm_fix` | Sprachmodell-Server und Fachkorrektur | aus |
+| `visite_prompt` | eigene Anweisung für „Visite & Übergabe“; leer = die mitgelieferte | leer |
+| `training_keep` | vorgelesene Sätze als Ton aufheben | aus |
 | `phone` | Handy als Mikrofon | aus |
 | `threads` (nur Datei) | Zahl der Rechen-Threads; 0 überlässt es der Laufzeit | 0 |
 
@@ -174,7 +189,7 @@ Prüfen:
 
 | | |
 |---|---|
-| `tests/test_neu.py` | Einheiten: Nachbearbeitung, Wörterbuch, Schutz, Wortschatz, Training, Handy-Server, Einstellungen |
+| `tests/test_neu.py` | Einheiten: Nachbearbeitung, Wörterbuch, Schutz, Wortschatz, Training, Visite, Handy-Server, Einstellungen |
 | `tests/test_woerterbuch.py` | Fachlexikon: was repariert wird und was unangetastet bleiben muss |
 | `tests/test_flow.py` | Ablauf mit Oberfläche: Diktat, Einfügen, Verlauf, Nachbearbeitung |
 | `tests/test_download.py`, `test_long.py`, `test_llm.py`, `test_hotkey.py` | Modell-Download, lange Aufnahmen, Sprachmodell-Anbindung, Tasten |
@@ -186,17 +201,25 @@ des Lexikons in `werkzeug/woerterbuch`, die Versuche zum Nachtraining in `werkze
 
 ## 11. Messwerte in Kürze
 
-Wortfehlerrate nach der Nachbearbeitung, ohne Sprachmodell-Korrektur, Details und Einschränkungen in `ERGEBNIS.md`:
+Wortfehlerrate nach der Nachbearbeitung, ohne Sprachmodell-Korrektur. Methode, Einzelwerte und Einschränkungen in
+`ERGEBNIS.md`.
 
-| Material | Wert |
+| Material | LocalScribe | zum Vergleich |
+|---|---|---|
+| fünf eigene ärztliche Diktate (412 Wörter, ein Sprecher) | 8,3 % | Whisper Large v3 Turbo Deutsch mit Wortliste 14,1 %, VibeVoice 16,3 % |
+| Corti Med-Dictate, neun echte Diktate, 33 Minuten | 15,4 % mit Kernliste; 11,1 % mit dem Wortschatz aus den eigenen Texten | 16,6 % ohne Wortschatz beim Dekodieren |
+| dieselben mit Fachkorrektur durch ein Sprachmodell (älterer Stand, ohne Wortschatz beim Dekodieren) | 7,5 % und 13,7 % | – |
+
+| Weitere Größen | Wert |
 |---|---|
-| fünf eigene ärztliche Diktate (412 Wörter, ein Sprecher) | 8,3 % |
-| Corti Med-Dictate, neun echte Diktate, 33 Minuten | 15,4 % mit Kernliste; 11,1 % mit dem Wortschatz aus den eigenen Texten |
+| Rechenzeit für 45 s Diktat (i7-13700KF, nur Prozessor) | 2,0 s mit Wortschatz, 1,4 s ohne |
+| allererster Start mit Modell-Download (910 MB) | 61 s; jeder weitere Start 2 s |
 | Sprechertrennung | 88,6 % richtig zugeordnete Sprechzeit bei Interviews, 75,4 % am Telefon |
+| Arbeitsspeicher im Betrieb | rund 1,4 GB |
 
-Mit Fachkorrektur durch ein Sprachmodell (optional, Text verlässt dann je nach Server den Rechner) lagen die
-eigenen Diktate bei 7,5 % und Corti bei 13,7 %; die Kombination mit dem Wortschatz beim Dekodieren ist noch nicht
-gemessen.
+Modellgröße: Der Encoder mit 8 Bit je Kanal hat 841 MB. Geprüft und verworfen sind die verbreitete Fassung mit
+654 MB (eigene Diktate 18,0 % statt 14,3 % vor dem Wörterbuch-Ausbau) und eine 4-Bit-Fassung der Matrizen mit
+655 MB (eigene Diktate 10,0 % statt 9,0 %, Corti 17,4 % statt 16,6 %, dazu 1,8-mal so lange Rechenzeit).
 
 ## 12. Bekannte Grenzen
 
@@ -204,8 +227,9 @@ gemessen.
 - Die Programmdatei ist nicht signiert; SmartScreen warnt beim ersten Start.
 - Nur Windows. Keine Anbindung an ein Krankenhausinformationssystem; der Text wird wie getippt eingefügt.
 - Dialekt, laute Umgebung und mehrere gleichzeitig Sprechende sind nicht gemessen.
-- Ein Nachtraining des Sprachmodells auf die eigene Stimme gibt es nicht. Versuche mit künstlichen Stimmen
-  brachten an echten Stimmen keinen Gewinn (`ERGEBNIS.md`).
+- Ein Nachtraining des Sprachmodells auf die eigene Stimme ist nicht eingebaut und nicht gemessen; die App kann nur
+  das Material dafür sammeln. Versuche mit künstlichen Stimmen brachten an echten Stimmen keinen Gewinn.
+- „Visite & Übergabe“ ist so gut wie das eingestellte Sprachmodell. Die Ausgaben sind ungeprüfte Entwürfe.
 - Die Seite für das Handy als Mikrofon ist bisher nur mit simuliertem Mikrofon geprüft.
 
 ## 13. Lizenz

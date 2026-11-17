@@ -140,10 +140,35 @@ def from_recording(transcriber, cfg: dict, audio_path, text: str):
     return True, new, words
 
 
-# ---- Aufnahmen aus dem Stimmtraining früherer Versionen (bis 0.12.1 ließ sich Ton aufheben): nur noch löschen ----
+# ---- Vorgelesene Sätze aufheben (freiwillig, ab Werk aus): Material für ein Nachtraining auf die eigene Stimme.
+# Aufgehoben werden nur die erfundenen Sätze des Stimmtrainings, nie Diktate oder eingelesene Aufnahmen.
 def store() -> Path:
     from . import config
     return config.DIR / "training"
+
+
+def keep(audio, text: str, rate: int = 16000) -> Path:
+    """Eine vorgelesene Aufnahme mit ihrem Satz ablegen (WAV, 16 kHz) und im Verzeichnis index.jsonl vermerken."""
+    import time
+    import wave
+
+    import numpy as np
+    folder = store()
+    folder.mkdir(parents=True, exist_ok=True)
+    stem, n = time.strftime("%Y%m%d-%H%M%S"), 1
+    path = folder / f"{stem}.wav"
+    while path.exists():
+        n += 1
+        path = folder / f"{stem}-{n}.wav"
+    data = (np.clip(np.asarray(audio, dtype=np.float32), -1, 1) * 32767).astype("<i2")
+    with wave.open(str(path), "wb") as w:
+        w.setnchannels(1)
+        w.setsampwidth(2)
+        w.setframerate(rate)
+        w.writeframes(data.tobytes())
+    with open(folder / "index.jsonl", "a", encoding="utf-8") as f:
+        f.write(json.dumps({"audio": path.name, "text": text, "sec": round(len(data) / rate, 2)}, ensure_ascii=False) + "\n")
+    return path
 
 
 def kept():

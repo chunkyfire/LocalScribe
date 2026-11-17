@@ -237,17 +237,6 @@ def keep_awake(on: bool):
         log.debug("Ruhezustand nicht steuerbar", exc_info=True)
 
 
-def foreground_title() -> str:
-    try:
-        hwnd = user32.GetForegroundWindow()
-        n = user32.GetWindowTextLengthW(hwnd)
-        buf = ctypes.create_unicode_buffer(n + 1)
-        user32.GetWindowTextW(hwnd, buf, n + 1)
-        return buf.value
-    except Exception:
-        return ""
-
-
 def foreground() -> int:
     try:
         return int(user32.GetForegroundWindow() or 0)

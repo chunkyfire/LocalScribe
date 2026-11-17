@@ -183,17 +183,19 @@ for word in ["Hautturgor", "Mundspatel", "Wiedervorstellung", "Stauungsbedingt",
     got = fach.correct("Befund: " + word + " heute.")
     check(f"{word} bleibt", word in got, got)
 
-# ---- 0.13.0: Aufnahmen werden nicht mehr aufgehoben; alte lassen sich löschen ----
+# ---- Vorgelesene Sätze aufheben (freiwillig, ab Werk aus) ----
 with tempfile.TemporaryDirectory() as tmp:
     old = config.DIR
     config.DIR = pathlib.Path(tmp)
-    check("Ohne alte Aufnahmen ist der Zähler null", training.kept() == (0, 0.0))
-    training.store().mkdir()
-    (training.store() / "a.wav").write_bytes(b"RIFF")
-    (training.store() / "index.jsonl").write_text(json.dumps({"audio": "a.wav", "text": "Satz.", "sec": 2.0}) + "\n", encoding="utf-8")
-    check("Alte Aufnahmen werden gezählt", training.kept() == (1, 2.0), str(training.kept()))
-    check("Löschen entfernt alles", training.clear() == 1 and training.kept() == (0, 0.0) and not list(training.store().glob("*")))
-    check("Aufheben gibt es nicht mehr", not hasattr(training, "keep") and "training_keep" not in config.DEFAULTS)
+    check("Ohne Aufnahmen ist der Zähler null", training.kept() == (0, 0.0))
+    path = training.keep(np.sin(np.arange(32000) / 9).astype(np.float32) * 0.4, "Der Patient ist kardiopulmonal stabil.")
+    training.keep(np.zeros(16000, dtype=np.float32), "Zweiter Satz.")
+    rows = [json.loads(l) for l in open(training.store() / "index.jsonl", encoding="utf-8")]
+    check("Verzeichnis nennt Datei, Satz und Dauer", rows[0]["text"] == "Der Patient ist kardiopulmonal stabil." and rows[0]["sec"] == 2.0
+          and rows[0]["audio"] == path.name, str(rows[0]))
+    check("Zähler stimmt", training.kept() == (2, 3.0), str(training.kept()))
+    check("Löschen entfernt alles", training.clear() == 2 and training.kept() == (0, 0.0) and not list(training.store().glob("*")))
+    check("Aufheben ist ab Werk aus", config.DEFAULTS.get("training_keep") is False)
     config.DIR = old
 # Aus Aufnahme mit Transkript lernen: Ton wird nur gelesen
 with tempfile.TemporaryDirectory() as tmp:
@@ -352,5 +354,43 @@ check("Wortschatz: liest eigene Texte ein", _r == (len(_c2["learned"]), ["fehlt.
 check("Wortschatz: Kernliste und eigene Begriffe zählen mit",
       {"Kreatinin", "Trimbow", "Prednisolon"} <= set(wortschatz.terms({"vocabulary": ["Trimbow"], "learned": ["Prednisolon"]})))
 check("Wortschatz: ab Werk an", config.DEFAULTS.get("beam") == 8 and config.DEFAULTS.get("learn_terms") is True)
+# ---- 0.14.0: Visite & Übergabe ----
+from diktat import visite
+_answer = 'Hier das Ergebnis:\n```json\n{"documentation": {"anamnese": "Sturz von [NAME_1].", "befund": "GCS 15", "procedere": ""}, "safetyAlerts": [{"context": "Antikoagulation", "suggestion": "cCT"}], "followUpQuestions": [{"question": "a"}, {"question": "b"}, {"question": "c"}, {"question": "d"},], "codes": []}\n```'
+_r = visite.analyse({"llm": {"model": "x"}}, "Herr Müller ist gestürzt.", ask=lambda system, user: _answer)
+check("Visite: liest JSON trotz Text, Code-Zaun und überzähligem Komma", _r["documentation"]["befund"] == "GCS 15", str(_r))
+check("Visite: höchstens drei Rückfragen", len(_r["followUpQuestions"]) == 3)
+check("Visite: Arztbrief nur aus gefüllten Abschnitten", visite.letter(_r) == "Anamnese:\nSturz von [NAME_1].\n\nBefund:\nGCS 15", visite.letter(_r))
+try:
+    visite.parse("Das kann ich nicht.")
+    check("Visite: Antwort ohne JSON ist ein Fehler", False)
+except llm.LlmError:
+    check("Visite: Antwort ohne JSON ist ein Fehler", True)
+_seen = {}
+def _fake_chat(server, system, user, json_mode=False, key=None):
+    _seen.update(system=system, user=user, timeout=server.get("timeout"))
+    return '{"documentation": {"anamnese": "[NAME_1] gestürzt"}}'
+_old_chat, llm.chat = llm.chat, _fake_chat
+_r = visite.analyse({"llm": {"model": "x", "base_url": "https://beispiel.de/v1"}}, "Herr Müller, geboren am 03.04.1950, ist gestürzt.")
+llm.chat = _old_chat
+check("Visite: fremder Server sieht keine Namen und Daten", "Müller" not in _seen["user"] and "03.04.1950" not in _seen["user"], _seen.get("user", ""))
+check("Visite: Namen stehen im Ergebnis wieder da", "Müller" in _r["documentation"]["anamnese"], str(_r))
+check("Visite: lange Wartezeit und eigene Anweisung", _seen["timeout"] >= 120 and _seen["system"].startswith(visite.PROMPT[:40])
+      and visite.prompt({"visite_prompt": "Eigene Anweisung"}) == "Eigene Anweisung")
+with tempfile.TemporaryDirectory() as tmp:
+    _s = visite.Store(pathlib.Path(tmp) / "v.sqlite")
+    _id = _s.save(None, "Zimmer 4", "Sturz")
+    _s.save(_id, "Zimmer 4", "Sturz, cCT", {"documentation": {"befund": "ok"}})
+    _s.save(_id, "Zimmer 4a", "Sturz, cCT geplant")
+    check("Visite: Fall bleibt mit Ergebnis gespeichert", _s.get(_id) == ("Zimmer 4a", "Sturz, cCT geplant", {"documentation": {"befund": "ok"}}), str(_s.get(_id)))
+    check("Visite: Fallliste und Suche", len(_s.rows()) == 1 and len(_s.rows(query="cCT")) == 1 and not _s.rows(query="Lunge") and not _s.rows(True))
+    check("Visite: endgültig löschen geht nur aus dem Papierkorb", _s.purge(_id) == 0 and len(_s.rows()) == 1)
+    _s.trash(_id)
+    check("Visite: Papierkorb", not _s.rows() and len(_s.rows(True)) == 1)
+    _s.trash(_id, False)
+    check("Visite: wiederherstellen", len(_s.rows()) == 1 and not _s.rows(True))
+    _s.trash(_id)
+    check("Visite: Papierkorb leeren", _s.purge() == 1 and _s.get(_id) is None)
+    _s.db.close()
 print("FEHLER:" if failed else "ALLES OK", failed or "")
 sys.exit(1 if failed else 0)

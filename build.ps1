@@ -9,7 +9,7 @@ $version = & .venv\Scripts\python.exe -c "import diktat; print(diktat.__version_
 & .venv\Scripts\pyinstaller.exe --noconfirm --clean --windowed --name LocalScribe --icon build_icon.ico `
     --add-data "diktat\silero_vad.onnx;diktat" --add-data "diktat\basiswoerterbuch.json;diktat" --add-data "diktat\fachlexikon.json;diktat" --add-data "diktat\bekannt.txt.gz;diktat" --add-data "diktat\lesetexte.json;diktat" `
     --collect-all onnx_asr --collect-all _sounddevice_data --collect-submodules keyring --copy-metadata keyring `
-    --hidden-import tokenizers --hidden-import segno --hidden-import win32ctypes.core --hidden-import pynput.keyboard._win32 --hidden-import pynput.mouse._win32 `
+    --hidden-import win32ctypes.core --hidden-import pynput.keyboard._win32 --hidden-import pynput.mouse._win32 `
     --exclude-module pyarrow --exclude-module tkinter --exclude-module matplotlib --exclude-module PySide6.QtWebEngineCore `
     --exclude-module PySide6.QtQml --exclude-module PySide6.QtQuick --exclude-module PySide6.Qt3DCore `
     run.pyw
@@ -19,6 +19,16 @@ $base = & .venv\Scripts\python.exe -c "import sys; print(sys.base_prefix)"
 foreach ($dll in "libcrypto-3-x64.dll", "libssl-3-x64.dll") {
     if (Test-Path "$base\DLLs\$dll") { Copy-Item "$base\DLLs\$dll" "dist\LocalScribe\_internal\$dll" -Force }
 }
+# Schlank halten: Qt-Teile, die eine Fenster-App ohne 3D, Web und PDF nicht braucht (QtNetwork bleibt: die App prüft damit, ob sie schon läuft), und der
+# Xet-Lader von Hugging Face (abgeschaltet, siehe diktat/modelle.py). Spart rund 50 MB.
+$qt = "dist\LocalScribe\_internal\PySide6"
+foreach ($item in "opengl32sw.dll", "Qt6Quick*.dll", "Qt6Qml*.dll", "Qt6Pdf.dll", "Qt6VirtualKeyboard.dll",
+                  "Qt6OpenGL.dll", "translations", "plugins\imageformats\qpdf.dll",
+                  "plugins\imageformats\qtiff.dll", "plugins\imageformats\qwebp.dll", "plugins\platforminputcontexts",
+                  "plugins\networkinformation", "plugins\generic") {
+    Get-ChildItem "$qt\$item" -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force
+}
+Remove-Item "dist\LocalScribe\_internal\hf_xet" -Recurse -Force -ErrorAction SilentlyContinue
 Copy-Item README.md dist\LocalScribe\LIESMICH.md
 Copy-Item LICENSE dist\LocalScribe\LICENSE.txt
 Copy-Item THIRD_PARTY.md dist\LocalScribe\THIRD_PARTY.md

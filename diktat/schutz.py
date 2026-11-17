@@ -221,10 +221,6 @@ class Mask:
             text = text.replace(tag, value)
         return text
 
-    def lost(self, text: str):
-        """Platzhalter, die in der Antwort fehlen (dann ist die Antwort nicht verwendbar)."""
-        return [tag for tag in self.back if tag not in text]
-
 
 def needed(llm_cfg: dict) -> bool:
     """Schutz gilt für jeden Server außerhalb des eigenen Rechners oder Netzes, solange er nicht abgeschaltet ist."""

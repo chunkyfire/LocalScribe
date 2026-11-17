@@ -1,6 +1,7 @@
 """Das App-Fenster: Verlauf, Wörterbuch, Textbausteine, KI-Nachbearbeitung, Einstellungen."""
 import copy
 import difflib
+import html
 import logging
 import os
 import re
@@ -12,7 +13,7 @@ from PySide6.QtCore import Qt, QTimer, Signal
 
 import secrets
 
-from . import config, engine, fach, handy, llm, schutz, training, wortschatz
+from . import config, engine, fach, handy, llm, schutz, training, visite, wortschatz
 from . import sprecher
 from .longform import LongJob
 from .ui import make_icon, make_pixmap, private_mime
@@ -1022,6 +1023,228 @@ class MapPage(Page):
         self.ctl.apply_cfg()
 
 
+# ---------------------------------------------------------------- Visite & Übergabe
+class VisitPage(Page):
+    """Fall diktieren oder tippen, vom Sprachmodell auswerten lassen: Arztbrief-Entwurf, Sicherheitsnetz, Rückfragen."""
+    sig_done = Signal(object, str, int)
+    CSS = ("h3 { color: #C6FF3D; margin: 14px 0 4px 0; } p { margin: 0 0 6px 0; } a { color: #8A8A8A; text-decoration: none; }"
+           " .warn { color: #FFB454; } .muted { color: #8A8A8A; }")
+    PRIORITY = {"critical": "entscheidend", "high": "wichtig", "medium": "ergänzend"}
+
+    def __init__(self, ctl):
+        super().__init__("Visite & Übergabe",
+                         "Nur für Forschung, Lehre und den Vergleich von Modellen. Kein Medizinprodukt: Die Ausgaben sind "
+                         "Entwürfe eines Sprachmodells, keine Diagnose- oder Therapieempfehlung, und vor jeder Verwendung "
+                         "zu prüfen. Das Sprachmodell stellst du unter KI-Nachbearbeitung ein.", scroll=False)
+        self.ctl = ctl
+        self.store = visite.Store()
+        self.case, self.result, self.copy = None, None, {}
+        self.tabs = QtWidgets.QButtonGroup(self)
+        row = QtWidgets.QHBoxLayout()
+        row.setSpacing(6)
+        for i, name in enumerate(("Neuer Patient", "Fallliste", "Papierkorb")):
+            b = QtWidgets.QPushButton(name, checkable=True)
+            b.setCursor(Qt.PointingHandCursor)
+            b.setStyleSheet("QPushButton:checked { color: #C6FF3D; border-color: #C6FF3D; }")
+            self.tabs.addButton(b, i)
+            row.addWidget(b)
+        row.addStretch(1)
+        self.body.addLayout(row)
+        self.stack = QtWidgets.QStackedWidget()
+        self.body.addWidget(self.stack, 1)
+
+        # Neuer Patient
+        self.name = QtWidgets.QLineEdit(placeholderText="Fallbezeichnung, z. B. Zimmer 4 oder Kürzel (kein Klarname nötig)")
+        self.text = QtWidgets.QPlainTextEdit(placeholderText="Hier klicken und diktieren (Tasten halten) oder tippen: "
+                                             "Anamnese, Befund, Verlauf, Vormedikation, geplantes Vorgehen.")
+        self.go = button("Auswerten", self._analyse, name="primary")
+        self.note = label("", "muted", wrap=True)
+        self.out = QtWidgets.QTextBrowser(openLinks=False)
+        self.out.document().setDefaultStyleSheet(self.CSS)
+        self.out.anchorClicked.connect(self._copy)
+        self.out.setPlaceholderText("Nach „Auswerten“ stehen hier Arztbrief-Entwurf, Sicherheitsnetz, Rückfragen, "
+                                    "Kodierung und Patienteninfo, jeweils zum Kopieren.")
+        new = QtWidgets.QWidget()
+        left = QtWidgets.QVBoxLayout()
+        for w in (self.name, self.text):
+            left.addWidget(w)
+        left.addLayout(hbox(self.go, button("Neuer Fall", self._new), None))
+        left.addWidget(self.note)
+        split = QtWidgets.QHBoxLayout(new)
+        split.setContentsMargins(0, 0, 0, 0)
+        split.setSpacing(14)
+        split.addLayout(left, 2)
+        split.addWidget(self.out, 3)
+        self.stack.addWidget(new)
+        self.saver = QTimer(self, singleShot=True, interval=700)       # nichts geht verloren: jede Eingabe wird gesichert
+        self.saver.timeout.connect(self._save)
+        self.text.textChanged.connect(self.saver.start)
+        self.name.textEdited.connect(lambda _: self.saver.start())
+
+        # Fallliste und Papierkorb
+        self.lists = []
+        for trash in (False, True):
+            search = QtWidgets.QLineEdit(placeholderText="Suchen")
+            items = QtWidgets.QListWidget()
+            items.itemDoubleClicked.connect(lambda item, t=trash: None if t else self._open(item.data(Qt.UserRole)))
+            search.textChanged.connect(lambda _: self._fill())
+            w = QtWidgets.QWidget()
+            lay = QtWidgets.QVBoxLayout(w)
+            lay.setContentsMargins(0, 0, 0, 0)
+            lay.addWidget(search)
+            lay.addWidget(items, 1)
+            if trash:
+                lay.addLayout(hbox(button("Wiederherstellen", lambda: self._each(1, lambda i: self.store.trash(i, False))),
+                                   button("Endgültig löschen", lambda: self._each(1, self.store.purge)),
+                                   None, button("Papierkorb leeren", self._empty)))
+            else:
+                lay.addLayout(hbox(button("Öffnen", lambda: self._each(0, self._open), name="primary"),
+                                   button("In den Papierkorb", lambda: self._each(0, self.store.trash)), None))
+            self.lists.append((search, items))
+            self.stack.addWidget(w)
+        self.tabs.idClicked.connect(self._tab)
+        self.sig_done.connect(self._done)
+        self._tab(0)
+
+    def refresh(self):
+        self._fill()
+
+    def _tab(self, i):
+        self.tabs.button(i).setChecked(True)
+        self.stack.setCurrentIndex(i)
+        self._fill()
+
+    def _fill(self):
+        for trash, (search, items) in enumerate(self.lists):
+            items.clear()
+            rows = self.store.rows(bool(trash), search.text())
+            for case_id, name, text, created, _ in rows:
+                first = " ".join((text or "").split())[:90]
+                item = QtWidgets.QListWidgetItem(f"{time.strftime('%d.%m.%Y %H:%M', time.localtime(created))}   "
+                                                 f"{name or 'ohne Bezeichnung'}   {first}")
+                item.setData(Qt.UserRole, case_id)
+                items.addItem(item)
+            self.tabs.button(1 + trash).setText(("Fallliste", "Papierkorb")[trash] + (f" ({len(rows)})" if rows else ""))
+
+    def _each(self, which, action):
+        for item in self.lists[which][1].selectedItems() or ([self.lists[which][1].currentItem()] if self.lists[which][1].currentItem() else []):
+            action(item.data(Qt.UserRole))
+        self._fill()
+
+    def _empty(self):
+        if not self.store.rows(True):
+            return
+        box = QtWidgets.QMessageBox(self)
+        box.setWindowTitle("Papierkorb leeren")
+        box.setText("Alle Fälle im Papierkorb endgültig löschen?")
+        yes = box.addButton("Löschen", QtWidgets.QMessageBox.DestructiveRole)
+        box.addButton("Abbrechen", QtWidgets.QMessageBox.RejectRole)
+        box.exec()
+        if box.clickedButton() is yes:
+            self.store.purge()
+            self._fill()
+
+    def _save(self):
+        if self.case is None and not self.text.toPlainText().strip() and not self.name.text().strip():
+            return
+        self.case = self.store.save(self.case, self.name.text().strip(), self.text.toPlainText())
+
+    def _new(self):
+        self.saver.stop()
+        self._save()
+        self.case, self.result = None, None
+        for w in (self.name, self.text, self.out):
+            w.blockSignals(True)
+            w.clear()
+            w.blockSignals(False)
+        self.note.setText("")
+        self._tab(0)
+
+    def _open(self, case_id):
+        self._new()
+        row = self.store.get(case_id)
+        if not row:
+            return
+        self.case = case_id
+        self.name.setText(row[0] or "")
+        self.text.blockSignals(True)
+        self.text.setPlainText(row[1] or "")
+        self.text.blockSignals(False)
+        self._show(row[2])
+
+    def _analyse(self):
+        text = self.text.toPlainText().strip()
+        if not text:
+            return self.note.setText("Erst den Fall diktieren oder eintippen.")
+        if not (self.ctl.cfg.get("llm") or {}).get("model"):
+            restyle(self.note, "bad")
+            return self.note.setText("Kein Sprachmodell eingestellt. Unter KI-Nachbearbeitung Server und Modell wählen.")
+        self.saver.stop()
+        self._save()
+        self.go.setEnabled(False)
+        restyle(self.note, "muted")
+        self.note.setText("Das Sprachmodell wertet aus …")
+        case, cfg = self.case, copy.deepcopy(self.ctl.cfg)
+
+        def work():
+            try:
+                self.sig_done.emit(visite.analyse(cfg, text), "", case)
+            except Exception as e:
+                log.warning("Visite: Auswertung fehlgeschlagen: %s", type(e).__name__)
+                self.sig_done.emit(None, str(e) or type(e).__name__, case)
+        threading.Thread(target=work, daemon=True).start()
+
+    def _done(self, result, error, case):
+        self.go.setEnabled(True)
+        if error:
+            restyle(self.note, "bad")
+            return self.note.setText(f"Das hat nicht geklappt: {error}")
+        self.store.save(case, *self.store.get(case)[:2], result)
+        if case == self.case:
+            restyle(self.note, "ok")
+            self.note.setText("Entwurf fertig. Bitte prüfen, bevor du etwas übernimmst.")
+            self._show(result)
+        self._fill()
+
+    def _show(self, result):
+        self.result, self.copy = result, {}
+        if not result:
+            return self.out.clear()
+        esc = lambda t: html.escape(str(t or "")).replace("\n", "<br>")
+        parts = []
+
+        def block(key, title, body_html, plain):
+            if plain.strip():
+                self.copy[key] = plain
+                parts.append(f"<h3>{title} &nbsp;<a href='{key}'>kopieren</a></h3>{body_html}")
+        doc = result.get("documentation") or {}
+        block("brief", "Arztbrief-Entwurf", "".join(f"<p><b>{t}:</b><br>{esc(doc.get(k))}</p>" for k, t in visite.SECTIONS
+                                                    if str(doc.get(k) or "").strip()), visite.letter(result))
+        alerts = [a for a in result.get("safetyAlerts") or [] if isinstance(a, dict)]
+        block("netz", "Sicherheitsnetz", "".join(f"<p><span class='warn'><b>{esc(a.get('context'))}</b></span><br>{esc(a.get('suggestion'))}</p>"
+                                                 for a in alerts), "\n".join(f"{a.get('context', '')}: {a.get('suggestion', '')}" for a in alerts))
+        asks = [q for q in result.get("followUpQuestions") or [] if isinstance(q, dict)]
+        block("fragen", "Gezielte Rückfragen", "".join(
+            f"<p><b>{i}. {esc(q.get('question'))}</b> <span class='muted'>({self.PRIORITY.get(q.get('priority'), 'ergänzend')})</span>"
+            f"<br><span class='muted'>{esc(q.get('rationale'))}</span></p>" for i, q in enumerate(asks, 1)),
+            "\n".join(f"{i}. {q.get('question', '')}" for i, q in enumerate(asks, 1)))
+        codes = [c for c in result.get("codes") or [] if isinstance(c, dict)]
+        block("codes", "Kodierung (Vorschlag)", "<p>" + "<br>".join(f"<b>{esc(c.get('code'))}</b> {esc(c.get('description'))}" for c in codes) + "</p>",
+              "\n".join(f"{c.get('code', '')} {c.get('description', '')}" for c in codes))
+        info = result.get("patientHandout") or {}
+        block("info", "Patienteninfo", f"<p><b>{esc(info.get('title'))}</b><br>{esc(info.get('content'))}</p>",
+              f"{info.get('title', '')}\n{info.get('content', '')}" if info.get("content") else "")
+        block("en", "Zusammenfassung (englisch)", f"<p>{esc(doc.get('case_summary_en'))}</p>", str(doc.get("case_summary_en") or ""))
+        self.out.setHtml("".join(parts))
+
+    def _copy(self, url):
+        text = self.copy.get(url.toString())
+        if text:
+            QtGui.QGuiApplication.clipboard().setMimeData(private_mime(text))
+            restyle(self.note, "ok")
+            self.note.setText("Kopiert.")
+
+
 # ---------------------------------------------------------------- Stimmtraining
 class TrainPage(Page):
     """Sätze vorlesen; was die Erkennung dabei falsch schreibt, kommt ins persönliche Wörterbuch."""
@@ -1032,7 +1255,7 @@ class TrainPage(Page):
                          "Lies medizinische Sätze vor. LocalScribe vergleicht, was es verstanden hat, mit dem, was "
                          "dasteht, und merkt sich deine Aussprache der Fachbegriffe im Wörterbuch. Freiwillig, "
                          "jederzeit unterbrechbar – je mehr Sätze, desto besser passt die Erkennung zu deiner Stimme. "
-                         "Der Ton bleibt im Arbeitsspeicher und wird nie gespeichert.")
+                         "Der Ton bleibt im Arbeitsspeicher; gespeichert wird er nur, wenn du unten das Aufheben einschaltest.")
         self.ctl = ctl
         self.topic = QtWidgets.QComboBox()
         self.topic.addItem("Alle Themen", "")
@@ -1066,9 +1289,12 @@ class TrainPage(Page):
         self.body.addWidget(card(
             hbox(self.words_n, None, button("Aus eigenen Texten lernen …", self._learn_files),
                  button("Leeren", self._learn_clear)), self.words))
+        self.keep = QtWidgets.QCheckBox("Vorgelesene Sätze als Tonaufnahme aufheben (nur diese erfundenen Sätze, nie Diktate)")
+        self.keep.setChecked(bool(self.ctl.cfg.get("training_keep")))
+        self.keep.toggled.connect(self._keep)
         self.kept = label("", "muted", wrap=True)
-        self.old = card(label("Alte Aufnahmen", "h2"), self.kept, hbox(button("Alle löschen", self._clear), None))
-        self.body.addWidget(self.old)
+        self.body.addWidget(card(label("Material für ein Nachtraining auf deine Stimme", "h2"), self.keep, self.kept,
+                                 hbox(button("Ordner öffnen", self._open_store), button("Alle löschen", self._clear), None)))
         self.sig_pairs.connect(self._pairs_done)
         self.body.addStretch(1)
         self.items, self.pos, self.session = [], 0, []
@@ -1126,11 +1352,19 @@ class TrainPage(Page):
         self.words.setText("Fachwörter aus deinen Diktaten, Transkripten und eingelesenen Briefen; beim Erkennen werden sie "
                            "bevorzugt. Übernommen werden nur einzelne Wörter aus dem Lexikon, keine Sätze, keine Namen.")
 
+    def _keep(self, on):
+        self.ctl.cfg["training_keep"] = bool(on)
+        self.ctl.apply_cfg()
+
+    def _open_store(self):
+        training.store().mkdir(parents=True, exist_ok=True)
+        QtGui.QDesktopServices.openUrl(QtCore.QUrl.fromLocalFile(str(training.store())))
+
     def _kept(self):
         n, sec = training.kept()
-        self.old.setVisible(bool(n))
-        self.kept.setText(f"Aus einer früheren Version liegen noch {n} Aufnahme{'n' if n != 1 else ''} aus dem Stimmtraining "
-                          f"auf diesem Rechner ({sec / 60:.1f} Minuten). LocalScribe hebt keine Aufnahmen mehr auf.")
+        self.kept.setText(f"{n} Aufnahme{'n' if n != 1 else ''}, {sec / 60:.1f} Minuten, nur auf diesem Rechner. "
+                          "Ab etwa 30 Minuten lohnt ein Versuch, das Sprachmodell auf deine Stimme nachzutrainieren "
+                          "(werkzeug/training); ob das die Erkennung verbessert, ist noch nicht gemessen. Ab Werk aus.")
 
     def _pairs(self):
         if self.ctl.transcriber is None or not getattr(self.ctl, "ready", True):
@@ -1230,6 +1464,13 @@ class TrainPage(Page):
         cfg["dictionary"] = data
         cfg["training_done"] = sorted(set(cfg.get("training_done") or []) | {expected})
         self.ctl.apply_cfg()
+        audio = getattr(self.ctl, "heard_audio", None)
+        if cfg.get("training_keep") and audio is not None and len(audio):
+            try:
+                training.keep(audio, expected)
+            except OSError:
+                log.exception("Aufnahme ließ sich nicht aufheben")
+            self._kept()
         self.session += new
         parts = []
         if new:
@@ -1718,9 +1959,31 @@ class SettingsPage(Page):
                                  self.auto,
                                  hbox(button("Verknüpfungen auf Desktop und im Startmenü anlegen", self.shortcuts),
                                       None)))
+        self.prompt = QtWidgets.QPlainTextEdit()
+        self.prompt.setMinimumHeight(170)
+        self.prompt_note = label("", "muted")
+        self.body.addWidget(card(
+            label("Visite & Übergabe: Anweisung an das Sprachmodell", "h2"),
+            label("Bestimmt, was aus einem Fall erzeugt wird (Arztbrief-Entwurf, Sicherheitsnetz, Rückfragen, Kodierung, "
+                  "Patienteninfo). Die Namen der Felder im JSON-Schema am Ende müssen bleiben, sonst kann LocalScribe das "
+                  "Ergebnis nicht anzeigen.", "muted", wrap=True),
+            self.prompt,
+            hbox(button("Speichern", self._prompt_save, name="primary"),
+                 button("Standard wiederherstellen", self._prompt_reset), None, self.prompt_note)))
         self.body.addStretch(1)
 
+    def _prompt_save(self):
+        text = self.prompt.toPlainText().strip()
+        self.ctl.cfg["visite_prompt"] = "" if text == visite.PROMPT.strip() else text
+        self.ctl.apply_cfg()
+        self.saved(self.prompt_note)
+
+    def _prompt_reset(self):
+        self.prompt.setPlainText(visite.PROMPT)
+        self._prompt_save()
+
     def refresh(self):
+        self.prompt.setPlainText(visite.prompt(self.ctl.cfg))
         cfg = self.ctl.cfg
         self.hold.setText("+".join(cfg["hotkey_hold"]))
         self.model.setCurrentIndex(max(0, self.model.findData(cfg.get("model_choice", "de"))))
@@ -1839,12 +2102,13 @@ class Hub(QtWidgets.QWidget):
                                       "Für einen Zeilenumbruch \\n schreiben.",
                                       "snippets", ["Stichwort", "Text"],
                                       starter=("Normalbefunde hinzufügen", NORMAL))),
+            ("Visite & Übergabe", VisitPage(ctl)),
             ("KI-Nachbearbeitung", LlmPage(ctl)),
             ("Einstellungen", SettingsPage(ctl)),
         ]
         self.buttons = QtWidgets.QButtonGroup(self)
         for i, (name, page) in enumerate(self.pages):
-            b = QtWidgets.QPushButton(name, checkable=True)
+            b = QtWidgets.QPushButton(name.replace("&", "&&"), checkable=True)
             b.setCursor(Qt.PointingHandCursor)
             self.buttons.addButton(b, i)
             nav.addWidget(b)
