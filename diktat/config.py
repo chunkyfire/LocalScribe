@@ -93,6 +93,9 @@ DEFAULTS = {
     "live_preview": True,         # Aufnahme: laufende Äußerung schon beim Sprechen vorläufig anzeigen
     "model_dir": "",              # eigener Ordner mit Sprachmodellen (z. B. ein gemeinsames Netzlaufwerk); leer = keiner
     "visite_prompt": "",          # Visite & Übergabe: eigene Anweisung an das Sprachmodell; leer = die mitgelieferte
+    "visite_model": "",           # Modell für den Arztbrief; leer = Gemini 3.1 Pro bei OpenRouter, sonst das LLM-Modell
+    "visite_jev": "",             # Jev-Modell für die Ersteinschätzung; leer = ~typesafe/jev-latest
+    "visite_rules": "",           # Hausregeln (Schockraum, Labor, Zuständigkeiten), die Jev mitbekommt; leer = keine
     "training_done": [],          # Stimmtraining: schon gelesene Sätze
     "phone": {"enabled": False, "port": 8765, "token": ""},   # Handy als Mikrofon (Webseite im eigenen Netz)
     "config_version": 3,

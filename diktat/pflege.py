@@ -4,7 +4,6 @@ Ein laufendes Programm kann seinen eigenen Ordner weder ersetzen noch löschen. 
 Skript in den Temp-Ordner, beendet sich, und das Skript erledigt den Rest, sobald die Dateien frei sind. Einstellungen,
 Verlauf und Sprachmodelle im Benutzerkonto bleiben bei einem Update unberührt.
 """
-import json
 import os
 import re
 import shutil

@@ -213,6 +213,11 @@ class Diktat(QtCore.QObject):
                                    self.sig_lock.emit, self.sig_tap.emit)
         self.hotkey.start()
 
+    def capture_keys(self, callback):
+        """Einstellungen: die nächste Tastenkombination an callback melden (None beendet das Lauschen)."""
+        if self.hotkey:
+            self.hotkey.grab(callback)
+
     def ready_text(self):
         return f"Bereit · {keys_text(self.cfg['hotkey_hold'])} halten"
 

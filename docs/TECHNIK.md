@@ -1,6 +1,6 @@
 # LocalScribe – Technische Dokumentation
 
-Stand: Version 1.0.0. Für Betrieb, IT und alle, die den Code lesen oder prüfen wollen. Die Bedienung steht im
+Stand: Version 1.1.0. Für Betrieb, IT und alle, die den Code lesen oder prüfen wollen. Die Bedienung steht im
 [Handbuch](LocalScribe-Handbuch.pdf), die Messwerte mit Methode in [`werkzeug/messen/ERGEBNIS.md`](../werkzeug/messen/ERGEBNIS.md).
 
 ## 1. Was die App ist
@@ -112,6 +112,7 @@ Gepackt mit PyInstaller zu einem Ordner mit `LocalScribe.exe`; `build.ps1` strei
 | `diktat/fach.py` | Fachbegriffe am Klang reparieren (Lexikon mit 39.600 Begriffen, Wirkstoffendungen) |
 | `diktat/training.py` | Lernen aus vorgelesenen Sätzen und aus Aufnahmen mit Transkript |
 | `diktat/visite.py` | Visite & Übergabe: Fall auswerten lassen (Arztbrief-Entwurf, Sicherheitsnetz, Rückfragen), Fallablage mit Papierkorb |
+| `diktat/jev.py` | Ersteinschätzung durch Jev (TypeSafe): 17 feste Fragen aus WacheNG in einer Anfrage, Antworten als Wahrscheinlichkeiten |
 | `diktat/sprecher.py` | Sprecher trennen: pyannote-Segmentierung und WeSpeaker-Stimmabdrücke (ONNX, CPU) |
 | `diktat/vad.py` | Sprache oder Stille (Silero VAD) |
 | `diktat/longform.py` | lange Aufnahmen und Tondateien stückweise |
@@ -218,6 +219,7 @@ auf Klick, die Frage nach einer neuen Fassung.
 | `huggingface.co` | Ausweichquelle für das Modell; Stimmmodell beim ersten Einschalten der Sprechertrennung | nichts außer der Anfrage |
 | `github.com` (Releases) | nur auf Klick: „Nach Updates suchen“ und das Laden der geänderten Dateien | nichts außer der Anfrage |
 | selbst eingetragener Sprachmodell-Server | nur wenn KI-Nachbearbeitung oder Fachkorrektur eingeschaltet sind oder in „Visite & Übergabe“ auf „Auswerten“ gedrückt wird | der diktierte Text bzw. der Fall, nach dem Schutz aus `schutz.py` |
+| `openrouter.ai/api/v1/systemone` (Jev) | nur bei „Auswerten“ in „Visite & Übergabe“ und nur, wenn OpenRouter der eingetragene Server ist | der Fall nach dem Schutz aus `schutz.py`, dazu die festen Fragen und, falls eingetragen, die Hausregeln |
 | eigenes Netz, Port 8765 | nur wenn „Handy als Mikrofon“ eingeschaltet ist | nichts; das Telefon schickt Ton an den Rechner |
 
 Telemetrie, Lizenzabfragen oder Updates ohne Klick gibt es nicht. Für eine Firewall genügt es, nach dem ersten
@@ -262,6 +264,7 @@ zufälligen Schlüssel aus dem QR-Code. Ab Werk aus.
 | `spoken_punctuation` | „Punkt“, „Komma“, „neue Zeile“ als Zeichen schreiben | aus |
 | `llm`, `llm_fix` | Sprachmodell-Server und Fachkorrektur | aus |
 | `visite_prompt` | eigene Anweisung für „Visite & Übergabe“; leer = die mitgelieferte | leer |
+| `visite_model`, `visite_jev`, `visite_rules` | Modell für den Arztbrief (leer: bei OpenRouter `google/gemini-3.1-pro-preview`, sonst das LLM-Modell), Jev-Modell (leer: `~typesafe/jev-latest`), Hausregeln für Jev | leer |
 | `training_keep` | vorgelesene Sätze als Ton aufheben | aus |
 | `phone` | Handy als Mikrofon | aus |
 | `model_dir` | eigener Ordner mit den Sprachmodellen, zum Beispiel ein Netzlaufwerk | leer |
@@ -317,7 +320,12 @@ Modellgröße: Der Encoder mit 8 Bit je Kanal hat 841 MB. Geprüft und verworfen
 - Dialekt, laute Umgebung und mehrere gleichzeitig Sprechende sind nicht gemessen.
 - Ein Nachtraining des Sprachmodells auf die eigene Stimme ist nicht eingebaut und nicht gemessen; die App kann nur
   das Material dafür sammeln. Versuche mit künstlichen Stimmen brachten an echten Stimmen keinen Gewinn.
-- „Visite & Übergabe“ ist so gut wie das eingestellte Sprachmodell. Die Ausgaben sind ungeprüfte Entwürfe.
+- „Visite & Übergabe“ ist so gut wie die Modelle dahinter. Die Ausgaben sind ungeprüfte Entwürfe, die Werte von Jev
+  Wahrscheinlichkeiten ohne Begründung. Gemessen an einem erfundenen Fall: Jev antwortet in 0,4 bis 4 Sekunden, der
+  Arztbrief mit Gemini 3.1 Pro braucht rund 36 Sekunden. Eine Auswertung der Treffsicherheit gibt es nicht.
+- Echte Wörter, die das Sprachmodell für einen Fachbegriff setzt („Disney“ für „Dyspnoe“ bei einem Sprecher), fängt die
+  Klangsuche nicht, weil es das Wort gibt. `fach.MISHEARD` ersetzt solche Wörter nur im klinischen Satz; aufgenommen
+  ist bisher dieses eine beobachtete Paar. An den neun Diktaten echter Sprecher (Corti) wurde „Dyspnoe“ richtig erkannt.
 - Die Seite für das Handy als Mikrofon ist bisher nur mit simuliertem Mikrofon geprüft.
 
 ## 13. Lizenz

@@ -59,6 +59,8 @@ class Hotkey:
         self.combo = set()       # Tasten des gerade aktiven Halte-Kürzels
         self.held = set()        # gedrückte virtuelle Tasten
         self.swallowed = set()   # Tasten, deren Druck wir verschluckt haben
+        self.capture = None      # Einstellungen: nächste Tastenkombination hierhin melden statt auswerten
+        self.seen = []
         self.listener = keyboard.Listener(win32_event_filter=self._filter)
 
     def start(self):
@@ -69,6 +71,36 @@ class Hotkey:
 
     def reset(self):
         self.state = IDLE
+
+    def grab(self, callback):
+        """Die nächste gedrückte Tastenkombination an callback(Liste der Tasten) melden, statt sie auszuwerten.
+        Esc meldet None (abbrechen), Entf oder Rücktaste eine leere Liste (Kürzel leeren). grab(None) beendet das."""
+        self.seen = []
+        self.capture = callback
+
+    def _grab(self, msg, vk) -> bool:
+        name = NAME.get(vk)
+        if msg in KEYDOWN:
+            self.held.add(vk)
+            self.swallowed.add(vk)
+            done = None
+            if not self.seen and name == "esc":
+                done = (None,)
+            elif not self.seen and vk in (0x08, 0x2E):
+                done = ([],)
+            elif name and name not in self.seen:
+                self.seen.append(name)
+            if done:
+                callback, self.capture = self.capture, None
+                callback(*done)
+        elif msg in KEYUP:
+            self.held.discard(vk)
+            self.swallowed.discard(vk)
+            if self.seen and not any(NAME.get(k) in self.seen for k in self.held):
+                keys = [k for k in self.seen if k in MODS] + [k for k in self.seen if k not in MODS]
+                callback, self.capture, self.seen, self.state = self.capture, None, [], IDLE
+                callback(keys)
+        return True
 
     def _solo(self) -> bool:
         return len(self.combo) == 1 and self.combo <= MODS
@@ -108,6 +140,8 @@ class Hotkey:
         if data.flags & INJECTED:
             return False
         vk = data.vkCode
+        if self.capture:
+            return self._grab(msg, vk)
         name = NAME.get(vk, f"vk{vk}")
         if msg in KEYDOWN:
             # verpasste Loslass-Ereignisse (Sperrbildschirm, UAC) bereinigen

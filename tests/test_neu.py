@@ -401,11 +401,64 @@ check("Visite: fremder Server sieht keine Namen und Daten", "Müller" not in _se
 check("Visite: Namen stehen im Ergebnis wieder da", "Müller" in _r["documentation"]["anamnese"], str(_r))
 check("Visite: lange Wartezeit und eigene Anweisung", _seen["timeout"] >= 120 and _seen["system"].startswith(visite.PROMPT[:40])
       and visite.prompt({"visite_prompt": "Eigene Anweisung"}) == "Eigene Anweisung")
+# Visite: Jev-Ersteinschätzung und Wahl des Modells für den Arztbrief
+from diktat import jev as _jev
+_sent = {}
+def _fake_jev(server, path, body):
+    _sent.update(path=path, body=body, timeout=server.get("timeout"))
+    return {"model": "typesafe/jev-test", "answers": {
+        "placement": {"type": "choice", "choice": "emergency_department", "probabilities": {"emergency_department": 0.97, "urgent_care_practice": 0.03}},
+        "specialty": {"type": "choice", "choice": "trauma_surgery", "probabilities": {"trauma_surgery": 0.6}},
+        "lab_profile": {"type": "choice", "choice": "basis2", "probabilities": {"basis2": 0.7}},
+        "ct_contrast": {"type": "choice", "choice": "without_contrast", "probabilities": {"without_contrast": 0.9}},
+        "admission": {"type": "noul", "noul": 0.91}, "shock_red": {"type": "noul", "noul": 0.02},
+        "shock_orange": {"type": "noul", "noul": 0.8}, "ecg": {"type": "noul", "noul": 0.95},
+        "iv_access": {"type": "noul", "noul": 0.9}, "blood": {"type": "noul", "noul": 0.93},
+        "monitoring": {"type": "noul", "noul": 0.4}, "img_ct": {"type": "noul", "noul": 0.98}}}
+_or = {"llm": {"model": "klein", "base_url": "https://openrouter.ai/api/v1"}, "visite_rules": "Schockraum ORANGE bei SpO2 unter 90 %."}
+_d = visite.triage(_or, "Sturz auf den Kopf unter Apixaban.", request=_fake_jev)
+_v = _jev.view(_d)
+check("Jev: eine Anfrage an /systemone mit Fall, Hausregeln und allen Fragen",
+      _sent["path"] == "/systemone" and _sent["body"]["model"] == _jev.MODEL and "hausregeln" in _sent["body"]["state"]
+      and "Apixaban" in _sent["body"]["state"]["fall"]["anonymisierte_eingabe"] and set(_sent["body"]["questions"]) == set(_jev.QUESTIONS)
+      and _sent["body"]["questions"]["ecg"]["instructions"].endswith(_jev.RULE_HINT), str(_sent.get("path")))
+check("Jev: Notaufnahme, Fallführung, Bett, Schockraum", _v["place"] == "Notaufnahme" and _v["specialty"].startswith("Unfallchirurgie")
+      and _v["bed"] and _v["shock"] == ("ORANGE", 0.8), str(_v))
+check("Jev: Maßnahmen mit Laborprofil und CT ohne Kontrastmittel", ("Labor", 0.93, "Basis 2") in _v["measures"]
+      and ("CT", 0.98, "ohne KM") in _v["imaging"] and ("Monitoring", 0.4, "") in _v["measures"], str(_v["measures"]))
+check("Jev: Text zum Kopieren", "Versorgungspfad: Notaufnahme (97 %)" in _jev.export(_d) and "Bett suchen in: Unfallchirurgie" in _jev.export(_d)
+      and "12-Kanal-EKG: 95 %" in _jev.export(_d), _jev.export(_d))
+_p = dict(_d, choice=dict(_d["choice"], placement={"choice": "urgent_care_practice", "p": 0.9}))
+check("Jev: Notdienstpraxis braucht weder Abteilung noch Bett", _jev.view(_p)["place"].startswith("Notdienstpraxis")
+      and not _jev.view(_p)["bed"] and not _jev.view(_p)["specialty"])
+try:
+    visite.triage({"llm": {"model": "x", "base_url": "http://localhost:11434/v1"}}, "Fall", request=_fake_jev)
+    check("Jev: nur über OpenRouter", False)
+except llm.LlmError:
+    check("Jev: nur über OpenRouter", True)
+try:
+    _jev.ask(_or["llm"], "Fall", request=lambda *a: {"answers": {}})
+    check("Jev: leere Antwort ist ein Fehler", False)
+except llm.LlmError:
+    check("Jev: leere Antwort ist ein Fehler", True)
+check("Visite: Arztbrief bei OpenRouter mit Gemini 3.1 Pro, sonst mit dem LLM-Modell, eigene Angabe gewinnt",
+      visite.writer(_or)["model"] == visite.WRITER and visite.writer({"llm": {"model": "llama", "base_url": "http://localhost:11434/v1"}})["model"] == "llama"
+      and visite.writer(dict(_or, visite_model="mein/modell"))["model"] == "mein/modell" and visite.writer(_or)["timeout"] >= 180)
+check("Visite: keine englische Zusammenfassung mehr in der Anweisung", "case_summary_en" not in visite.PROMPT and "ENGLISCH" not in visite.PROMPT)
+# echte Wörter, die für einen Fachbegriff stehen: nur im klinischen Satz ersetzen
+_base = dict(config.DEFAULTS)
+check("Disney im klinischen Satz wird Dyspnoe", "mit Dyspnoe mit dem Rettungsdienst" in engine.postprocess(
+      "95-jährige Patientin mit bekanntem Vorhofflimmern stellt sich vor mit Disney mit dem Rettungsdienst.", _base)
+      and engine.postprocess("Keine Disney, kein Fieber.", _base).startswith("Keine Dyspnoe"))
+check("Disney bleibt Disney, wo es gemeint ist", all("Dyspnoe" not in engine.postprocess(s, _base) for s in (
+      "Wir waren am Wochenende im Disneyland.", "Die Kinder schauen Disney Plus.", "Disney hat gute Zahlen gemeldet.",
+      "Die Patientin schaut gern Disney Filme.")))
 with tempfile.TemporaryDirectory() as tmp:
     _s = visite.Store(pathlib.Path(tmp) / "v.sqlite")
     _id = _s.save(None, "Zimmer 4", "Sturz")
     _s.save(_id, "Zimmer 4", "Sturz, cCT", {"documentation": {"befund": "ok"}})
     _s.save(_id, "Zimmer 4a", "Sturz, cCT geplant")
+    _s.rename(_id, " Zimmer 4a ")
     check("Visite: Fall bleibt mit Ergebnis gespeichert", _s.get(_id) == ("Zimmer 4a", "Sturz, cCT geplant", {"documentation": {"befund": "ok"}}), str(_s.get(_id)))
     check("Visite: Fallliste und Suche", len(_s.rows()) == 1 and len(_s.rows(query="cCT")) == 1 and not _s.rows(query="Lunge") and not _s.rows(True))
     check("Visite: endgültig löschen geht nur aus dem Papierkorb", _s.purge(_id) == 0 and len(_s.rows()) == 1)
@@ -417,6 +470,24 @@ with tempfile.TemporaryDirectory() as tmp:
     check("Visite: Papierkorb leeren", _s.purge() == 1 and _s.get(_id) is None)
     _s.db.close()
 if sys.platform == "win32":
+    # Tasten per Druck festlegen: der Haken meldet die Kombination, statt sie auszuwerten
+    from diktat import winio as _w
+    _hk = _w.Hotkey({"dictate": ["ctrl", "win"]}, "space", {}, *[lambda *a: _got.append("ausgelöst")] * 5)
+    _got = []
+    _hk.grab(_got.append)
+    _dn, _up = _w.KEYDOWN[0], _w.KEYUP[0]
+    _eat = [_hk._grab(_dn, 0xA2), _hk._grab(_dn, 0x5B), _hk._grab(_up, 0xA2)]
+    check("Tasten: Kombination wird erst gemeldet, wenn alle Tasten los sind", _got == [] and all(_eat))
+    _hk._grab(_up, 0x5B)
+    check("Tasten: Strg + Win gemeldet, Umschalttasten zuerst, Lauschen beendet", _got == [["ctrl", "win"]] and _hk.capture is None, str(_got))
+    _hk.grab(_got.append); _hk._grab(_dn, 0x76); _hk._grab(_dn, 0xA0); _hk._grab(_up, 0x76); _hk._grab(_up, 0xA0)
+    check("Tasten: Umschalt + F7", _got[-1] == ["shift", "f7"], str(_got))
+    _hk.grab(_got.append); _hk._grab(_dn, 0x1B)
+    check("Tasten: Esc bricht ab", _got[-1] is None and _hk.capture is None)
+    _hk.grab(_got.append); _hk._grab(_dn, 0x2E)
+    check("Tasten: Entf leert", _got[-1] == [] and "ausgelöst" not in _got)
+    check("Tasten: Anzeige und Rückweg", _w.parse_keys("Strg + Win") == ["ctrl", "win"] and _w.parse_keys("Umschalt + F7") == ["shift", "f7"]
+          and _w.parse_keys("Leertaste") == ["space"])
     # Aktualisieren und Entfernen: mit einem nachgebauten Programmordner, ohne die App zu starten
     import time as _time
     import zipfile as _zip

@@ -172,7 +172,7 @@
 <body>
 <h1 id="localscribe--technische-dokumentation">LocalScribe – Technische
 Dokumentation</h1>
-<p>Stand: Version 1.0.0. Für Betrieb, IT und alle, die den Code lesen
+<p>Stand: Version 1.1.0. Für Betrieb, IT und alle, die den Code lesen
 oder prüfen wollen. Die Bedienung steht im <a
 href="https://chunkyfire.github.io/LocalScribe/">Handbuch</a>, die Messwerte mit Methode
 in <a
@@ -381,45 +381,50 @@ Wirkstoffendungen)</td>
 Sicherheitsnetz, Rückfragen), Fallablage mit Papierkorb</td>
 </tr>
 <tr class="odd">
+<td><code>diktat/jev.py</code></td>
+<td>Ersteinschätzung durch Jev (TypeSafe): 17 feste Fragen aus WacheNG
+in einer Anfrage, Antworten als Wahrscheinlichkeiten</td>
+</tr>
+<tr class="even">
 <td><code>diktat/sprecher.py</code></td>
 <td>Sprecher trennen: pyannote-Segmentierung und WeSpeaker-Stimmabdrücke
 (ONNX, CPU)</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>diktat/vad.py</code></td>
 <td>Sprache oder Stille (Silero VAD)</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>diktat/longform.py</code></td>
 <td>lange Aufnahmen und Tondateien stückweise</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>diktat/modelle.py</code></td>
 <td>Sprachmodelle finden, einmal laden, Fortschritt melden</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>diktat/llm.py</code>, <code>korrektor.py</code></td>
 <td>optionale Nachbearbeitung und Fachkorrektur über eine
 OpenAI-kompatible Schnittstelle</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>diktat/schutz.py</code></td>
 <td>Namen, Daten, Orte, Nummern ersetzen, bevor Text an einen fremden
 Server geht</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>diktat/handy.py</code></td>
 <td>Handy als Mikrofon: HTTPS-Seite im eigenen Netz</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>diktat/winio.py</code></td>
 <td>Windows: globale Tasten, Einfügen, Zielfenster, Autostart</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>diktat/hub.py</code>, <code>ui.py</code></td>
 <td>Fenster, Statusleiste, Tray-Symbol, Verlauf</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>diktat/config.py</code></td>
 <td>Einstellungen und Ablageorte</td>
 </tr>
@@ -641,6 +646,13 @@ oder in „Visite &amp; Übergabe“ auf „Auswerten“ gedrückt wird</td>
 <code>schutz.py</code></td>
 </tr>
 <tr class="odd">
+<td><code>openrouter.ai/api/v1/systemone</code> (Jev)</td>
+<td>nur bei „Auswerten“ in „Visite &amp; Übergabe“ und nur, wenn
+OpenRouter der eingetragene Server ist</td>
+<td>der Fall nach dem Schutz aus <code>schutz.py</code>, dazu die festen
+Fragen und, falls eingetragen, die Hausregeln</td>
+</tr>
+<tr class="even">
 <td>eigenes Netz, Port 8765</td>
 <td>nur wenn „Handy als Mikrofon“ eingeschaltet ist</td>
 <td>nichts; das Telefon schickt Ton an den Rechner</td>
@@ -751,27 +763,36 @@ mitgelieferte</td>
 <td>leer</td>
 </tr>
 <tr class="odd">
+<td><code>visite_model</code>, <code>visite_jev</code>,
+<code>visite_rules</code></td>
+<td>Modell für den Arztbrief (leer: bei OpenRouter
+<code>google/gemini-3.1-pro-preview</code>, sonst das LLM-Modell),
+Jev-Modell (leer: <code>~typesafe/jev-latest</code>), Hausregeln für
+Jev</td>
+<td>leer</td>
+</tr>
+<tr class="even">
 <td><code>training_keep</code></td>
 <td>vorgelesene Sätze als Ton aufheben</td>
 <td>aus</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>phone</code></td>
 <td>Handy als Mikrofon</td>
 <td>aus</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>model_dir</code></td>
 <td>eigener Ordner mit den Sprachmodellen, zum Beispiel ein
 Netzlaufwerk</td>
 <td>leer</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>live_preview</code> (nur Datei)</td>
 <td>Vorschau auf die laufende Äußerung in der Aufnahme</td>
 <td>an</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>threads</code> (nur Datei)</td>
 <td>Zahl der Rechen-Threads; 0 überlässt es der Laufzeit</td>
 <td>0</td>
@@ -903,8 +924,18 @@ nicht gemessen.</li>
 eingebaut und nicht gemessen; die App kann nur das Material dafür
 sammeln. Versuche mit künstlichen Stimmen brachten an echten Stimmen
 keinen Gewinn.</li>
-<li>„Visite &amp; Übergabe“ ist so gut wie das eingestellte
-Sprachmodell. Die Ausgaben sind ungeprüfte Entwürfe.</li>
+<li>„Visite &amp; Übergabe“ ist so gut wie die Modelle dahinter. Die
+Ausgaben sind ungeprüfte Entwürfe, die Werte von Jev
+Wahrscheinlichkeiten ohne Begründung. Gemessen an einem erfundenen Fall:
+Jev antwortet in 0,4 bis 4 Sekunden, der Arztbrief mit Gemini 3.1 Pro
+braucht rund 36 Sekunden. Eine Auswertung der Treffsicherheit gibt es
+nicht.</li>
+<li>Echte Wörter, die das Sprachmodell für einen Fachbegriff setzt
+(„Disney“ für „Dyspnoe“ bei einem Sprecher), fängt die Klangsuche nicht,
+weil es das Wort gibt. <code>fach.MISHEARD</code> ersetzt solche Wörter
+nur im klinischen Satz; aufgenommen ist bisher dieses eine beobachtete
+Paar. An den neun Diktaten echter Sprecher (Corti) wurde „Dyspnoe“
+richtig erkannt.</li>
 <li>Die Seite für das Handy als Mikrofon ist bisher nur mit simuliertem
 Mikrofon geprüft.</li>
 </ul>

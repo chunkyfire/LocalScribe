@@ -1,7 +1,6 @@
 """Das App-Fenster: Verlauf, Wörterbuch, Textbausteine, KI-Nachbearbeitung, Einstellungen."""
 import copy
 import difflib
-import html
 import logging
 import os
 import re
@@ -13,7 +12,7 @@ from PySide6.QtCore import Qt, QTimer, Signal
 
 import secrets
 
-from . import __version__, config, engine, fach, handy, llm, pflege, schutz, training, visite, wortschatz
+from . import __version__, config, engine, fach, handy, jev, llm, pflege, schutz, training, visite, wortschatz
 from . import sprecher
 from .longform import LongJob
 from .ui import make_icon, make_pixmap, private_mime
@@ -105,6 +104,33 @@ QLabel#clock { font-size: 22pt; font-weight: 600; }
 QFrame#drop { background: #101010; border: 1px dashed #3A3A3A; border-radius: 12px; }
 QFrame#drop[over="true"] { border-color: #C6FF3D; background: #141810; }
 QFrame#drop QWidget { background: transparent; }
+QFrame#box { background: #121212; border: 1px solid #232323; border-radius: 14px; }
+QFrame#box QWidget { background: transparent; }
+QFrame#box QLabel#boxTitle { color: #C6FF3D; font-size: 11pt; font-weight: 700; }
+QFrame#box QLabel#kicker { color: #6F6F6F; font-size: 8pt; font-weight: 700; padding-top: 4px; }
+QFrame#box QLabel#strong { font-weight: 600; }
+QFrame#box QLabel#pct { font-weight: 700; }
+QFrame#box QLabel#warn { color: #FFB454; font-weight: 600; }
+QFrame#box QLabel#chip, QFrame#box QLabel#chipOff, QFrame#box QLabel#chipWarn, QFrame#box QLabel#chipRed {
+    border-radius: 10px; padding: 4px 10px; font-weight: 600; }
+QFrame#box QLabel#chip { background: #1D2A0B; color: #C6FF3D; border: 1px solid #3C5412; }
+QFrame#box QLabel#chipOff { background: #181818; color: #8C8C8C; border: 1px solid #272727; font-weight: 400; }
+QFrame#box QLabel#chipWarn { background: #2A1D09; color: #FFB454; border: 1px solid #5C4012; }
+QFrame#box QLabel#chipRed { background: #2F1210; color: #FF7A6B; border: 1px solid #6E2A24; }
+QFrame#box QLabel#chipSmall { background: #1D2A0B; color: #C6FF3D; border-radius: 6px; padding: 0 6px; font-size: 8pt; }
+QFrame#box QFrame#alert { background: #18130A; border: none; border-left: 3px solid #FFB454; border-radius: 6px; }
+QFrame#box QFrame#ask { background: #0E0E0E; border: 1px solid #202020; border-radius: 10px; }
+QFrame#box QPushButton#fold { background: transparent; border: none; text-align: left; padding: 5px 0; font-weight: 600; }
+QFrame#box QPushButton#fold:hover { color: #C6FF3D; }
+QFrame#box QProgressBar { background: #1D1D1D; max-height: 4px; min-height: 4px; border-radius: 2px; }
+QFrame#box QProgressBar#on::chunk { background: #C6FF3D; border-radius: 2px; }
+QFrame#box QProgressBar#dim::chunk { background: #3A3A3A; border-radius: 2px; }
+QPushButton#recSmall, QFrame#card QPushButton#recSmall { background: #C6FF3D; color: #0B0B0B; border: none;
+    border-radius: 32px; font-weight: 700; }
+QPushButton#recSmallOn, QFrame#card QPushButton#recSmallOn { background: #FF5A4D; color: #0B0B0B; border: none;
+    border-radius: 32px; font-weight: 700; }
+QPushButton#recSmall:disabled { background: #2A2A2A; color: #6A6A6A; }
+QLabel#clockSmall { font-size: 15pt; font-weight: 600; }
 QScrollBar:vertical { background: transparent; width: 10px; margin: 2px; }
 QScrollBar::handle:vertical { background: #2C2C2C; border-radius: 4px; min-height: 30px; }
 QScrollBar::handle:vertical:hover { background: #454545; }
@@ -179,7 +205,7 @@ def hbox(*items, spacing=10):
         elif isinstance(it, QtWidgets.QLayout):
             lay.addLayout(it)
         elif isinstance(it, tuple):
-            lay.addWidget(it[0], it[1])
+            (lay.addLayout if isinstance(it[0], QtWidgets.QLayout) else lay.addWidget)(it[0], it[1])
         else:
             lay.addWidget(it)
     return lay
@@ -208,6 +234,43 @@ KEY_LABEL = {"ctrl": "Strg", "win": "Win", "alt": "Alt", "shift": "Umschalt", "s
 
 def keys_text(keys) -> str:
     return " + ".join(KEY_LABEL.get(k, k.upper()) for k in (keys or []))
+
+
+class KeyField(QtWidgets.QLineEdit):
+    """Tastenkürzel festlegen: hineinklicken, Kombination drücken, fertig. Entf leert, Esc bricht ab."""
+    sig_keys = Signal(object)
+    IDLE = "Klicken, dann Tasten drücken"
+
+    def __init__(self, ctl, single=False, optional=True):
+        super().__init__(placeholderText=self.IDLE)
+        self.ctl, self.single, self.optional = ctl, single, optional
+        self.listening, self.before = False, ""
+        self.setReadOnly(hasattr(ctl, "capture_keys"))         # ohne Tastatur-Haken bleibt das Feld zum Tippen
+        self.setCursor(Qt.PointingHandCursor)
+        self.sig_keys.connect(self._got)                       # die Meldung kommt aus dem Tastatur-Thread
+
+    def mousePressEvent(self, e):
+        super().mousePressEvent(e)
+        if self.isReadOnly() and not self.listening:
+            self.listening, self.before = True, self.text()
+            self.clear()
+            self.setPlaceholderText("Jetzt drücken …" + ("  Entf leert," if self.optional else "") + "  Esc bricht ab")
+            self.ctl.capture_keys(self.sig_keys.emit)
+
+    def focusOutEvent(self, e):
+        if self.listening:
+            self.ctl.capture_keys(None)
+            self._got(None)
+        super().focusOutEvent(e)
+
+    def _got(self, keys):
+        if not self.listening:
+            return
+        self.listening = False
+        self.setPlaceholderText(self.IDLE)
+        if keys is None or (not keys and not self.optional):
+            return self.setText(self.before)
+        self.setText(keys_text(keys[-1:] if self.single else keys))
 
 
 class Page(QtWidgets.QWidget):
@@ -1057,22 +1120,173 @@ class MapPage(Page):
 
 
 # ---------------------------------------------------------------- Visite & Übergabe
+class Flow(QtWidgets.QLayout):
+    """Legt Kärtchen nebeneinander und bricht um, wenn die Zeile voll ist."""
+
+    def __init__(self, gap=8):
+        super().__init__()
+        self.items, self.gap = [], gap
+        self.setContentsMargins(0, 0, 0, 0)
+
+    def addItem(self, item):
+        self.items.append(item)
+
+    def count(self):
+        return len(self.items)
+
+    def itemAt(self, i):
+        return self.items[i] if 0 <= i < len(self.items) else None
+
+    def takeAt(self, i):
+        return self.items.pop(i) if 0 <= i < len(self.items) else None
+
+    def hasHeightForWidth(self):
+        return True
+
+    def heightForWidth(self, width):
+        return self._place(width, False)
+
+    def setGeometry(self, rect):
+        super().setGeometry(rect)
+        self._place(rect.width(), True, rect.x(), rect.y())
+
+    def sizeHint(self):
+        return self.minimumSize()
+
+    def minimumSize(self):
+        size = QtCore.QSize(0, 0)
+        for item in self.items:
+            size = size.expandedTo(item.minimumSize())
+        return size
+
+    def _place(self, width, move, left=0, top=0):
+        x = y = row = 0
+        for item in self.items:
+            hint = item.sizeHint()
+            if x and x + hint.width() > width:
+                x, y, row = 0, y + row + self.gap, 0
+            if move:
+                item.setGeometry(QtCore.QRect(left + x, top + y, hint.width(), hint.height()))
+            x += hint.width() + self.gap
+            row = max(row, hint.height())
+        return y + row
+
+
+def copy_button(get_text, text="Kopieren"):
+    """Knopf, der einen Text in die Zwischenablage legt und das kurz bestätigt."""
+    b = button(text, name="ghost")
+
+    def go():
+        QtGui.QGuiApplication.clipboard().setMimeData(private_mime(get_text()))
+        b.setText("Kopiert ✓")
+        QTimer.singleShot(1300, lambda: b.setText(text))
+    b.clicked.connect(go)
+    return b
+
+
+def chip(text, kind="chip"):
+    w = label(text, kind)
+    w.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+    return w
+
+
+class Box(QtWidgets.QFrame):
+    """Ein Block im Ergebnis: Titel, rechts Knöpfe, darunter der Inhalt; auf Wunsch zugeklappt."""
+
+    def __init__(self, title, hint="", copy=None, folded=None):
+        super().__init__(objectName="box")
+        lay = QtWidgets.QVBoxLayout(self)
+        lay.setContentsMargins(18, 14, 18, 16)
+        lay.setSpacing(10)
+        self.head = hbox(label(title, "boxTitle"), label(hint, "muted"), None, spacing=10)
+        lay.addLayout(self.head)
+        self.inner = QtWidgets.QWidget()
+        self.rows = QtWidgets.QVBoxLayout(self.inner)
+        self.rows.setContentsMargins(0, 0, 0, 0)
+        self.rows.setSpacing(8)
+        lay.addWidget(self.inner)
+        if copy:
+            self.head.addWidget(copy_button(copy))
+        if folded is not None:
+            self.toggle = button("", self._flip, "ghost")
+            self.head.addWidget(self.toggle)
+            self.opened = folded
+            self._flip()
+
+    def _flip(self, _=False):
+        self.opened = not self.opened
+        self.inner.setVisible(self.opened)
+        self.toggle.setText("Einklappen ▴" if self.opened else "Anzeigen ▾")
+
+    def add(self, item):
+        if isinstance(item, QtWidgets.QLayout):
+            self.rows.addLayout(item)
+        else:
+            self.rows.addWidget(item)
+        return item
+
+
+class Fold(QtWidgets.QWidget):
+    """Ein Abschnitt zum Auf- und Zuklappen mit eigenem Kopierknopf."""
+
+    def __init__(self, title, text, opened=False):
+        super().__init__()
+        self.title = title
+        self.toggle = button("", self.flip, "fold")
+        self.body = label(text, wrap=True)
+        self.body.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        self.body.setContentsMargins(18, 0, 0, 8)
+        self.opened = not opened
+        lay = QtWidgets.QVBoxLayout(self)
+        lay.setContentsMargins(0, 0, 0, 0)
+        lay.setSpacing(2)
+        lay.addLayout(hbox((self.toggle, 1), copy_button(lambda: text)))
+        lay.addWidget(self.body)
+        self.flip()
+
+    def flip(self, _=False, to=None):
+        self.opened = (not self.opened) if to is None else to
+        self.body.setVisible(self.opened)
+        self.toggle.setText(("▾  " if self.opened else "▸  ") + self.title)
+
+
+def meter(name, value, extra=""):
+    """Eine Maßnahme mit Wahrscheinlichkeit: Name, Prozent, Balken. Unter der Schwelle tritt sie zurück."""
+    strong = value is not None and value >= jev.HIGH
+    w = QtWidgets.QWidget()
+    lay = QtWidgets.QVBoxLayout(w)
+    lay.setContentsMargins(0, 0, 0, 0)
+    lay.setSpacing(4)
+    top = hbox(label(name, None if strong else "muted"), spacing=6)
+    if extra:
+        top.addWidget(chip(extra, "chipSmall"))
+    top.addStretch(1)
+    top.addWidget(label(jev.pct(value), "pct" if strong else "muted"))
+    lay.addLayout(top)
+    bar = QtWidgets.QProgressBar(textVisible=False, objectName="on" if strong else "dim")
+    bar.setRange(0, 100)
+    bar.setValue(round((value or 0) * 100))
+    lay.addWidget(bar)
+    w.setFixedWidth(160)
+    return w
+
+
 class VisitPage(Page):
-    """Fall diktieren oder tippen, vom Sprachmodell auswerten lassen: Arztbrief-Entwurf, Sicherheitsnetz, Rückfragen."""
+    """Fall aufnehmen oder tippen, korrigieren, auswerten: Jev-Ersteinschätzung, Arztbrief-Entwurf, Sicherheitsnetz,
+    Rückfragen. Jeder Teil steht in einem eigenen Block."""
     sig_done = Signal(object, str, int)
-    CSS = ("h3 { color: #C6FF3D; margin: 14px 0 4px 0; } p { margin: 0 0 6px 0; } a { color: #8A8A8A; text-decoration: none; }"
-           " .warn { color: #FFB454; } .muted { color: #8A8A8A; }")
-    PRIORITY = {"critical": "entscheidend", "high": "wichtig", "medium": "ergänzend"}
+    sig_jev = Signal(object, str, int)
+    sig_voice = Signal(str)
+    PRIORITY = {"critical": ("entscheidend", "chipRed"), "high": ("wichtig", "chipWarn"), "medium": ("ergänzend", "chipOff")}
 
     def __init__(self, ctl):
         super().__init__("Visite & Übergabe",
-                         "Experimenteller Modus für Benchmarking, Forschung und Lehre: Er zeigt, wie gut ein Sprachmodell "
-                         "solche Entwürfe liefert. Kein Medizinprodukt; die Ausgaben sind keine Diagnose- oder "
-                         "Therapieempfehlung und vor jeder Verwendung zu prüfen. Das Sprachmodell stellst du unter "
-                         "KI-Nachbearbeitung ein, am besten eines im eigenen Haus (zum Beispiel über Ollama).", scroll=False)
+                         "Experimenteller Modus für Benchmarking, Forschung und Lehre. Kein Medizinprodukt: Die Ausgaben "
+                         "sind Entwürfe und Wahrscheinlichkeiten von Modellen, keine Diagnose, keine Anordnung, und vor "
+                         "jeder Verwendung zu prüfen. Server und Schlüssel: Einstellungen, LLM.", scroll=False)
         self.ctl = ctl
         self.store = visite.Store()
-        self.case, self.result, self.copy = None, None, {}
+        self.case, self.result, self.waiting, self.errors = None, None, set(), {}
         self.tabs = QtWidgets.QButtonGroup(self)
         row = QtWidgets.QHBoxLayout()
         row.setSpacing(6)
@@ -1087,33 +1301,57 @@ class VisitPage(Page):
         self.stack = QtWidgets.QStackedWidget()
         self.body.addWidget(self.stack, 1)
 
-        # Neuer Patient
+        # Neuer Patient: links aufnehmen und korrigieren, rechts das Ergebnis in Blöcken
         self.name = QtWidgets.QLineEdit(placeholderText="Fallbezeichnung, z. B. Zimmer 4 oder Kürzel (kein Klarname nötig)")
-        self.text = QtWidgets.QPlainTextEdit(placeholderText="Hier klicken und diktieren (Tasten halten) oder tippen: "
-                                             "Anamnese, Befund, Verlauf, Vormedikation, geplantes Vorgehen.")
+        self.rec = button("Start", self._record, "recSmall")
+        self.rec.setFixedSize(64, 64)
+        self.clock = label("00:00", "clockSmall")
+        self.state = label("Aufnehmen oder unten tippen.", "muted", wrap=True)
+        self.split = QtWidgets.QCheckBox("Sprecher trennen")
+        self.split.setToolTip("Für Gespräche mit mehreren Personen: „Sprecher 1: …“, „Sprecher 2: …“. Läuft auf diesem Rechner.")
+        self.split.toggled.connect(lambda on: LongPage._split(self, on))
+        self.sig_voice.connect(self.info)
+        col = QtWidgets.QVBoxLayout()
+        col.setSpacing(0)
+        col.addLayout(hbox(self.clock, None, self.split))
+        col.addWidget(self.state)
+        self.text = QtWidgets.QPlainTextEdit(placeholderText="Hier steht nach der Aufnahme der Text zum Korrigieren. "
+                                             "Tippen geht auch: Anamnese, Befund, Verlauf, Vormedikation, geplantes Vorgehen.")
         self.go = button("Auswerten", self._analyse, name="primary")
         self.note = label("", "muted", wrap=True)
-        self.out = QtWidgets.QTextBrowser(openLinks=False)
-        self.out.document().setDefaultStyleSheet(self.CSS)
-        self.out.anchorClicked.connect(self._copy)
-        self.out.setPlaceholderText("Nach „Auswerten“ stehen hier Arztbrief-Entwurf, Sicherheitsnetz, Rückfragen, "
-                                    "Kodierung und Patienteninfo, jeweils zum Kopieren.")
         new = QtWidgets.QWidget()
         left = QtWidgets.QVBoxLayout()
-        for w in (self.name, self.text):
-            left.addWidget(w)
+        left.setSpacing(10)
+        left.addWidget(self.name)
+        left.addWidget(card(hbox(self.rec, (col, 1), spacing=16)))
+        left.addWidget(self.text, 1)
         left.addLayout(hbox(self.go, button("Neuer Fall", self._new), None))
         left.addWidget(self.note)
+        inner = QtWidgets.QWidget()
+        self.cards = QtWidgets.QVBoxLayout(inner)
+        self.cards.setContentsMargins(0, 0, 8, 0)
+        self.cards.setSpacing(12)
+        self.area = QtWidgets.QScrollArea(widgetResizable=True)
+        self.area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.area.setWidget(inner)
         split = QtWidgets.QHBoxLayout(new)
         split.setContentsMargins(0, 0, 0, 0)
-        split.setSpacing(14)
+        split.setSpacing(16)
         split.addLayout(left, 2)
-        split.addWidget(self.out, 3)
+        split.addWidget(self.area, 3)
         self.stack.addWidget(new)
         self.saver = QTimer(self, singleShot=True, interval=700)       # nichts geht verloren: jede Eingabe wird gesichert
         self.saver.timeout.connect(self._save)
         self.text.textChanged.connect(self.saver.start)
         self.name.textEdited.connect(lambda _: self.saver.start())
+
+        # Aufnahme wie auf der Seite „Aufnahme“: Ton wird nebenbei gesichert, der Text läuft live mit
+        self.job = LongJob(ctl)
+        self.job.part.connect(self._part)
+        self.job.glimpse.connect(lambda g: self._live(self.heard, g))
+        self.job.finished.connect(self._recorded)
+        self.recording, self.before, self.heard, self.started = False, "", "", 0.0
+        self.tick = QTimer(self, interval=250, timeout=lambda: self.clock.setText(clock(time.time() - self.started)))
 
         # Fallliste und Papierkorb
         self.lists = []
@@ -1133,15 +1371,25 @@ class VisitPage(Page):
                                    None, button("Papierkorb leeren", self._empty)))
             else:
                 lay.addLayout(hbox(button("Öffnen", lambda: self._each(0, self._open), name="primary"),
+                                   button("Umbenennen …", self._rename),
                                    button("In den Papierkorb", lambda: self._each(0, self.store.trash)), None))
             self.lists.append((search, items))
             self.stack.addWidget(w)
         self.tabs.idClicked.connect(self._tab)
         self.sig_done.connect(self._done)
+        self.sig_jev.connect(self._jev)
         self._tab(0)
+        self._show(None)
 
     def refresh(self):
         self._fill()
+        self.split.blockSignals(True)
+        self.split.setChecked(bool(self.ctl.cfg.get("speakers")))
+        self.split.blockSignals(False)
+
+    def info(self, text, bad=False):
+        restyle(self.state, "bad" if bad else "muted")
+        self.state.setText(text)
 
     def _tab(self, i):
         self.tabs.button(i).setChecked(True)
@@ -1153,9 +1401,9 @@ class VisitPage(Page):
             items.clear()
             rows = self.store.rows(bool(trash), search.text())
             for case_id, name, text, created, _ in rows:
-                first = " ".join((text or "").split())[:90]
-                item = QtWidgets.QListWidgetItem(f"{time.strftime('%d.%m.%Y %H:%M', time.localtime(created))}   "
-                                                 f"{name or 'ohne Bezeichnung'}   {first}")
+                first = " ".join((text or "").split())[:80]
+                item = QtWidgets.QListWidgetItem(f"{name or 'ohne Bezeichnung'}   ·   "
+                                                 f"{time.strftime('%d.%m.%Y %H:%M', time.localtime(created))}   ·   {first}")
                 item.setData(Qt.UserRole, case_id)
                 items.addItem(item)
             self.tabs.button(1 + trash).setText(("Fallliste", "Papierkorb")[trash] + (f" ({len(rows)})" if rows else ""))
@@ -1164,6 +1412,19 @@ class VisitPage(Page):
         for item in self.lists[which][1].selectedItems() or ([self.lists[which][1].currentItem()] if self.lists[which][1].currentItem() else []):
             action(item.data(Qt.UserRole))
         self._fill()
+
+    def _rename(self):
+        item = self.lists[0][1].currentItem()
+        if not item:
+            return
+        case_id = item.data(Qt.UserRole)
+        name, ok = QtWidgets.QInputDialog.getText(self, "Fall umbenennen", "Bezeichnung:",
+                                                  text=(self.store.get(case_id) or [""])[0] or "")
+        if ok:
+            self.store.rename(case_id, name)
+            if case_id == self.case:
+                self.name.setText(name.strip())
+            self._fill()
 
     def _empty(self):
         if not self.store.rows(True):
@@ -1179,25 +1440,32 @@ class VisitPage(Page):
             self._fill()
 
     def _save(self):
+        if self.recording:
+            return                                  # während der Aufnahme sichert _part den gültigen Text
         if self.case is None and not self.text.toPlainText().strip() and not self.name.text().strip():
             return
         self.case = self.store.save(self.case, self.name.text().strip(), self.text.toPlainText())
 
     def _new(self):
+        if self.recording or self.job.running:
+            return self.info("Erst die Aufnahme beenden.", bad=True)
         self.saver.stop()
         self._save()
-        self.case, self.result = None, None
-        for w in (self.name, self.text, self.out):
+        self.case, self.result, self.waiting = None, None, set()
+        for w in (self.name, self.text):
             w.blockSignals(True)
             w.clear()
             w.blockSignals(False)
         self.note.setText("")
+        self.clock.setText("00:00")
+        self.info("Aufnehmen oder unten tippen.")
+        self._show(None)
         self._tab(0)
 
     def _open(self, case_id):
         self._new()
         row = self.store.get(case_id)
-        if not row:
+        if not row or self.recording:
             return
         self.case = case_id
         self.name.setText(row[0] or "")
@@ -1206,77 +1474,271 @@ class VisitPage(Page):
         self.text.blockSignals(False)
         self._show(row[2])
 
+    # ----- Aufnahme
+    def _record(self):
+        if self.recording:
+            self.recording = False
+            self.tick.stop()
+            self.ctl.keep_awake(False)
+            self.job.stop_recording()
+            self.rec.setEnabled(False)
+            restyle(self.rec, "recSmall")
+            self.rec.setText("Start")
+            return self.info("Schreibe den Rest fertig …")
+        if self.job.running or self.window().busy():
+            return self.info("Es läuft schon eine Aufnahme oder Transkription.", bad=True)
+        if not self.ctl.ready:
+            return self.info("Das Sprachmodell lädt noch – gleich noch einmal versuchen.", bad=True)
+        self.saver.stop()
+        self._save()
+        try:
+            self.job.start_recording()
+        except Exception as e:
+            return self.info(f"Mikrofon nicht verfügbar: {e}", bad=True)
+        self.ctl.keep_awake(True)
+        self.recording, self.started, self.heard = True, time.time(), ""
+        self.before = self.text.toPlainText().rstrip()        # schon Getipptes bleibt, die Aufnahme kommt dahinter
+        self.text.setReadOnly(True)
+        self.go.setEnabled(False)
+        restyle(self.rec, "recSmallOn")
+        self.rec.setText("Stopp")
+        self.info("Nimmt auf … Der Text läuft unten mit.")
+        self.tick.start()
+
+    def _whole(self, text):
+        return (self.before + "\n\n" + text if self.before and text else self.before or text)
+
+    def _live(self, text, glimpse=""):
+        bar = self.text.verticalScrollBar()
+        self.text.blockSignals(True)
+        self.text.setPlainText(self._whole(text))
+        if glimpse:
+            cursor = self.text.textCursor()
+            cursor.movePosition(QtGui.QTextCursor.End)
+            grey = QtGui.QTextCharFormat()
+            grey.setForeground(QtGui.QColor("#7A7A7A"))
+            cursor.insertText((" " if text else "") + glimpse + " …", grey)
+        self.text.blockSignals(False)
+        bar.setValue(bar.maximum())
+
+    def _part(self, text, done, total):
+        self.heard = text
+        self._live(text)
+        self.case = self.store.save(self.case, self.name.text().strip(), self._whole(text))
+
+    def _recorded(self, text, seconds, error):
+        if self.recording:                              # Abbruch durch einen Fehler mitten in der Aufnahme
+            self.recording = False
+            self.tick.stop()
+            self.ctl.keep_awake(False)
+            self.job.stop_recording()
+            restyle(self.rec, "recSmall")
+            self.rec.setText("Start")
+        self.heard = text
+        self._live(text)
+        self.text.setReadOnly(False)
+        self.rec.setEnabled(True)
+        self.go.setEnabled(not self.waiting)
+        if text.strip() or self.before:
+            self.case = self.store.save(self.case, self.name.text().strip(), self._whole(text))
+        notes = []
+        if self.job.failed:
+            notes.append(f"{self.job.failed} Stelle(n) konnten nicht erkannt werden und sind im Text markiert.")
+        if self.job.kept:
+            notes.append(f"Die Tonaufnahme wurde deshalb nicht gelöscht: {self.job.kept}")
+        if error:
+            self.info(f"Fehler: {error}. {' '.join(notes)}", bad=True)
+        elif notes:
+            self.info(" ".join(notes), bad=True)
+        elif text.strip():
+            n = self.job.speakers
+            who = f" {n} Sprecher erkannt." if self.ctl.cfg.get("speakers") and n > 1 else ""
+            self.info(f"Fertig – {clock(seconds)}, {len(text.split())} Wörter.{who} Text prüfen und korrigieren, dann "
+                      "„Auswerten“. Die Tonaufnahme ist gelöscht.")
+        else:
+            self.info("Kein Text erkannt. Die Tonaufnahme ist gelöscht.")
+
+    # ----- Auswerten
     def _analyse(self):
         text = self.text.toPlainText().strip()
+        restyle(self.note, "bad")
         if not text:
-            return self.note.setText("Erst den Fall diktieren oder eintippen.")
-        if not (self.ctl.cfg.get("llm") or {}).get("model"):
-            restyle(self.note, "bad")
-            return self.note.setText("Kein Sprachmodell eingestellt. Unter KI-Nachbearbeitung Server und Modell wählen.")
+            return self.note.setText("Erst den Fall aufnehmen oder eintippen.")
+        cfg = copy.deepcopy(self.ctl.cfg)
+        server = visite.writer(cfg)
+        if not (server.get("base_url") or "").strip() or not (server.get("model") or "").strip():
+            return self.note.setText("Kein Sprachmodell eingestellt. Unter Einstellungen, LLM, Server und Modell wählen.")
         self.saver.stop()
         self._save()
         self.go.setEnabled(False)
         restyle(self.note, "muted")
-        self.note.setText("Das Sprachmodell wertet aus …")
-        case, cfg = self.case, copy.deepcopy(self.ctl.cfg)
+        self.note.setText("Läuft …")
+        case = self.case
+        self.result, self.errors = {}, {}
+        self.waiting = {"brief"} | ({"jev"} if jev.available(server) else set())
+        self._show(self.result)
 
-        def work():
+        def run(call, signal):
             try:
-                self.sig_done.emit(visite.analyse(cfg, text), "", case)
+                signal.emit(call(cfg, text), "", case)
             except Exception as e:
-                log.warning("Visite: Auswertung fehlgeschlagen: %s", type(e).__name__)
-                self.sig_done.emit(None, str(e) or type(e).__name__, case)
-        threading.Thread(target=work, daemon=True).start()
+                log.warning("Visite: %s fehlgeschlagen: %s", call.__name__, type(e).__name__)
+                signal.emit(None, str(e) or type(e).__name__, case)
+        if "jev" in self.waiting:
+            threading.Thread(target=run, args=(visite.triage, self.sig_jev), daemon=True).start()
+        threading.Thread(target=run, args=(visite.analyse, self.sig_done), daemon=True).start()
 
-    def _done(self, result, error, case):
-        self.go.setEnabled(True)
-        if error:
-            restyle(self.note, "bad")
-            return self.note.setText(f"Das hat nicht geklappt: {error}")
-        self.store.save(case, *self.store.get(case)[:2], result)
-        if case == self.case:
-            restyle(self.note, "ok")
-            self.note.setText("Entwurf fertig. Bitte prüfen, bevor du etwas übernimmst.")
-            self._show(result)
+    def _arrived(self, part, result, error, case):
+        """Ein Teilergebnis ist da: zum Fall legen, sichern, anzeigen."""
+        row = self.store.get(case)
+        if row and result is not None:
+            merged = dict(row[2] or {})
+            if part == "jev":
+                merged["jev"] = result
+            else:
+                merged = {**result, **({"jev": merged["jev"]} if merged.get("jev") else {})}
+            self.store.save(case, row[0], row[1], merged)
+        if case != self.case:
+            return self._fill()
+        self.waiting.discard(part)
+        if result is None:
+            self.errors["jev_error" if part == "jev" else "error"] = error
+        if not self.waiting:
+            self.go.setEnabled(not self.recording)
+            failed = self.errors.get("error")
+            restyle(self.note, "bad" if failed else "ok")
+            self.note.setText("Der Arztbrief ließ sich nicht erzeugen, siehe rechts." if failed
+                              else "Fertig. Bitte prüfen, bevor du etwas übernimmst.")
+        self._show({**((row[2] if row and result is None else self.store.get(case)[2]) or {}), **self.errors})
         self._fill()
 
+    def _jev(self, result, error, case):
+        self._arrived("jev", result, error, case)
+
+    def _done(self, result, error, case):
+        self._arrived("brief", result, error, case)
+
+    # ----- Ergebnis in Blöcken
     def _show(self, result):
-        self.result, self.copy = result, {}
-        if not result:
-            return self.out.clear()
-        esc = lambda t: html.escape(str(t or "")).replace("\n", "<br>")
-        parts = []
+        self.result = result
+        while self.cards.count():
+            item = self.cards.takeAt(0)
+            old = item.widget()
+            if old:
+                old.setParent(None)
+                old.deleteLater()
+        if result is None:
+            hint = label("Nach „Auswerten“ stehen hier die Blöcke:\n\nErsteinschätzung (Jev): Notaufnahme oder Notdienstpraxis, "
+                         "Schockraum, fallführende Abteilung, Bett, EKG, Zugang, Labor, Bildgebung\n\nArztbrief: Anamnese zum "
+                         "Kopieren, der Rest zum Aufklappen\n\nSicherheitsnetz\n\nGezielte Rückfragen\n\nKodierung und "
+                         "Patienteninfo", "muted", wrap=True)
+            hint.setContentsMargins(6, 8, 6, 8)
+            self.cards.addWidget(hint)
+            return self.cards.addStretch(1)
+        waiting = self.waiting if result is self.result else set()
+        if result.get("jev"):
+            self.cards.addWidget(self._jev_box(result["jev"]))
+        elif "jev" in waiting:
+            self.cards.addWidget(self._wait_box("Ersteinschätzung", "Jev bewertet den Fall …"))
+        elif result.get("jev_error"):
+            self.cards.addWidget(self._wait_box("Ersteinschätzung", f"Jev hat nicht geantwortet: {result['jev_error']}", bad=True))
+        if result.get("error"):
+            self.cards.addWidget(self._wait_box("Arztbrief", f"Das hat nicht geklappt: {result['error']}", bad=True))
+        elif "brief" in waiting:
+            self.cards.addWidget(self._wait_box("Arztbrief, Sicherheitsnetz, Rückfragen", "Das Sprachmodell schreibt … "
+                                                "Das dauert je nach Modell eine halbe Minute."))
+        for box in self._letter_boxes(result):
+            self.cards.addWidget(box)
+        self.cards.addStretch(1)
 
-        def block(key, title, body_html, plain):
-            if plain.strip():
-                self.copy[key] = plain
-                parts.append(f"<h3>{title} &nbsp;<a href='{key}'>kopieren</a></h3>{body_html}")
+    @staticmethod
+    def _wait_box(title, text, bad=False):
+        box = Box(title)
+        box.add(label(text, "bad" if bad else "muted", wrap=True))
+        return box
+
+    @staticmethod
+    def _jev_box(d):
+        v = jev.view(d)
+        box = Box("Ersteinschätzung", "Jev", copy=lambda: jev.export(d))
+        chips = Flow()
+        if v["shock"]:
+            chips.addWidget(chip(f"Schockraum {v['shock'][0]} · {jev.pct(v['shock'][1])}",
+                                 "chipRed" if v["shock"][0] == "ROT" else "chipWarn"))
+        if v["place"]:
+            chips.addWidget(chip(f"{v['place']} · {jev.pct(v['place_p'])}"))
+        if v["specialty"]:
+            chips.addWidget(chip(f"Fallführung: {v['specialty']}"))
+        if not v["practice"] and v["admission"] is not None:
+            chips.addWidget(chip(f"Bett suchen: {v['specialty'] or 'Abteilung offen'} · {jev.pct(v['admission'])}", "chipWarn")
+                            if v["bed"] else chip(f"kein Bett nötig · Aufnahme {jev.pct(v['admission'])}", "chipOff"))
+        if v["sepsis"]:
+            chips.addWidget(chip("Sepsis-Screening, Blutkulturen vor Antibiose", "chipWarn"))
+        box.add(chips)
+        for title, rows in (("SOFORT", v["measures"]), ("BILDGEBUNG", v["imaging"])):
+            box.add(label(title, "kicker"))
+            row = Flow(gap=12)                       # bricht um: zwei Spalten im schmalen Fenster, mehr im breiten
+            for name, value, extra in rows:
+                row.addWidget(meter(name, value, extra))
+            box.add(row)
+        box.add(label("Wahrscheinlichkeiten eines Modells, keine Anordnung. Hell: ab 70 %.", "muted", wrap=True))
+        return box
+
+    def _letter_boxes(self, result):
+        boxes = []
         doc = result.get("documentation") or {}
-        block("brief", "Arztbrief-Entwurf", "".join(f"<p><b>{t}:</b><br>{esc(doc.get(k))}</p>" for k, t in visite.SECTIONS
-                                                    if str(doc.get(k) or "").strip()), visite.letter(result))
+        parts = [(title, str(doc[key]).strip()) for key, title in visite.SECTIONS if str(doc.get(key) or "").strip()]
+        if parts:
+            box = Box("Arztbrief", "Entwurf", copy=lambda: visite.letter(result))
+            folds = [box.add(Fold(title, text, opened=(i == 0))) for i, (title, text) in enumerate(parts)]
+            more = button("Alle öffnen", name="ghost")
+            more.clicked.connect(lambda: [f.flip(to=True) for f in folds])
+            box.head.insertWidget(box.head.count() - 1, more)
+            boxes.append(box)
         alerts = [a for a in result.get("safetyAlerts") or [] if isinstance(a, dict)]
-        block("netz", "Sicherheitsnetz", "".join(f"<p><span class='warn'><b>{esc(a.get('context'))}</b></span><br>{esc(a.get('suggestion'))}</p>"
-                                                 for a in alerts), "\n".join(f"{a.get('context', '')}: {a.get('suggestion', '')}" for a in alerts))
+        if alerts:
+            box = Box("Sicherheitsnetz", copy=lambda: "\n".join(f"{a.get('context', '')}: {a.get('suggestion', '')}" for a in alerts))
+            for a in alerts:
+                row = QtWidgets.QFrame(objectName="alert")
+                lay = QtWidgets.QVBoxLayout(row)
+                lay.setContentsMargins(12, 8, 12, 9)
+                lay.setSpacing(2)
+                lay.addWidget(label(str(a.get("context") or ""), "warn", wrap=True))
+                lay.addWidget(label(str(a.get("suggestion") or ""), wrap=True))
+                box.add(row)
+            boxes.append(box)
         asks = [q for q in result.get("followUpQuestions") or [] if isinstance(q, dict)]
-        block("fragen", "Gezielte Rückfragen", "".join(
-            f"<p><b>{i}. {esc(q.get('question'))}</b> <span class='muted'>({self.PRIORITY.get(q.get('priority'), 'ergänzend')})</span>"
-            f"<br><span class='muted'>{esc(q.get('rationale'))}</span></p>" for i, q in enumerate(asks, 1)),
-            "\n".join(f"{i}. {q.get('question', '')}" for i, q in enumerate(asks, 1)))
+        if asks:
+            box = Box("Gezielte Rückfragen", copy=lambda: "\n".join(f"{i}. {q.get('question', '')}" for i, q in enumerate(asks, 1)))
+            for i, q in enumerate(asks, 1):
+                word, kind = self.PRIORITY.get(q.get("priority"), self.PRIORITY["medium"])
+                row = QtWidgets.QFrame(objectName="ask")
+                lay = QtWidgets.QVBoxLayout(row)
+                lay.setContentsMargins(12, 9, 12, 10)
+                lay.setSpacing(3)
+                lay.addLayout(hbox((label(f"{i}.  {q.get('question') or ''}", "strong", wrap=True), 1), chip(word, kind)))
+                if q.get("rationale"):
+                    lay.addWidget(label(str(q["rationale"]), "muted", wrap=True))
+                box.add(row)
+            boxes.append(box)
         codes = [c for c in result.get("codes") or [] if isinstance(c, dict)]
-        block("codes", "Kodierung (Vorschlag)", "<p>" + "<br>".join(f"<b>{esc(c.get('code'))}</b> {esc(c.get('description'))}" for c in codes) + "</p>",
-              "\n".join(f"{c.get('code', '')} {c.get('description', '')}" for c in codes))
+        if codes:
+            box = Box("Kodierung", "Vorschlag", folded=True,
+                      copy=lambda: "\n".join(f"{c.get('code', '')} {c.get('description', '')}" for c in codes))
+            for c in codes:
+                box.add(hbox(chip(str(c.get("code") or ""), "chip" if c.get("revenueRelevant") else "chipOff"),
+                             (label(str(c.get("description") or ""), wrap=True), 1)))
+            boxes.append(box)
         info = result.get("patientHandout") or {}
-        block("info", "Patienteninfo", f"<p><b>{esc(info.get('title'))}</b><br>{esc(info.get('content'))}</p>",
-              f"{info.get('title', '')}\n{info.get('content', '')}" if info.get("content") else "")
-        block("en", "Zusammenfassung (englisch)", f"<p>{esc(doc.get('case_summary_en'))}</p>", str(doc.get("case_summary_en") or ""))
-        self.out.setHtml("".join(parts))
-
-    def _copy(self, url):
-        text = self.copy.get(url.toString())
-        if text:
-            QtGui.QGuiApplication.clipboard().setMimeData(private_mime(text))
-            restyle(self.note, "ok")
-            self.note.setText("Kopiert.")
+        if str(info.get("content") or "").strip():
+            box = Box("Patienteninfo", folded=True,
+                      copy=lambda: f"{info.get('title', '')}\n{info.get('content', '')}".strip())
+            box.add(label(str(info.get("title") or ""), "strong", wrap=True))
+            text = label(str(info.get("content") or ""), wrap=True)
+            text.setTextInteractionFlags(Qt.TextSelectableByMouse)
+            box.add(text)
+            boxes.append(box)
+        return boxes
 
 
 # ---------------------------------------------------------------- Stimmtraining
@@ -1527,10 +1989,10 @@ class LlmPage(Page):
     sig_shield = Signal(float, str)
 
     def __init__(self, ctl):
-        super().__init__("KI-Nachbearbeitung",
-                         "Schickt das Transkript mit einem deiner Prompts an ein Sprachmodell und fügt "
-                         "dessen Antwort ein. Funktioniert mit jedem Server, der die OpenAI-Schnittstelle "
-                         "spricht – auf diesem Rechner oder bei einem Anbieter deiner Wahl.")
+        super().__init__("LLM",
+                         "Das Sprachmodell für die KI-Nachbearbeitung (Transkript mit einem deiner Prompts überarbeiten), "
+                         "die Fachkorrektur und „Visite & Übergabe“. Funktioniert mit jedem Server, der die "
+                         "OpenAI-Schnittstelle spricht – auf diesem Rechner oder bei einem Anbieter deiner Wahl.")
         self.ctl = ctl
         self.prompts, self.current = [], -1
         self.note = label("")
@@ -1584,7 +2046,7 @@ class LlmPage(Page):
         self.list.currentRowChanged.connect(self._select)
         self.name = QtWidgets.QLineEdit()
         self.name.textEdited.connect(self._rename)
-        self.hotkey = QtWidgets.QLineEdit(placeholderText="z. B. f8 oder ctrl+alt+g – leer = keine Taste")
+        self.hotkey = KeyField(ctl)
         self.text = QtWidgets.QPlainTextEdit()
         self.text.setMinimumHeight(110)
         self.auto = QtWidgets.QComboBox()
@@ -1855,7 +2317,7 @@ class LlmPage(Page):
             p = self.prompts[row]
             self._enable_form(True)
             self.name.setText(p.get("name", ""))
-            self.hotkey.setText("+".join(p.get("hotkey") or []))
+            self.hotkey.setText(keys_text(p.get("hotkey") or []))
             self.text.setPlainText(p.get("text", ""))
         else:
             self._enable_form(False)
@@ -1942,11 +2404,11 @@ class SettingsPage(Page):
         self.note = label("")
         self.head.addWidget(self.note)
         self.head.addWidget(button("Speichern", self.save, "primary"))
-        self.hold = QtWidgets.QLineEdit()
-        self.lock = QtWidgets.QLineEdit()
-        self.paste = QtWidgets.QLineEdit()
-        self.field = QtWidgets.QLineEdit()
-        self.target = QtWidgets.QLineEdit()
+        self.hold = KeyField(ctl, optional=False)
+        self.lock = KeyField(ctl, single=True)
+        self.paste = KeyField(ctl)
+        self.field = KeyField(ctl)
+        self.target = KeyField(ctl)
         self.mic = QtWidgets.QComboBox()
         self.sounds = QtWidgets.QCheckBox("Töne bei Start und Ende der Aufnahme")
         self.clip = QtWidgets.QCheckBox("Zwischenablage nach dem Einfügen wiederherstellen")
@@ -1981,9 +2443,9 @@ class SettingsPage(Page):
                  ("Letzten Text einfügen", self.paste),
                  ("Nächste Sprungmarke [ ]", self.field),
                  ("Zielfenster merken / lösen", self.target)),
-            label("Mehrere Tasten mit + verbinden, zum Beispiel ctrl+win. Eine einzelne Taste wie ctrl startet "
-                  "nach kurzem Halten; Strg+C, Strg+Klick und andere Kürzel funktionieren weiter wie gewohnt. "
-                  "Esc bricht eine laufende Aufnahme ab.", "muted", wrap=True)))
+            label("In ein Feld klicken und die gewünschte Kombination drücken, dann oben „Speichern“. Eine einzelne "
+                  "Taste wie Strg startet nach kurzem Halten; Strg+C, Strg+Klick und andere Kürzel funktionieren "
+                  "weiter wie gewohnt. Esc bricht eine laufende Aufnahme ab.", "muted", wrap=True)))
         self.body.addWidget(card(label("Aufnahme", "h2"), form(("Mikrofon", self.mic)),
                                  self.sounds, self.clip, self.warm, self.signs))
         self.body.addWidget(card(
@@ -2004,11 +2466,18 @@ class SettingsPage(Page):
         self.prompt = QtWidgets.QPlainTextEdit()
         self.prompt.setMinimumHeight(170)
         self.prompt_note = label("", "muted")
+        self.writer = QtWidgets.QLineEdit(placeholderText=f"leer: {visite.WRITER} bei OpenRouter, sonst das Modell aus dem Reiter LLM")
+        self.rules = QtWidgets.QPlainTextEdit(placeholderText="Optional: Hausregeln für die Ersteinschätzung, zum Beispiel "
+                                              "Schockraum-Kriterien, Laborprofile, Zuständigkeiten. Jev entscheidet danach, wo sie eine Regel enthalten.")
+        self.rules.setFixedHeight(84)
         self.body.addWidget(card(
-            label("Visite & Übergabe: Anweisung an das Sprachmodell", "h2"),
-            label("Bestimmt, was aus einem Fall erzeugt wird (Arztbrief-Entwurf, Sicherheitsnetz, Rückfragen, Kodierung, "
-                  "Patienteninfo). Die Namen der Felder im JSON-Schema am Ende müssen bleiben, sonst kann LocalScribe das "
-                  "Ergebnis nicht anzeigen.", "muted", wrap=True),
+            label("Visite & Übergabe", "h2"),
+            label("Die Ersteinschätzung kommt von Jev (TypeSafe, nur über OpenRouter), den Arztbrief schreibt ein "
+                  "Sprachmodell. Server und Schlüssel stehen im Reiter LLM.", "muted", wrap=True),
+            form(("Modell für den Arztbrief", self.writer), ("Hausregeln", self.rules)),
+            label("Anweisung für den Arztbrief: bestimmt, was aus einem Fall erzeugt wird (Arztbrief-Entwurf, "
+                  "Sicherheitsnetz, Rückfragen, Kodierung, Patienteninfo). Die Namen der Felder im JSON-Schema am Ende "
+                  "müssen bleiben, sonst kann LocalScribe das Ergebnis nicht anzeigen.", "muted", wrap=True),
             self.prompt,
             hbox(button("Speichern", self._prompt_save, name="primary"),
                  button("Standard wiederherstellen", self._prompt_reset), None, self.prompt_note)))
@@ -2190,6 +2659,8 @@ class SettingsPage(Page):
     def _prompt_save(self):
         text = self.prompt.toPlainText().strip()
         self.ctl.cfg["visite_prompt"] = "" if text == visite.PROMPT.strip() else text
+        self.ctl.cfg["visite_model"] = self.writer.text().strip()
+        self.ctl.cfg["visite_rules"] = self.rules.toPlainText().strip()
         self.ctl.apply_cfg()
         self.saved(self.prompt_note)
 
@@ -2200,13 +2671,15 @@ class SettingsPage(Page):
     def refresh(self):
         self.prompt.setPlainText(visite.prompt(self.ctl.cfg))
         cfg = self.ctl.cfg
-        self.hold.setText("+".join(cfg["hotkey_hold"]))
+        self.writer.setText(cfg.get("visite_model") or "")
+        self.rules.setPlainText(cfg.get("visite_rules") or "")
+        self.hold.setText(keys_text(cfg["hotkey_hold"]))
         self.model.setCurrentIndex(max(0, self.model.findData(cfg.get("model_choice", "de"))))
         self.model_dir.setText(cfg.get("model_dir") or "")
-        self.lock.setText(cfg.get("hotkey_lock") or "")
-        self.paste.setText("+".join(cfg.get("hotkey_paste_last") or []))
-        self.field.setText("+".join(cfg.get("hotkey_next_field") or []))
-        self.target.setText("+".join(cfg.get("hotkey_target") or []))
+        self.lock.setText(keys_text([cfg["hotkey_lock"]] if cfg.get("hotkey_lock") else []))
+        self.paste.setText(keys_text(cfg.get("hotkey_paste_last") or []))
+        self.field.setText(keys_text(cfg.get("hotkey_next_field") or []))
+        self.target.setText(keys_text(cfg.get("hotkey_target") or []))
         self.mic.clear()
         self.mic.addItem("Standardgerät", None)
         for name in self.ctl.input_devices():
@@ -2283,6 +2756,42 @@ class SettingsPage(Page):
         self.saved(self.note)
 
 
+class SettingsTabs(QtWidgets.QWidget):
+    """Einstellungen mit zwei Reitern: Allgemein und LLM."""
+
+    def __init__(self, ctl):
+        super().__init__()
+        self.pages = [SettingsPage(ctl), LlmPage(ctl)]
+        self.tabs = QtWidgets.QButtonGroup(self)
+        row = QtWidgets.QHBoxLayout()
+        row.setContentsMargins(30, 18, 30, 0)
+        row.setSpacing(6)
+        self.stack = QtWidgets.QStackedWidget()
+        for i, name in enumerate(("Allgemein", "LLM")):
+            b = QtWidgets.QPushButton(name, checkable=True)
+            b.setCursor(Qt.PointingHandCursor)
+            b.setStyleSheet("QPushButton:checked { color: #C6FF3D; border-color: #C6FF3D; }")
+            self.tabs.addButton(b, i)
+            row.addWidget(b)
+            self.stack.addWidget(self.pages[i])
+        row.addStretch(1)
+        lay = QtWidgets.QVBoxLayout(self)
+        lay.setContentsMargins(0, 0, 0, 0)
+        lay.setSpacing(0)
+        lay.addLayout(row)
+        lay.addWidget(self.stack, 1)
+        self.tabs.idClicked.connect(self.show_tab)
+        self.tabs.button(0).setChecked(True)
+
+    def show_tab(self, i):
+        self.tabs.button(i).setChecked(True)
+        self.pages[i].refresh()
+        self.stack.setCurrentIndex(i)
+
+    def refresh(self):
+        self.pages[self.stack.currentIndex()].refresh()
+
+
 # ---------------------------------------------------------------- Fenster
 class Hub(QtWidgets.QWidget):
     def __init__(self, ctl):
@@ -2323,8 +2832,7 @@ class Hub(QtWidgets.QWidget):
                                       "snippets", ["Stichwort", "Text"],
                                       starter=("Normalbefunde hinzufügen", NORMAL))),
             ("Visite & Übergabe", VisitPage(ctl)),
-            ("KI-Nachbearbeitung", LlmPage(ctl)),
-            ("Einstellungen", SettingsPage(ctl)),
+            ("Einstellungen", SettingsTabs(ctl)),
         ]
         self.buttons = QtWidgets.QButtonGroup(self)
         for i, (name, page) in enumerate(self.pages):

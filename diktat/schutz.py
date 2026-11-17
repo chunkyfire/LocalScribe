@@ -228,7 +228,7 @@ class Mask:
 
 MISSING = ("Es wurde nichts gesendet: Für diesen Server ist der Schutz persönlicher Angaben eingeschaltet, aber die "
            "Namenserkennung liegt nicht auf diesem Rechner. Ohne sie würden Namen ohne Anrede lesbar hinausgehen. "
-           "Im Komplettpaket liegt sie bei; sonst unter KI-Nachbearbeitung „Namenserkennung laden“.")
+           "Im Komplettpaket liegt sie bei; sonst unter Einstellungen, LLM, „Namenserkennung laden“.")
 
 
 def blocked(llm_cfg: dict) -> bool:

@@ -1,8 +1,10 @@
 """Visite & Übergabe: aus einem diktierten Fall einen Arztbrief-Entwurf, ein Sicherheitsnetz und gezielte Rückfragen.
 
-Übernommen aus WacheNG (Prompt wörtlich, in den Einstellungen änderbar). Die Auswertung macht das unter
-KI-Nachbearbeitung eingetragene Sprachmodell; liegt es außerhalb des Rechners, sieht es nur die geschützte Fassung
-(schutz.py). Fälle liegen in einer eigenen Datei auf diesem Rechner, Löschen führt zuerst in den Papierkorb.
+Übernommen aus WacheNG (Prompt in den Einstellungen änderbar). Zwei Schritte laufen nebeneinander: Jev gibt in etwa
+einer Sekunde eine Ersteinschätzung als Wahrscheinlichkeiten (jev.py), ein Sprachmodell schreibt den Arztbrief-Entwurf
+mit Sicherheitsnetz und Rückfragen. Server und Schlüssel stehen in den Einstellungen unter LLM; liegt der Server
+außerhalb des Rechners, sehen beide nur die geschützte Fassung (schutz.py). Fälle liegen in einer eigenen Datei auf
+diesem Rechner, Löschen führt zuerst in den Papierkorb.
 
 Experimenteller Modus, kein Medizinprodukt: Die Ausgaben sind Entwürfe eines Sprachmodells für Benchmarking, Forschung
 und Lehre, keine Diagnose- oder Therapieempfehlung. Er dient dazu, mit Messwerten zu prüfen, ob sich eine eigene
@@ -13,7 +15,7 @@ import re
 import sqlite3
 import time
 
-from . import config, llm, schutz
+from . import config, jev, llm, schutz
 
 PROMPT = """Du bist ein erfahrener Notarzt-Assistent auf Oberarzt-Niveau (Top 0,1%). Du kennst seltene Erkrankungen, Red Flags und differentialdiagnostische Schlüsselfragen aus dem Effeff. Analysiere die Patientendaten und erstelle:
 
@@ -29,7 +31,6 @@ WICHTIG:
    - Status/Befund (Untersuchungsbefunde)
    - Prozedere/Plan (Reasoning, geplante Maßnahmen)
    - procedere: NUR das von der Ärztin/dem Arzt im Diktat oder Text AUSDRÜCKLICH genannte weitere Vorgehen, möglichst wörtlich. KEINE eigenen Ergänzungen oder Empfehlungen. Leerer String, wenn kein Vorgehen genannt wurde.
-   - case_summary_en: kompakte ENGLISCHE Fallzusammenfassung (max. 250 Wörter) mit allen klinisch relevanten Angaben (Alter, Geschlecht, Leitsymptom, Verlauf, Vitalparameter, Befunde, Vorerkrankungen, Medikation, Procedere). KEINE Namen, KEINE Daten. Einzige Ausnahme von „alle Texte auf Deutsch“.
    - Vorerkrankungen: EXTRAHIERE ALLE Vorerkrankungen aus ALLEN Dokumenten (OCR-Text, Arztbriefe, Diagnosen-Listen). Fasse zusammen, aber lass KEINE relevanten Diagnosen weg. Schreibe sie als Fließtext oder Auflistung.
    - Vormedikation: EXTRAHIERE ALLE Medikamente mit VOLLSTÄNDIGEM Einnahmeschema (z.B. "Metoprolol 47,5mg 1-0-0", "Eliquis 5mg 1-0-1", "Ramipril 5mg 0-0-1"). Wenn kein Schema angegeben: nur Name und Dosis. Liste ALLE Medikamente auf, die in den Dokumenten erwähnt werden!
 
@@ -62,7 +63,6 @@ GIB GENAU DIESES JSON-SCHEMA ZURÜCK:
     "befund": "...",
     "prozedere": "...",
     "procedere": "...",
-    "case_summary_en": "...",
     "vorerkrankungen": "...",
     "vormedikation": "..."
   },
@@ -124,10 +124,37 @@ def _restore(value, shield):
     return value
 
 
-def analyse(cfg: dict, text: str, ask=None) -> dict:
-    """Fall auswerten. ask(system, user) ersetzt in Tests den Aufruf des Sprachmodells."""
+WRITER = "google/gemini-3.1-pro-preview"      # schreibt den Arztbrief, wenn der Server OpenRouter ist
+
+
+def writer(cfg: dict) -> dict:
+    """Server und Modell für den Arztbrief. Eigene Angabe in den Einstellungen gewinnt; sonst bei OpenRouter das
+    Modell aus WacheNG, bei jedem anderen Server (Ollama im Haus, IONOS …) das unter LLM gewählte Modell."""
     server = dict(cfg.get("llm") or {})
-    server["timeout"] = max(float(server.get("timeout") or 0), 120)      # die Auswertung ist lang
+    own = (cfg.get("visite_model") or "").strip()
+    if own:
+        server["model"] = own
+    elif jev.available(server):
+        server["model"] = WRITER
+    server["timeout"] = max(float(server.get("timeout") or 0), 180)      # die Auswertung ist lang
+    return server
+
+
+def triage(cfg: dict, text: str, request=None) -> dict:
+    """Ersteinschätzung durch Jev. request ersetzt in Tests den Netzaufruf."""
+    server = dict(cfg.get("llm") or {})
+    if not jev.available(server):
+        raise llm.LlmError("Jev gibt es nur über OpenRouter. Unter Einstellungen, LLM, OpenRouter als Server wählen.")
+    if request is None and schutz.blocked(server):
+        raise llm.LlmError(schutz.MISSING)
+    if request is None and schutz.needed(server):
+        text = schutz.Mask().hide(text)          # Jev antwortet nur mit Zahlen: nichts zurückzusetzen
+    return jev.ask(server, text, cfg.get("visite_rules") or "", cfg.get("visite_jev") or "", request)
+
+
+def analyse(cfg: dict, text: str, ask=None) -> dict:
+    """Arztbrief-Entwurf, Sicherheitsnetz, Rückfragen. ask(system, user) ersetzt in Tests den Aufruf des Sprachmodells."""
+    server = writer(cfg)
     if ask is None and schutz.blocked(server):
         raise llm.LlmError(schutz.MISSING)
     shield = schutz.Mask() if ask is None and schutz.needed(server) else None
@@ -180,6 +207,10 @@ class Store:
                + " AND (name LIKE ? OR eingabe LIKE ?) ORDER BY geaendert DESC")
         like = f"%{query.strip()}%"
         return self.db.execute(sql, (like, like)).fetchall()
+
+    def rename(self, case_id, name: str):
+        self.db.execute("UPDATE faelle SET name = ? WHERE id = ?", (name.strip(), case_id))
+        self.db.commit()
 
     def get(self, case_id):
         row = self.db.execute("SELECT name, eingabe, ergebnis FROM faelle WHERE id = ?", (case_id,)).fetchone()

@@ -82,8 +82,11 @@ beendet sie nicht; sie bleibt im Infobereich (Rechtsklick → Beenden).
   Fachwörter aus deinen Diktaten mit; über **Aus eigenen Texten lernen** (Seite Stimmtraining) liest es sie aus eigenen
   Briefen und Befunden, nur einzelne Lexikonwörter, keine Sätze, keine Namen. An echten Arztdiktaten mit passendem
   Wortschatz: 16,6 → 11,1 % Wortfehler.
-- **Visite & Übergabe** – aus einem diktierten Fall erzeugt ein selbst gewähltes Sprachmodell einen Arztbrief-Entwurf,
-  ein Sicherheitsnetz, gezielte Rückfragen, einen Kodiervorschlag und eine Patienteninfo; mit Fallliste und Papierkorb.
+- **Visite & Übergabe** – Gespräch oder Diktat aufnehmen (auf Wunsch mit Sprechertrennung), Text korrigieren, auswerten.
+  Jev (TypeSafe, über OpenRouter) gibt in etwa einer Sekunde eine Ersteinschätzung als Wahrscheinlichkeiten:
+  Notaufnahme oder Notdienstpraxis, Schockraum, fallführende Abteilung, Bett, EKG, Zugang, Labor, Bildgebung. Ein
+  Sprachmodell schreibt Arztbrief-Entwurf, Sicherheitsnetz, gezielte Rückfragen, Kodiervorschlag und Patienteninfo,
+  jeweils als eigener Block zum Auf- und Zuklappen und Kopieren; mit Fallliste (umbenennen) und Papierkorb.
   Nur für Forschung, Lehre und den Vergleich von Modellen, kein Medizinprodukt. Die Anweisung ist unter Einstellungen
   änderbar.
 - **Wörterbuch** – falsch Erkanntes automatisch ersetzen. Unter **Meine Begriffe** reicht die richtige Schreibweise
@@ -96,13 +99,13 @@ beendet sie nicht; sie bleibt im Infobereich (Rechtsklick → Beenden).
   verstanden hat, mit dem Satz und trägt deine Aussprache falsch erkannter Fachbegriffe ins Wörterbuch ein.
   Freiwillig; je mehr Sätze, desto besser. Siehe „Stimmtraining“ unten.
 - **Textbausteine** – gesprochenes Stichwort → hinterlegter Text.
-- **KI-Nachbearbeitung** – Server-Adresse, API-Schlüssel, Modell und eigene Prompts.
+- **LLM** (Einstellungen, Reiter LLM) – Server-Adresse, API-Schlüssel, Modell und eigene Prompts für die KI-Nachbearbeitung.
   Spricht jede OpenAI-kompatible Schnittstelle (Ollama, LM Studio, vLLM, eigener Anbieter).
   Der API-Schlüssel liegt in der Windows-Anmeldeinformationsverwaltung, nicht in einer Datei.
   Ist der Server nicht erreichbar, wird der unbearbeitete Text eingefügt.
   **Fachkorrektur** (Haken, ab Werk aus): Das Sprachmodell schlägt Korrekturen für verhörte Fachbegriffe vor;
   übernommen wird nur, was selbst ein Fachbegriff ist, ähnlich klingt und keine Zahl ändert.
-- **Einstellungen** – Tasten, Mikrofon, Töne, Autostart, Aufbewahrung, Verknüpfungen.
+- **Einstellungen** – Tasten (ins Feld klicken, Kombination drücken), Mikrofon, Töne, Autostart, Aufbewahrung, Verknüpfungen.
 
 Dateien: `%LOCALAPPDATA%\LocalScribe\` (`config.json`, `verlauf.sqlite`, `diktat.log`), also je Windows-Konto; dort
 liegt auch alles Gelernte. Wer seine Daten lieber beim Programm hat (eigene Fassung je Ordner), legt sie unter
@@ -260,7 +263,7 @@ Die Nachbearbeitung repariert, was knapp daneben liegt. Was das Modell grob verh
 
 ## Fachkorrektur mit einem Sprachmodell
 
-Auf der Seite KI-Nachbearbeitung lässt sich ein Sprachmodell eintragen, das verhörte Fachwörter berichtigt
+Unter Einstellungen, LLM, lässt sich ein Sprachmodell eintragen, das verhörte Fachwörter berichtigt
 (Häkchen „Fachkorrektur“). Es sieht den Text und schlägt Ersetzungen vor; ein Türsteher in der App übernimmt nur,
 was klingt wie das Gehörte:
 

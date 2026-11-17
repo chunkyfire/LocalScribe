@@ -332,6 +332,8 @@ def correct(text: str, fuzzy: bool = True, vocabulary=None, far: bool = True, re
                 return term[0].lower() + term[1:] if word[0].islower() else term
         return word
     out = WORD.sub(fix, text)
+    if fuzzy:
+        out = misheard(out, terms)
     if not (fuzzy and far):
         return out
     pos, parts = 0, []
@@ -347,6 +349,27 @@ def correct(text: str, fuzzy: bool = True, vocabulary=None, far: bool = True, re
             parts.append(out[pos:m.start()] + joined)
             pos = m.end()
     return "".join(parts) + out[pos:]
+
+
+# Echte Wörter, die das Sprachmodell bei manchen Stimmen für einen Fachbegriff setzt. Weil es das Wort wirklich gibt,
+# greift die Klangsuche oben nicht. Ersetzt wird nur, wenn der Satz erkennbar ein klinischer ist und nichts auf die
+# wörtliche Bedeutung zeigt. Aufgenommen wird hier nur, was an echten Diktaten beobachtet wurde.
+MISHEARD = {"disney": ("Dyspnoe", re.compile(r"\s*(?:\+|plus\b|land\b|world\b|film|channel|studio|figur|prinzess)", re.IGNORECASE))}
+CLINICAL = re.compile(r"patient|belastung|\bruhe|husten|thorax|atem|luftnot|fieber|schmerz|ödem|rettungsdienst|"
+                      r"vorstellung|stellt sich|orthopnoe|auskultat|sättigung|\bspo2", re.IGNORECASE)
+
+
+def misheard(text: str, terms) -> str:
+    low = text.lower()
+    if not any(word in low for word in MISHEARD):
+        return text
+    if not (CLINICAL.search(text) or any(len(w) >= 6 and w in terms for w in re.findall(r"[a-zäöüß]+", low))):
+        return text
+
+    def swap(m):
+        term, literal = MISHEARD[m.group().lower()]
+        return m.group() if literal.match(text, m.end()) else term
+    return re.sub(r"(?<![\wÄÖÜäöüß-])(?:" + "|".join(MISHEARD) + r")(?![\wÄÖÜäöüß-])", swap, text, flags=re.IGNORECASE)
 
 
 PAIR = re.compile(r"(?<![\wÄÖÜäöüß-])([A-ZÄÖÜ][a-zäöüß]{3,})[ -]([A-Za-zÄÖÜäöüß]{3,})(?![\wÄÖÜäöüß-])")

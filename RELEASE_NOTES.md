@@ -1,3 +1,22 @@
+## LocalScribe 1.1.0
+
+- **Visite & Übergabe neu gebaut.** Links ein Aufnahmeknopf wie auf der Seite Aufnahme, auf Wunsch mit „Sprecher
+  trennen“; der Text läuft mit und lässt sich nach dem Stopp korrigieren. „Auswerten“ startet zwei Modelle
+  nebeneinander. Jev (TypeSafe, über OpenRouter) gibt eine Ersteinschätzung als Wahrscheinlichkeiten: Notaufnahme oder
+  Notdienstpraxis, Schockraum-Kriterien, fallführende Abteilung, Bett suchen und wo, EKG, Zugang, Labor mit Profil,
+  Monitoring, Bildgebung. Gemini 3.1 Pro schreibt Arztbrief-Entwurf, Sicherheitsnetz und drei gezielte Rückfragen.
+  Jeder Teil steht in einem eigenen Block mit „Kopieren“: Anamnese offen, Befund und der Rest zum Aufklappen, Kodierung
+  und Patienteninfo eingeklappt. Die englische Zusammenfassung entfällt. Gemessen an einem erfundenen Fall: Jev nach
+  0,4 bis 4 Sekunden, der Arztbrief nach rund 36 Sekunden. Mit einem Sprachmodell im eigenen Haus entfällt die
+  Ersteinschätzung, der Arztbrief kommt dann von diesem Modell. Weiterhin ein experimenteller Modus, kein Medizinprodukt.
+- **Fälle umbenennen** in der Fallliste; der Name ist die Fallbezeichnung über dem Text.
+- **LLM in den Einstellungen.** Die Seite „KI-Nachbearbeitung“ ist jetzt der Reiter „LLM“ in den Einstellungen. Dort
+  stehen auch das Modell für den Arztbrief und optionale Hausregeln für die Ersteinschätzung.
+- **Tasten per Druck festlegen.** In ein Tastenfeld klicken, Kombination drücken, speichern. Entf leert, Esc bricht ab.
+- **„Disney“ statt „Dyspnoe“.** Bei einem Sprecher schrieb das Sprachmodell „Disney“. Weil es das Wort gibt, griff die
+  Klangsuche nicht. Solche echten Wörter werden jetzt im klinischen Satz ersetzt („Keine Disney, kein Fieber“ wird
+  „Keine Dyspnoe“), sonst nicht („Disney Plus“ bleibt). Aufgenommen ist bisher dieses eine beobachtete Paar.
+
 ## LocalScribe 1.0.0
 
 Erste Fassung mit der Nummer 1.0.
