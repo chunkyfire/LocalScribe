@@ -1,6 +1,6 @@
 # LocalScribe – Technische Dokumentation
 
-Stand: Version 0.14.6. Für Betrieb, IT und alle, die den Code lesen oder prüfen wollen. Die Bedienung steht im
+Stand: Version 0.15.0. Für Betrieb, IT und alle, die den Code lesen oder prüfen wollen. Die Bedienung steht im
 [Handbuch](LocalScribe-Handbuch.pdf), die Messwerte mit Methode in [`werkzeug/messen/ERGEBNIS.md`](../werkzeug/messen/ERGEBNIS.md).
 
 ## 1. Was die App ist
@@ -96,7 +96,7 @@ Gepackt mit PyInstaller zu einem Ordner mit `LocalScribe.exe`; `build.ps1` strei
 | `diktat/fach.py` | Fachbegriffe am Klang reparieren (Lexikon mit 39.600 Begriffen, Wirkstoffendungen) |
 | `diktat/training.py` | Lernen aus vorgelesenen Sätzen und aus Aufnahmen mit Transkript |
 | `diktat/visite.py` | Visite & Übergabe: Fall auswerten lassen (Arztbrief-Entwurf, Sicherheitsnetz, Rückfragen), Fallablage mit Papierkorb |
-| `diktat/sprecher.py` | Sprecher trennen (WeSpeaker ResNet34, ONNX, CPU) |
+| `diktat/sprecher.py` | Sprecher trennen: pyannote-Segmentierung und WeSpeaker-Stimmabdrücke (ONNX, CPU) |
 | `diktat/vad.py` | Sprache oder Stille (Silero VAD) |
 | `diktat/longform.py` | lange Aufnahmen und Tondateien stückweise |
 | `diktat/modelle.py` | Sprachmodelle finden, einmal laden, Fortschritt melden |
@@ -127,6 +127,16 @@ Gepackt mit PyInstaller zu einem Ordner mit `LocalScribe.exe`; `build.ps1` strei
 6. **Optional**: Fachkorrektur oder Umformulieren durch ein Sprachmodell (siehe 8). Ab Werk aus.
 7. **Einfügen** über die Zwischenablage in das aktive oder das gemerkte Zielfenster; die vorherige Zwischenablage
    wird wiederhergestellt, der Eintrag ist vom Windows-Zwischenablageverlauf ausgenommen.
+
+**Sprecher trennen** (`sprecher.py`, nur Seiten Aufnahme und Datei): Der Ton läuft parallel durch das
+Segmentierungsmodell von pyannote (segmentation-3.0 als ONNX, 6 MB, im Programm enthalten): Fenster von zehn
+Sekunden im Abstand von fünf, je Rahmen von 17 ms die Aussage, welche von bis zu drei Stimmen spricht. Jede
+Stimme eines Fensters bekommt je drei Sekunden, die sie allein spricht, einen Stimmabdruck (WeSpeaker ResNet34,
+26 MB); die kurzen Abschnitte fangen Wechsel zwischen ähnlichen Stimmen auf, die die Segmentierung überhört. Am Ende werden die Abdrücke gruppiert (immer die zwei ähnlichsten Gruppen, bis die Ähnlichkeit unter 0,42
+fällt; wer unter drei Sekunden oder zwei Prozent der Redezeit bleibt, zählt nicht als eigener Sprecher) und zu einer Zeitleiste „wer spricht wann“ zusammengesetzt. Die Spracherkennung liefert für jedes Wort den
+Zeitpunkt; das Wort bekommt den Sprecher der Zeitleiste. So kann der Wechsel mitten in einer Äußerung liegen. Liegt
+ein Wechsel höchstens zwei Wörter neben einem Satzende, rückt er dorthin. Das
+ist der Aufbau von pyannote.audio 3.1, aber ohne PyTorch. Im Speicher liegt nie mehr als ein Fenster Ton.
 
 Geschwindigkeit (i7-13700KF, 45 Sekunden Diktat): rund 2 Sekunden mit Wortschatz, 1,4 Sekunden ohne. Wichtig dafür
 ist `session.intra_op.allow_spinning = 0` für beide ONNX-Sitzungen; sonst bremsen sich die Rechen-Threads von
@@ -264,7 +274,7 @@ Wortfehlerrate nach der Nachbearbeitung, ohne Sprachmodell-Korrektur. Methode, E
 |---|---|
 | Rechenzeit für 45 s Diktat (i7-13700KF, nur Prozessor) | 2,0 s mit Wortschatz, 1,4 s ohne |
 | allererster Start mit Modell-Download (910 MB) | 61 s; jeder weitere Start 2 s |
-| Sprechertrennung | 88,6 % richtig zugeordnete Sprechzeit bei Interviews, 75,4 % am Telefon |
+| Sprechertrennung | 92,7 % richtig zugeordnete Sprechzeit bei Interviews (Sprecherzahl richtig bei 8 von 10), 81,3 % am Telefon (10 von 12); nicht erkannte Sprache zählt als falsch. Bisheriges Verfahren: 88,6 % (5 von 10) und 75,4 % (8 von 12). Deutsches Gespräch aus zwei ähnlichen Stimmen ohne Pause zwischen den Redebeiträgen: 94 % der Wörter beim richtigen Sprecher, mit 0,15 s Pause 100 % |
 | Arbeitsspeicher im Betrieb | rund 1,4 GB |
 
 Modellgröße: Der Encoder mit 8 Bit je Kanal hat 841 MB. Geprüft und verworfen sind die verbreitete Fassung mit

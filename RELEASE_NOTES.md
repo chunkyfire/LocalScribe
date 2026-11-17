@@ -1,3 +1,14 @@
+## LocalScribe 0.15.0
+
+- **Sprecher trennen, neues Verfahren**: Die App erkennt Sprecherwechsel jetzt auch ohne Sprechpause. Dafür hört
+  das Segmentierungsmodell von pyannote mit (6 MB, liegt der App bei, läuft auf dem Prozessor, ohne PyTorch), und
+  jedes Wort wird über seinen Zeitpunkt einer Stimme zugeordnet. Bisher bekam jedes Stück zwischen zwei
+  Sprechpausen genau einen Sprecher. Gemessen: 93 statt 89 % richtig zugeordnete Sprechzeit bei Interviews, 81 statt
+  75 % am Telefon; die Zahl der Sprecher stimmt bei 8 statt 5 von 10 und bei 10 statt 8 von 12 Aufnahmen. Auch wer
+  nur kurz spricht, kann jetzt ein eigener Sprecher sein (ab drei Sekunden und zwei Prozent der Redezeit).
+- **by cemmec.ai**: Im Fenster steht, von wem LocalScribe ist; unter Einstellungen, „Über LocalScribe“ führen Verweise
+  zu cemmec.ai und zu LinkedIn für Support, Rückfragen und Änderungswünsche. Auch im Handbuch und im README.
+
 ## LocalScribe 0.14.6
 
 - **Update aus ZIP repariert**: Lag der Programmordner in einem Pfad mit Umlauten (zum Beispiel `Oberärzte`), fand

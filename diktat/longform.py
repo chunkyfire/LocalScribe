@@ -152,8 +152,11 @@ class LongJob(QtCore.QObject):
         """open_source() -> (Dauer oder None, Blockstrom). backup: Datei, die nach Erfolg gelöscht wird."""
         text, error, done, stats = "", "", [0.0], {}
         self.speakers = 0
-        if self.ctl.cfg.get("speakers"):
-            stats["pieces"] = []         # Sprecher trennen: Text, Stimmabdruck und Dauer je Äußerung
+        if self.ctl.cfg.get("speakers") and sprecher.ready():
+            try:                         # Sprecher trennen: hört den Ton mit; dazu jedes Wort mit seinem Zeitpunkt
+                stats["turns"], stats["words"] = sprecher.Turns(), []
+            except Exception:
+                log.exception("Sprechertrennung nicht startbar")
         try:
             total, blocks = open_source()
 
@@ -188,12 +191,20 @@ class LongJob(QtCore.QObject):
                    "model_choice": self.ctl.cfg.get("model_choice", "de"),
                    "vocabulary": self.ctl.cfg.get("vocabulary")}
             talk = ""
-            if stats.get("pieces") and not self._cancel:
+            if stats.get("turns") is not None and stats.get("words") and not self._cancel:
                 try:
-                    pieces = stats["pieces"]
-                    labels = sprecher.cluster([p[1] for p in pieces], [p[2] for p in pieces])
-                    self.speakers = len(set(labels))
-                    talk = sprecher.dialogue([engine.postprocess(p[0], cfg).strip() for p in pieces], labels)
+                    words = stats["words"]
+                    labels, step = stats["turns"].finish()
+                    who = sprecher.assign(words, labels, step)
+                    self.speakers = len(set(who))
+                    runs = []            # aufeinanderfolgende Wörter desselben Sprechers bilden einen Abschnitt
+                    for (word, _), speaker in zip(words, who):
+                        if runs and runs[-1][0] == speaker:
+                            runs[-1][1].append(word)
+                        else:
+                            runs.append((speaker, [word]))
+                    talk = sprecher.dialogue([engine.postprocess(" ".join(ws), cfg).strip() for _, ws in runs],
+                                             [speaker for speaker, _ in runs])
                 except Exception:
                     log.exception("Sprecher konnten nicht getrennt werden")
             text = talk or engine.postprocess(text, cfg)

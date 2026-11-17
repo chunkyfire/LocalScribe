@@ -8,7 +8,7 @@ uv pip install --python .venv\Scripts\python.exe -r requirements.txt pyinstaller
 $version = & .venv\Scripts\python.exe -c "import diktat; print(diktat.__version__)"
 & .venv\Scripts\python.exe -c "from PySide6 import QtWidgets; from diktat.ui import make_pixmap; a = QtWidgets.QApplication([]); make_pixmap(256).save('build_icon.ico', 'ICO')"
 & .venv\Scripts\pyinstaller.exe --noconfirm --clean --windowed --name LocalScribe --icon build_icon.ico `
-    --add-data "diktat\silero_vad.onnx;diktat" --add-data "diktat\basiswoerterbuch.json;diktat" --add-data "diktat\fachlexikon.json;diktat" --add-data "diktat\bekannt.txt.gz;diktat" --add-data "diktat\lesetexte.json;diktat" `
+    --add-data "diktat\silero_vad.onnx;diktat" --add-data "diktat\segmentierung.onnx;diktat" --add-data "diktat\basiswoerterbuch.json;diktat" --add-data "diktat\fachlexikon.json;diktat" --add-data "diktat\bekannt.txt.gz;diktat" --add-data "diktat\lesetexte.json;diktat" `
     --collect-all onnx_asr --collect-all _sounddevice_data --collect-submodules keyring --copy-metadata keyring `
     --hidden-import win32ctypes.core --hidden-import pynput.keyboard._win32 --hidden-import pynput.mouse._win32 `
     --exclude-module pyarrow --exclude-module tkinter --exclude-module matplotlib --exclude-module PySide6.QtWebEngineCore `

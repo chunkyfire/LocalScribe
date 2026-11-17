@@ -567,10 +567,16 @@ def selftest(path):
     t.load()
     start = time.time()
     seconds, blocks = engine.decode_file(path)
-    text = engine.postprocess(t.transcribe_stream(blocks), cfg)
+    from . import sprecher
+    stats = {"turns": sprecher.Turns(), "words": []} if sprecher.ready() else {}
+    text = engine.postprocess(t.transcribe_stream(blocks, stats=stats), cfg)
+    who = ""
+    if stats:                            # prüft auch, dass beide Modelle der Sprechertrennung im Paket laufen
+        labels, step = stats["turns"].finish()
+        who = f" [{len(set(sprecher.assign(stats['words'], labels, step)))} Sprecher]"
     import keyring
     log.info("Schlüsselspeicher: %s", type(keyring.get_keyring()).__name__)
-    line = f"Selbsttest: {seconds or 0:.1f} s Audio in {time.time() - start:.2f} s -> {text!r}"
+    line = f"Selbsttest: {seconds or 0:.1f} s Audio in {time.time() - start:.2f} s{who} -> {text!r}"
     log.info(line)
     print(line)
 

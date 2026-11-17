@@ -55,20 +55,30 @@ n = sum(len(v) for v in training.material().values())
 check("Lesematerial vorhanden", n >= 150, f"({n} Sätze in {len(training.material())} Themen)")
 
 # ----- Sprecher
-rng = np.random.default_rng(1)
-a, b = rng.normal(size=256), rng.normal(size=256)
-voices = [v / np.linalg.norm(v) for v in (a + 0.3 * rng.normal(size=256), b + 0.3 * rng.normal(size=256),
-                                          a + 0.3 * rng.normal(size=256), b + 0.3 * rng.normal(size=256))]
-labels = sprecher.cluster([voices[0], voices[1], None, voices[2], voices[3]], [9, 9, 0.5, 9, 9])
-check("Zwei Stimmen, kurzer Einwurf wird zugeschlagen", labels == [1, 2, 2, 1, 2], str(labels))
-talk = sprecher.dialogue(["Guten Tag.", "Hallo.", "Ja.", "Wie geht es?", "Gut."], labels)
+# Zeitleiste: 0 bis 2 s Sprecher 2, Pause, 3 bis 5 s Sprecher 1 (Nummern der Gruppierung), Schritt 0,1 s
+_line = np.array([2] * 20 + [0] * 10 + [1] * 20, np.int16)
+_words = [("Guten", 0.2), ("Tag.", 0.8), ("Hallo.", 3.1), ("Ja.", 2.6), ("Gut.", 4.5)]
+who = sprecher.assign(_words, _line, 0.1)
+check("Wörter bekommen den Sprecher ihres Zeitpunkts, Nummern nach erstem Auftreten", who == [1, 1, 2, 2, 2], str(who))
+check("Wort in einer Lücke: wie das zeitlich nächste", sprecher.assign([("a", 0.5), ("b", 2.4), ("c", 4.0)], _line, 0.1) == [1, 1, 2])
+check("Wechsel rückt ans Satzende", sprecher._tidy("Wie geht es? Mir geht es gut.".split(), [1, 1, 1, 1, 2, 2, 2]) == [1, 1, 1, 2, 2, 2, 2]
+      and sprecher._tidy("Wie geht es? Mir geht es gut.".split(), [1, 1, 2, 2, 2, 2, 2]) == [1, 1, 1, 2, 2, 2, 2])
+check("Einzelnes Wort mitten im Satz ist kein Redebeitrag, ein eigener Satz schon",
+      sprecher._tidy("Guten Morgen, Frau Bergmann. Ja. Bitte".split(), [1, 2, 1, 1, 2, 1]) == [1, 1, 1, 1, 2, 1])
+talk = sprecher.dialogue(["Guten Tag.", "Hallo. Ja.", "Wie geht es?", "Gut."], [1, 2, 1, 2])
 check("Gesprächstext", talk == "Sprecher 1: Guten Tag.\n\nSprecher 2: Hallo. Ja.\n\nSprecher 1: Wie geht es?\n\nSprecher 2: Gut.", talk)
-check("Eine Stimme: keine Sprecherzeilen", sprecher.dialogue(["a", "b"], sprecher.cluster([voices[0], voices[2]], [9, 9])) == "")
-solo = sprecher.cluster([voices[0], voices[2], voices[1]], [9, 9, 3])
-check("Einzelne kurze Äußerung ist kein eigener Sprecher", solo == [1, 1, 1], str(solo))
-tone = (0.1 * np.sin(2 * np.pi * 180 * np.arange(3 * 16000) / 16000)).astype(np.float32)
-e = sprecher.embed(tone)
-check("Stimmabdruck berechenbar", e is not None and abs(float(np.linalg.norm(e)) - 1) < 1e-3 and sprecher.embed(tone[:8000]) is None)
+check("Eine Stimme: keine Sprecherzeilen", sprecher.dialogue(["a", "b"], [1, 1]) == "")
+check("Segmentierungsmodell liegt der App bei", sprecher.SEGMENTER.exists())
+if sprecher.ready():
+    import wave as _wave
+    with _wave.open(str(pathlib.Path(__file__).with_name("test_de.wav"))) as _w:
+        _a = np.frombuffer(_w.readframes(_w.getnframes()), dtype=np.int16).astype(np.float32) / 32768
+    _t = sprecher.Turns()
+    for _i in range(0, len(_a), 1600):
+        _t.feed(_a[_i:_i + 1600])
+    _lab, _step = _t.finish()
+    check("Ein Sprecher im Testdiktat: genau eine Stimme, Sprache erkannt",
+          _t.speakers == 1 and (_lab > 0).mean() > 0.5, f"{_t.speakers} Sprecher, {(_lab > 0).mean():.0%} Sprache")
 
 # ----- Fachkorrektur
 ok = [("Set", "Stent"), ("Riba", "RIVA"), ("Trossiba", "Tresiba"), ("Prägensolom", "Prednisolon"), ("Retroximab", "Rituximab")]

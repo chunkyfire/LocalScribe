@@ -134,6 +134,19 @@ def label(text, name=None, wrap=False):
     return w
 
 
+SITE = "https://cemmec.ai"
+LINKEDIN = "https://www.linkedin.com/in/cem-%C3%B6zel-ab0b37113"
+REPO = "https://github.com/chunkyfire/LocalScribe"
+
+
+def link(html_text):
+    """Grauer Text mit anklickbaren Verweisen, die im Browser aufgehen."""
+    w = label(html_text, "muted", wrap=True)
+    w.setTextFormat(Qt.RichText)
+    w.setOpenExternalLinks(True)
+    return w
+
+
 def button(text, slot=None, name=None):
     b = QtWidgets.QPushButton(text)
     b.setCursor(Qt.PointingHandCursor)
@@ -501,8 +514,8 @@ class LongPage(Page):
         self.started = 0.0
         self.out = Transcript(ctl)
         self.split = QtWidgets.QCheckBox("Sprecher trennen (Gespräche: „Sprecher 1: …“, „Sprecher 2: …“)")
-        self.split.setToolTip("Für Gespräche mit mehreren Personen. Jede Äußerung bekommt einen Stimmabdruck, "
-                              "ähnliche Stimmen werden zu einem Sprecher zusammengefasst. Läuft auf diesem Rechner.")
+        self.split.setToolTip("Für Gespräche mit mehreren Personen. Die App hört mit, wer wann spricht, auch wenn die "
+                              "Sprecher ohne Pause wechseln, und ordnet jedes Wort einer Stimme zu. Läuft auf diesem Rechner.")
         self.split.toggled.connect(self._split)
         self.sig_voice.connect(lambda text: self.info(text))
 
@@ -2021,6 +2034,13 @@ class SettingsPage(Page):
                  button("LocalScribe entfernen …", self._remove), None),
             self.care_note))
         self.sig_unpacked.connect(self._unpacked)
+        a = 'style="color:#C6FF3D; text-decoration:none"'
+        self.body.addWidget(card(
+            label("Über LocalScribe", "h2"),
+            link(f'LocalScribe {__version__} · by <a href="{SITE}" {a}>cemmec.ai</a> · Dr. Cem Özel'),
+            link(f'Support, Rückfragen und Änderungswünsche: <a href="{LINKEDIN}" {a}>Cem Özel auf LinkedIn</a>. '
+                 f'Fehler melden und Quelltext: <a href="{REPO}" {a}>GitHub</a>. '
+                 f'Handbuch: <a href="https://chunkyfire.github.io/LocalScribe/" {a}>online</a>.')))
         self.body.addStretch(1)
 
     sig_unpacked = Signal(str, str)      # Ordner der neuen Fassung, Fehlertext
@@ -2224,7 +2244,10 @@ class Hub(QtWidgets.QWidget):
         mark = QtWidgets.QLabel()
         mark.setPixmap(make_pixmap(26))
         nav.addLayout(hbox(mark, label("LocalScribe", "brand"), None, spacing=9))
-        nav.addSpacing(18)
+        by = link(f'by <a href="{SITE}" style="color:#C6FF3D; text-decoration:none">cemmec.ai</a>')
+        by.setContentsMargins(36, 0, 0, 0)
+        nav.addWidget(by)
+        nav.addSpacing(14)
 
         self.stack = QtWidgets.QStackedWidget()
         self.pages = [

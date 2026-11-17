@@ -1,5 +1,8 @@
 LocalScribe - lokales Diktieren für Windows
 ===========================================
+by cemmec.ai (https://cemmec.ai) - Dr. Cem Özel
+Support, Rückfragen, Änderungswünsche:
+https://www.linkedin.com/in/cem-%C3%B6zel-ab0b37113
 
 Starten
 -------

@@ -17,9 +17,12 @@ beim ersten Start).
 | Wortfehlerrate, fünf ärztliche Diktate eines Sprechers (412 Wörter) | **8,3 %** | Cloud: Tandem 8,3 %, Orpheus 9,7 %, Heidi 9,7 %. Lokal: Whisper Large v3 Turbo Deutsch 14,1 % |
 | Wortfehlerrate, neun echte Arztdiktate (Corti Med-Dictate, 33 Minuten) | **11,1 %** mit eigenem Wortschatz, 15,4 % ohne | 16,6 % ohne Wortschatz beim Dekodieren |
 | Rechenzeit für 45 Sekunden Diktat (Büro-PC, nur Prozessor) | **2 Sekunden** | |
-| Sprechertrennung, richtig zugeordnete Sprechzeit | 89 % Interviews, 75 % Telefon | |
+| Sprechertrennung, richtig zugeordnete Sprechzeit | 93 % Interviews, 81 % Telefon | bisheriges Verfahren: 89 % und 75 % |
 
 Wenige Sprecher, ruhige Umgebung; Dialekt und Lärm sind nicht gemessen.
+
+**Von:** [cemmec.ai](https://cemmec.ai) · Dr. Cem Özel. Support, Rückfragen und Änderungswünsche:
+[LinkedIn](https://www.linkedin.com/in/cem-%C3%B6zel-ab0b37113) oder ein [Issue](https://github.com/chunkyfire/LocalScribe/issues).
 
 **Technische Dokumentation:** [online](https://chunkyfire.github.io/LocalScribe/technik.html), als [PDF](docs/LocalScribe-Technik.pdf) oder [docs/TECHNIK.md](docs/TECHNIK.md) – Aufbau, Datenablage, Netzwerkverbindungen, Verteilung.
 
@@ -132,8 +135,8 @@ Einstellungen in den Programmordner (Ordner `daten`). Die Sprachmodelle können 
   293 MB, auf Knopfdruck geladen, läuft auf der CPU) findet Namen, Orte und Einrichtungen auch ohne solche Hinweise.
   Fachbegriffe wie Parkinson oder Crohn bleiben stehen. Kein Verfahren findet alles: Das ist eine Schutzschicht,
   kein Nachweis der Anonymität. Der Schutz ist für fremde Server ab Werk an und lässt sich je Anbieter abschalten.
-- **Stimmabdrücke.** „Sprecher trennen“ berechnet je Äußerung einen Stimmabdruck. Er lebt nur im
-  Arbeitsspeicher, solange die Transkription läuft, und wird nicht gespeichert. Im Text stehen Nummern,
+- **Stimmabdrücke.** „Sprecher trennen“ berechnet Stimmabdrücke der Sprecher. Sie leben nur im
+  Arbeitsspeicher, solange die Transkription läuft, und werden nicht gespeichert. Im Text stehen Nummern,
   keine Namen; die App erkennt niemanden wieder.
 - **Protokoll.** `diktat.log` enthält Zeiten und Zeichenzahlen, keine Inhalte.
 
@@ -326,14 +329,16 @@ Sätze als Ton auf, als Material für ein mögliches Nachtraining auf die eigene
 
 ## Sprecher trennen
 
-Für Gespräche (Anamnese, Besprechung, Interview). Die Pausenerkennung zerlegt den Ton ohnehin in Äußerungen;
-jede bekommt einen Stimmabdruck (WeSpeaker ResNet34, ONNX, 26 MB, läuft auf der CPU). Ähnliche Abdrücke
-werden zu Sprechern gruppiert, aufeinanderfolgende Äußerungen desselben Sprechers bilden einen Absatz.
+Für Gespräche (Anamnese, Besprechung, Interview). Zwei kleine Modelle arbeiten zusammen, wie in der Pipeline von
+pyannote.audio, aber ohne PyTorch und nur auf der CPU: Das Segmentierungsmodell von pyannote (6 MB, liegt der App
+bei) hört in Fenstern von zehn Sekunden, wer wann spricht, auch wenn die Sprecher ohne Pause wechseln. Für jede
+Stimme entsteht ein Stimmabdruck (WeSpeaker ResNet34, 26 MB); ähnliche Abdrücke werden zu Sprechern gruppiert.
+Jedes erkannte Wort bekommt den Sprecher, der zu seinem Zeitpunkt spricht. Der Wechsel kann also mitten in einer
+Äußerung liegen.
 
-Grenzen: Fällt jemand dem anderen ohne Pause ins Wort, landen beide in einer Äußerung. Einwürfe unter
-1,2 Sekunden („ja“, „genau“) tragen zu wenig Stimme und werden dem Sprecher davor zugeschlagen. Wer insgesamt
-weniger als acht Sekunden spricht, gilt nicht als eigener Sprecher. Geprüft ist die Trennung an echten
-Aufnahmen verschiedener Sprecher, nicht an einem echten Arzt-Patienten-Gespräch.
+Grenzen: Reden zwei gleichzeitig, bekommt das Wort einen der beiden. Wer insgesamt nur wenige Sekunden spricht,
+wird dem ähnlichsten Sprecher zugeschlagen. Sehr ähnliche Stimmen können verschmelzen. Gemessen ist an englischen
+Interviews und Telefongesprächen mit bekannten Sprechern, nicht an einem echten deutschen Arzt-Patienten-Gespräch.
 
 ## Lizenz und Signatur
 

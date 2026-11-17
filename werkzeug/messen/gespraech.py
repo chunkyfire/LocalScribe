@@ -1,10 +1,11 @@
 """Sprechertrennung an echten Gesprächen mit bekannten Sprechern messen.
 
-    python gespraech.py <parquet mit audio, timestamps_start, timestamps_end, speakers> [Anzahl] [nur_zwei]
+    python gespraech.py <parquet mit audio, timestamps_start, timestamps_end, speakers> [Anzahl] [SAME=0.42 ...]
 
-Datensätze im Format von diarizers-community (VoxConverse, CallHome). Läuft durch dieselbe
-Pausenerkennung wie die App. Gemessen wird der Anteil der Sprechzeit, der dem richtigen Sprecher
-zugeordnet ist (nach bester Zuordnung der Nummern), und ob die Zahl der Sprecher stimmt.
+Datensätze im Format von diarizers-community (VoxConverse, CallHome). Der Ton läuft durch dieselbe Klasse wie in
+der App (sprecher.Turns). Gemessen wird der Anteil der Sprechzeit, der dem richtigen Sprecher zugeordnet ist (nach
+bester Zuordnung der Nummern; Sprache, die keinem Sprecher zugeordnet wurde, zählt als falsch), und ob die Zahl
+der Sprecher stimmt. Weitere Argumente wie SAME=0.36 überschreiben Konstanten aus sprecher.py.
 """
 import io
 import itertools
@@ -20,67 +21,58 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent.parent))
 sys.modules.setdefault("sounddevice", types.ModuleType("sounddevice"))
 import av
 
-from diktat import engine, sprecher
+from diktat import sprecher
 
 
 def decode(data):
     c = av.open(io.BytesIO(data))
     r = av.AudioResampler("flt", "mono", 16000)
-    out = [g.to_ndarray()[0] for f in c.decode(audio=0) for g in r.resample(f)]
-    return np.concatenate(out)
+    return np.concatenate([g.to_ndarray()[0] for f in c.decode(audio=0) for g in r.resample(f)])
 
 
 limit = int(sys.argv[2]) if len(sys.argv) > 2 else 10
-only_two = len(sys.argv) > 3
-total_ok = total_all = 0.0
+for arg in sys.argv[3:]:
+    name, value = arg.split("=")
+    setattr(sprecher, name, float(value))
+ok = total = 0.0
 rows = []
-pf = pq.ParquetFile(sys.argv[1])
-done = 0
-for batch in pf.iter_batches(batch_size=1):
+for n, batch in enumerate(pq.ParquetFile(sys.argv[1]).iter_batches(batch_size=1)):
+    if n >= limit:
+        break
     r = batch.to_pylist()[0]
     ref = sorted(zip(r["timestamps_start"], r["timestamps_end"], r["speakers"]))
     names = sorted({s for _, _, s in ref})
-    if only_two and len(names) != 2:
-        continue
     audio = decode(r["audio"]["bytes"])[: 15 * 60 * 16000]
-    t0 = time.time()
-    pos, pieces = 0.0, []
-    for chunk, still in engine.stream_chunks(audio[i:i + 1600] for i in range(0, len(audio), 1600)):
-        secs = len(chunk) / 16000
-        if not still and len(chunk) >= 0.2 * 16000:
-            pieces.append((pos, pos + secs, sprecher.embed(chunk)))
-        pos += secs
-    labels = sprecher.cluster([p[2] for p in pieces], [p[1] - p[0] for p in pieces])
-    took = time.time() - t0
-    # Überlappung je (erkannter Sprecher, wahrer Sprecher) in Sekunden
-    found = sorted(set(labels))
-    table = np.zeros((len(found), len(names)))
-    for (a, b, _), label in zip(pieces, labels):
-        for s, e, who in ref:
-            if e <= a:
-                continue
-            if s >= b:
-                break
-            table[found.index(label), names.index(who)] += min(b, e) - max(a, s)
-    best = 0.0
+    began = time.time()
+    turns = sprecher.Turns()
+    for i in range(0, len(audio), 16000):
+        turns.feed(audio[i:i + 16000])
+    labels, step = turns.finish()
+    took = time.time() - began
+    found = sorted(set(labels[labels > 0].tolist()))
+    truth = np.zeros((len(names), len(labels)), bool)
+    for s, e, who in ref:
+        truth[names.index(who), int(s / step):int(e / step) + 1] = True
+    table = np.zeros((max(1, len(found)), len(names)))
+    for fi, f in enumerate(found):
+        for ni in range(len(names)):
+            table[fi, ni] = ((labels == f) & truth[ni]).sum() * step
+    missed = ((labels == 0) & truth.any(axis=0)).sum() * step
     k = min(len(found), len(names))
-    if len(found) <= 7 and len(names) <= 7:
-        for perm in itertools.permutations(range(len(names)), k) if len(found) <= len(names) else \
-                [None]:
-            if perm is None:
-                best = max(sum(table[f, n] for f, n in zip(p, range(len(names))))
-                           for p in itertools.permutations(range(len(found)), k))
-                break
-            best = max(best, sum(table[f, n] for f, n in zip(range(len(found)), perm)))
+    if k and len(found) <= 7 and len(names) <= 7:
+        if len(found) <= len(names):
+            best = max(sum(table[f, p] for f, p in zip(range(len(found)), perm))
+                       for perm in itertools.permutations(range(len(names)), k))
+        else:
+            best = max(sum(table[f, m] for f, m in zip(perm, range(len(names))))
+                       for perm in itertools.permutations(range(len(found)), k))
     else:
         best = table.max(axis=1).sum()
-    share = best / max(1e-9, table.sum())
-    total_ok += best
-    total_all += table.sum()
-    rows.append((len(audio) / 16000, len(names), len(found), share, took))
-    print(f"{len(audio) / 16000:5.0f} s  wahr {len(names)} Sprecher, erkannt {len(found)}  richtig zugeordnet {share:.0%}  ({took:.0f} s)", flush=True)
-    done += 1
-    if done >= limit:
-        break
-print(f"\n{len(rows)} Gespräche: {total_ok / total_all:.1%} der Sprechzeit richtig zugeordnet; "
-      f"Sprecherzahl stimmt bei {sum(1 for r in rows if r[1] == r[2])} von {len(rows)}")
+    whole = table.sum() + missed
+    ok += best
+    total += whole
+    rows.append((len(names), len(found)))
+    print(f"{len(audio) / 16000:5.0f} s  wahr {len(names)} Sprecher, erkannt {len(found)}  richtig zugeordnet "
+          f"{best / max(whole, 1e-9):.0%}  ({took:.0f} s)", flush=True)
+print(f"\n{len(rows)} Gespräche: {ok / total:.1%} der Sprechzeit richtig zugeordnet; "
+      f"Sprecherzahl stimmt bei {sum(a == b for a, b in rows)} von {len(rows)}")

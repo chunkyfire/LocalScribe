@@ -391,16 +391,31 @@ class Transcriber:
                     asr._decoding = full
         return "" if text.strip(" .!?,").lower() in PHANTOMS else LEADING.sub("", text).rstrip(".")
 
-    def recognize(self, chunk: np.ndarray) -> str:
+    def recognize(self, chunk: np.ndarray, words=None) -> str:
         """Ein Stück erkennen. Kurze englische Einwürfe verwirft die deutsche Erkennung: Aus einem
-        Atemzug oder Räuspern vor dem ersten Wort macht das Modell gelegentlich „Hey!“ oder „Hello.“"""
+        Atemzug oder Räuspern vor dem ersten Wort macht das Modell gelegentlich „Hey!“ oder „Hello.“
+        words: leere Liste; sie wird mit (Wort, Beginn in Sekunden ab Stückanfang) gefüllt (für die Sprechertrennung)."""
         self.arm()
+        timed = []
         with self.lock:
-            text = (self.model.recognize(chunk, sample_rate=RATE, **self.kw) or "").strip()
+            if words is None:
+                text = (self.model.recognize(chunk, sample_rate=RATE, **self.kw) or "").strip()
+            else:
+                result = self.model.with_timestamps().recognize(chunk, sample_rate=RATE, **self.kw)
+                text = (result.text or "").strip()
+                for token, at in zip(result.tokens or (), result.timestamps or ()):
+                    if token.startswith(" ") or not timed:
+                        timed.append([token.strip(), float(at)])
+                    else:
+                        timed[-1][0] += token
+                timed = [(w, t) for w, t in timed if w]
         if self.loaded in config.GERMAN:
             if len(chunk) < 2.5 * RATE and text.strip(" .!?,").lower() in PHANTOMS:
                 return ""
-            text = LEADING.sub("", text)        # „Hey! 58-jähriger Patient …“
+            if LEADING.match(text):             # „Hey! 58-jähriger Patient …“
+                text, timed = LEADING.sub("", text), timed[1:]
+        if words is not None:
+            words.extend(timed)
         return text
 
     def load(self, progress=None):
@@ -471,12 +486,20 @@ class Transcriber:
         stats.setdefault("failed", 0)
         stats.setdefault("chunks", 0)
         seg, seen, cost = Segmenter(), 0, 0.0
+        turns = stats.get("turns")       # sprecher.Turns oder None; die Wörter mit Zeitpunkt landen in stats["words"]
 
         def pieces():
             nonlocal seen, cost, idle
+            nonlocal turns
             for block in blocks:
                 if block is None or not len(block):
                     continue
+                if turns is not None:           # Sprecher trennen: hört denselben Ton mit
+                    try:
+                        turns.feed(block)
+                    except Exception:
+                        log.exception("Sprechertrennung abgebrochen, der Text läuft ohne Sprecherzeilen weiter")
+                        turns = stats["turns"] = None
                 got = seg.feed(block)
                 if got:
                     seen = 0
@@ -502,22 +525,17 @@ class Transcriber:
             done += len(chunk) / RATE
             stats["chunks"] += 1
             if not still and len(chunk) >= 0.2 * RATE:
+                began, timed = done - len(chunk) / RATE, [] if "words" in stats else None
                 try:
-                    text = self.recognize(chunk)
+                    text = self.recognize(chunk, timed)
                 except Exception:
                     log.exception("Stück bei %.0f s nicht erkannt", done)
                     stats["failed"] += 1
-                    text = GAP
+                    text, timed = GAP, [(GAP, 0.0)] if timed is not None else None
                 if text:
                     texts.append(text)
-                    if "pieces" in stats:       # Sprecher trennen: Stimmabdruck je Äußerung
-                        from . import sprecher
-                        try:
-                            voice = sprecher.embed(chunk) if text != GAP else None
-                        except Exception:
-                            log.exception("Stimmabdruck nicht berechenbar")
-                            voice = None
-                        stats["pieces"].append((text, voice, len(chunk) / RATE))
+                    if timed:
+                        stats["words"].extend((w, began + t) for w, t in timed)
             if on_part:
                 on_part(join_parts(texts), done)
         return join_parts(texts)

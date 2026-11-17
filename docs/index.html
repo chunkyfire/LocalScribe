@@ -49,6 +49,7 @@ svg.p text { fill: var(--ink); stroke: none; font: 800 15px var(--font); text-an
 .cover .art svg { aspect-ratio: 300 / 250; }
 .cover .claim { font-weight: 600; font-size: clamp(20px, 3vw, 28px); line-height: 1.25; margin-top: 22px; }
 .cover .claim span { display: block; }
+.by { font-weight: 600; font-size: 15px; margin-left: 2px; align-self: flex-end; padding-bottom: 5px; }
 .lead { grid-column: 1 / -1; margin-top: 34px; display: grid; grid-template-columns: auto 1fr; gap: 28px; align-items: center; }
 .lead .dl { display: inline-block; background: var(--mark); color: var(--ink); border: 2.5px solid var(--ink); border-radius: 6px; padding: 14px 22px; font-weight: 800; font-size: 18px; text-decoration: none; line-height: 1.2; }
 .lead .dl small { display: block; font-weight: 600; font-size: 13px; margin-top: 3px; }
@@ -194,7 +195,7 @@ code { font: 600 14px ui-monospace, Consolas, monospace; background: #eef0ed; pa
 
 <section class="sheet cover">
   <div>
-    <div class="brand"><svg><use href="#logo"/></svg>LocalScribe</div>
+    <div class="brand"><svg><use href="#logo"/></svg>LocalScribe<span class="by">by <a href="https://cemmec.ai">cemmec.ai</a></span></div>
     <h1>Hand&shy;buch</h1>
     <p class="claim"><span>Taste halten.</span><span>Sprechen.</span><span><span class="hl" style="display:inline">Loslassen. Der Text steht da.</span></span></p>
   </div>
@@ -218,7 +219,7 @@ code { font: 600 14px ui-monospace, Consolas, monospace; background: #eef0ed; pa
     <div><svg class="p"><use href="#i-once"/></svg><span>einmal Internet, danach keins mehr</span></div>
     <div><svg class="p"><use href="#i-noadmin"/></svg><span>keine Admin&shy;rechte</span></div>
   </div>
-  <span class="no">Version 0.14.6</span>
+  <span class="no">Version 0.15.0</span>
 </section>
 
 <section class="sheet" id="installieren">
@@ -304,9 +305,9 @@ code { font: 600 14px ui-monospace, Consolas, monospace; background: #eef0ed; pa
 
   <div class="feat">
     <div><div class="head"><svg class="p"><use href="#f-talk"/></svg><h3>Sprecher trennen: so funktioniert es</h3></div>
-      <p>Jede Äußerung bekommt einen Stimmabdruck. Ähnliche Stimmen werden zu einem Sprecher. Das rechnet dein Rechner selbst, ohne Grafikkarte. Beim ersten Einschalten wird einmal ein kleines Stimmmodell geladen (26 MB).</p></div>
+      <p>Die App hört mit, wer wann spricht, auch wenn die Sprecher ohne Pause wechseln. Jede Stimme bekommt einen Stimmabdruck, ähnliche Abdrücke werden zu einem Sprecher, und jedes Wort landet bei der Stimme, die es gesagt hat. Das rechnet dein Rechner selbst, ohne Grafikkarte. Das Stimmmodell (26 MB) liegt im Komplettpaket bei, sonst wird es einmal geladen.</p></div>
     <div><div class="head"><svg class="p"><use href="#t-tip"/></svg><h3>Gut zu wissen</h3></div>
-      <p>Die App nummeriert, sie erkennt niemanden wieder. Reden zwei gleichzeitig oder fällt jemand ins Wort, landet das in einer Zeile. Ein kurzes „ja“ wird dem Sprecher davor zugeordnet.</p></div>
+      <p>Die App nummeriert, sie erkennt niemanden wieder. Reden zwei gleichzeitig, bekommt das Wort einen der beiden. Wer insgesamt nur wenige Sekunden spricht, wird dem ähnlichsten Sprecher zugeschlagen.</p></div>
   </div>
 
   <div class="feat">
@@ -366,7 +367,7 @@ code { font: 600 14px ui-monospace, Consolas, monospace; background: #eef0ed; pa
     <div><b>7,5 %</b><p>Die fünf Diktate mit eingeschalteter Fachkorrektur durch ein Sprachmodell (älterer Stand, ohne den neuen Wortschatz gemessen). Corti damit: 13,7 %.</p></div>
     <div><b>2 Sekunden</b><p>So lange braucht ein 45-Sekunden-Diktat auf einem Büro-Prozessor von 2023 (Intel i7-13700KF), ohne Grafikkarte.</p></div>
     <div><b>1 Minute</b><p>So lange dauert der allererste Start mit dem Laden des Sprachmodells (910 MB) bei schneller Leitung. Jeder weitere Start: 2 Sekunden.</p></div>
-    <div><b>89 % und 75 %</b><p>Sprechertrennung: Anteil der richtig zugeordneten Sprechzeit bei Interviews und bei Telefongesprächen.</p></div>
+    <div><b>93 % und 81 %</b><p>Sprechertrennung: Anteil der richtig zugeordneten Sprechzeit bei Interviews und bei Telefongesprächen (englische Aufnahmen mit bekannten Sprechern).</p></div>
   </div>
   <div class="tip"><svg class="p"><use href="#t-tip"/></svg><p>Die Zahlen stammen von wenigen Sprechern in ruhiger Umgebung. Dialekt, Lärm und Durcheinanderreden sind nicht gemessen. Am ersten Tag kennt die App deine Fachwörter noch nicht; mit „Aus eigenen Texten lernen“ wird sie schnell besser.</p></div>
   <span class="no">6</span>
@@ -433,6 +434,7 @@ code { font: 600 14px ui-monospace, Consolas, monospace; background: #eef0ed; pa
     <p><b>Eigene Fassung:</b> Jede Person hält LocalScribe in ihrem eigenen Ordner und klickt in den Einstellungen <span class="hl">Daten in diesem Programmordner ablegen</span>. Dann gehören Wortschatz, Verlauf und Einstellungen zu diesem Ordner. Nur in einem Ordner, den sonst niemand öffnen kann.</p>
     <p><b>Ein Modell für alle:</b> Den Ordner <code>modelle</code> aus dem Komplettpaket einmal neben die Programmordner legen, oder seinen Ort in den Einstellungen unter „Modellordner“ angeben. Dann genügt überall das kleine Paket.</p>
     <h2 style="margin-top:34px">Mehr</h2>
+    <p>LocalScribe ist ein Projekt von <a href="https://cemmec.ai">cemmec.ai</a> (Dr. Cem Özel). Support, Rückfragen und Änderungswünsche: <a href="https://www.linkedin.com/in/cem-%C3%B6zel-ab0b37113">Cem Özel auf LinkedIn</a>.</p>
     <p>Quelltext, neue Versionen und Fehler melden: <a href="https://github.com/chunkyfire/LocalScribe">github.com/chunkyfire/LocalScribe</a></p>
     <p>Für die IT: Aufbau, Datenablage, Netzwerkverbindungen und Verteilung ohne Internet stehen in der <a href="https://chunkyfire.github.io/LocalScribe/technik.html">technischen Dokumentation</a>.</p>
     <p class="soft">Freie Software unter GPL-3.0-or-later. Sprachmodell: primeline-Parakeet. Stimmmodell: WeSpeaker. LocalScribe ist kein Medizinprodukt, siehe Seite 8.</p>

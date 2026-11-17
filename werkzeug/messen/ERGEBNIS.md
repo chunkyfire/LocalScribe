@@ -201,10 +201,42 @@ Ein Anamnesegespräch aus zehn Redebeiträgen (64 s, Nierenbeckenentzündung), g
 Frauenstimmen von ElevenLabs, also künstlich erzeugt und ohne Durcheinanderreden. Zwei Sprecherinnen erkannt,
 100 % der Sprechzeit richtig zugeordnet, 8,3 s Rechenzeit auf der CPU. Erkennungsfehler: „Ramipil“.
 
-    python werkzeug\messen\dialog.py <Ordner mit 01.mp3 ...> ABABABABAB
+(Gemessen mit dem Verfahren bis 0.14; das Skript dazu gibt es nicht mehr.)
 
 Ein echtes Gespräch mit Unterbrechungen, Nebengeräuschen und ähnlichen Stimmen ist schwerer; dazu die Werte
 oben (VoxConverse 88,6 %, CallHome 75,4 %).
+
+## Sprechertrennung mit pyannote-Segmentierung (17.11.2026, ab 0.15.0)
+
+Anlass: In einer echten Aufnahme mit vier Personen in der Notaufnahme landeten Redebeiträge beim falschen Sprecher,
+weil die Sprecher ohne Pause wechselten und das alte Verfahren je Sprechpausen-Stück genau einen Sprecher vergab.
+Neu: Segmentierung (pyannote segmentation-3.0 als ONNX) in Fenstern von 10 s, Stimmabdruck (WeSpeaker) je 3 s
+Alleinredezeit einer Stimme, Gruppierung, Zeitleiste, Zuordnung je Wort über dessen Zeitpunkt.
+
+    python werkzeug\messen\gespraech.py <parquet> <Anzahl>
+
+Anteil der Sprechzeit beim richtigen Sprecher; Sprache, die keinem Sprecher zugeordnet wurde, zählt als falsch
+(das alte Verfahren wurde ohne diese Strafe gemessen, die neuen Zahlen sind also die strengeren):
+
+| Aufnahmen | alt | neu | Sprecherzahl stimmt alt | neu |
+|---|---|---|---|---|
+| VoxConverse, 10 Aufnahmen (Interviews, 1 bis 17 Sprecher) | 88,6 % | 92,7 % | 5 von 10 | 8 von 10 |
+| CallHome englisch, 12 Telefongespräche | 75,4 % | 81,3 % | 8 von 12 | 10 von 12 |
+
+Varianten: ein Abdruck je Stimme und Fenster statt je 3 s: 93,9 % und 77,1 %, aber das deutsche Testgespräch aus
+zwei ähnlichen Stimmen fiel zu einem Sprecher zusammen (die Segmentierung überhört dort einzelne Wechsel). Ohne die
+Zwei-Prozent-Regel für Sprecher mit wenig Redezeit: 94,7 % und 80,3 %, am Telefon aber nur bei 2 von 12 die richtige
+Sprecherzahl. Schwelle 0,36 statt 0,42: das deutsche Gespräch fällt zusammen. Die Varianten sind auf vorab berechneten
+Abdrücken verglichen (dort 93,3 % und 80,9 % für die gewählte Fassung); die Tabelle zeigt den Lauf durch die App-Klasse.
+Die Werte sind an genau diesen Aufnahmen eingestellt, also eher günstig.
+
+Deutsches Anamnesegespräch (zwei ähnliche Frauenstimmen von ElevenLabs, zehn Redebeiträge, 55 s), Redebeiträge
+ohne jede Pause aneinandergehängt, mit der Spracherkennung der App (`tests\_cem\dicht.py`): 94 % der Wörter beim
+richtigen Sprecher; mit 0,15 s Pause zwischen den Beiträgen 100 %. Rechenzeit 5 s für 55 s Ton einschließlich
+Spracherkennung (i7-13700KF).
+
+Nicht gemessen: echte deutsche Gespräche mit mehr als zwei Personen, Nebengeräusche einer Notaufnahme, mehrere
+Personen in unterschiedlichem Abstand zum Mikrofon.
 
 ## Fachkorrektur mit großem Sprachmodell und ein unabhängiger Prüfsatz (16.11.2026)
 
