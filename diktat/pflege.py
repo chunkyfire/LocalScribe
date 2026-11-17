@@ -4,15 +4,21 @@ Ein laufendes Programm kann seinen eigenen Ordner weder ersetzen noch löschen. 
 Skript in den Temp-Ordner, beendet sich, und das Skript erledigt den Rest, sobald die Dateien frei sind. Einstellungen,
 Verlauf und Sprachmodelle im Benutzerkonto bleiben bei einem Update unberührt.
 """
+import json
 import os
+import re
 import shutil
+import ssl
 import subprocess
 import sys
 import tempfile
+import urllib.error
+import urllib.request
 import zipfile
+import zlib
 from pathlib import Path
 
-from . import config
+from . import __version__, config
 
 EXE = "LocalScribe.exe"
 FAILED = "update-fehlgeschlagen"       # legt das Skript in den Datenordner, wenn der alte Ordner nicht frei wurde
@@ -92,6 +98,167 @@ def unpack(archive, prog: Path) -> Path:
         finally:
             shutil.rmtree(tmp, ignore_errors=True)
     return new
+
+
+RELEASES = "https://github.com/chunkyfire/LocalScribe/releases"
+GAP = 64 * 1024        # liegen zwei geänderte Dateien im Paket so nah beieinander, kommen sie in einer Anfrage
+
+
+def number(version: str) -> tuple:
+    """„v1.2.10“ → (1, 2, 10), damit 1.2.10 neuer ist als 1.2.9."""
+    return tuple(int(n) for n in re.findall(r"\d+", version)[:3])
+
+
+def _open(url, start=None, end=None, timeout=20):
+    headers = {"User-Agent": f"LocalScribe/{__version__}", "Accept": "application/octet-stream, application/json"}
+    if start is not None:
+        headers["Range"] = f"bytes={start}-{end - 1}"
+    request = urllib.request.Request(url, headers=headers)
+    try:
+        return urllib.request.urlopen(request, timeout=timeout)
+    except urllib.error.URLError as e:
+        # Windows-Zertifikatsspeicher unvollständig oder Kliniknetz mit eigener Stammstelle: wie beim Laden der
+        # Modelle noch einmal mit der mitgelieferten Liste von certifi.
+        if not isinstance(getattr(e, "reason", None), ssl.SSLError):
+            raise
+        try:
+            import certifi
+        except ImportError:
+            raise e from None
+        return urllib.request.urlopen(request, timeout=timeout,
+                                      context=ssl.create_default_context(cafile=certifi.where()))
+
+
+def latest() -> dict:
+    """Neueste veröffentlichte Fassung bei GitHub: {"version", "url", "size", "newer"}.
+
+    Die einzige Stelle, an der LocalScribe von sich aus nach einer neuen Fassung fragt, und nur auf Klick."""
+    try:
+        with _open(RELEASES + "/latest") as r:            # leitet auf …/releases/tag/v1.2.3 um
+            version = r.geturl().rstrip("/").rsplit("/", 1)[-1].lstrip("v")
+        if not re.fullmatch(r"\d+(\.\d+)+", version):
+            raise ValueError("keine Fassung gefunden")
+        url = f"{RELEASES}/download/v{version}/LocalScribe-{version}-windows.zip"
+        with _open(url, 0, 1) as r:                         # ein Byte: nennt die Größe des Pakets
+            size = int(r.headers.get("Content-Range", "/0").rsplit("/", 1)[-1])
+    except (OSError, ValueError) as e:
+        reason = getattr(e, "reason", e)
+        raise RuntimeError(f"Dieser Rechner erreicht GitHub nicht ({reason}). Das ist in Kliniknetzen häufig so. Dann die "
+                           "ZIP-Datei an einem anderen Rechner laden und hier über „Aus ZIP-Datei aktualisieren“ "
+                           "auswählen.") from e
+    if not size:
+        raise RuntimeError("Bei GitHub liegt gerade kein Paket der neuesten Fassung.")
+    return {"version": version, "url": url, "size": size, "newer": number(version) > number(__version__)}
+
+
+class Remote:
+    """Eine ZIP-Datei auf einem Server, gelesen in Ausschnitten (HTTP Range). So holt ein Update nur die Dateien,
+    die sich geändert haben, und nicht das ganze Paket."""
+
+    def __init__(self, url, size):
+        self.url, self.size, self.pos, self.loaded = url, size, 0, 0
+        self.start, self.data = 0, b""
+
+    def seekable(self):
+        return True
+
+    def tell(self):
+        return self.pos
+
+    def seek(self, offset, whence=0):
+        self.pos = offset if whence == 0 else self.pos + offset if whence == 1 else self.size + offset
+        return self.pos
+
+    def hold(self, start, end):
+        """Diesen Ausschnitt in einer Anfrage holen und bereithalten."""
+        start, end = max(0, start), min(self.size, end)
+        if start >= self.start and end <= self.start + len(self.data):
+            return
+        with _open(self.url, start, end, timeout=60) as r:
+            if r.status != 206:
+                raise RuntimeError("Der Server liefert keine Ausschnitte. Bitte die ZIP-Datei laden und über "
+                                   "„Aus ZIP-Datei aktualisieren“ auswählen.")
+            data = r.read()
+        if len(data) != end - start:
+            raise RuntimeError("Der Download wurde unterbrochen.")
+        self.start, self.data, self.loaded = start, data, self.loaded + len(data)
+
+    def read(self, n=-1):
+        if n < 0:
+            n = self.size - self.pos
+        n = min(n, self.size - self.pos)
+        if n <= 0:
+            return b""
+        if self.pos < self.start or self.pos + n > self.start + len(self.data):
+            self.hold(self.pos, self.pos + max(n, GAP))
+        at = self.pos - self.start
+        self.pos += n
+        return self.data[at:at + n]
+
+
+def _crc(path: Path) -> int:
+    crc = 0
+    with open(path, "rb") as f:
+        while block := f.read(1 << 20):
+            crc = zlib.crc32(block, crc)
+    return crc
+
+
+def fetch(info: dict, prog: Path, progress=None, source=None):
+    """Neue Fassung neben dem Programmordner aufbauen und dafür nur laden, was sich geändert hat.
+
+    Das Inhaltsverzeichnis des Pakets nennt für jede Datei Größe und Prüfsumme. Was im Programmordner schon genau so
+    liegt, wird von dort kopiert; nur der Rest kommt aus dem Netz. Gibt (Ordner der neuen Fassung, geladene Bytes,
+    Zahl der geladenen Dateien) zurück. progress(geladen, gesamt) meldet den Stand."""
+    reason = blocked(prog)
+    if reason:
+        raise RuntimeError(reason + " Entpacke die neue Fassung stattdessen von Hand in einen neuen Ordner.")
+    remote = source or Remote(info["url"], info["size"])
+    new = prog.with_name(prog.name + ".neu")
+    shutil.rmtree(new, ignore_errors=True)
+    try:
+        z = zipfile.ZipFile(remote)
+        roots = {n.split("/")[0] for n in z.namelist() if n.count("/") == 1 and n.endswith("/" + EXE)}
+        if len(roots) != 1:
+            raise RuntimeError("Das Paket bei GitHub ist kein LocalScribe-Paket.")
+        root = roots.pop() + "/"
+        files = sorted((i for i in z.infolist() if i.filename.startswith(root) and not i.is_dir()),
+                       key=lambda i: i.header_offset)
+        ends = [i.header_offset for i in files[1:]] + [z.start_dir]
+        todo = []                                        # (Eintrag, Ende seiner Daten im Paket)
+        for item, end in zip(files, ends):
+            rel = item.filename[len(root):]
+            have, target = prog / rel, new / rel
+            target.parent.mkdir(parents=True, exist_ok=True)
+            if have.is_file() and have.stat().st_size == item.file_size and _crc(have) == item.CRC:
+                shutil.copy2(have, target)
+            else:
+                todo.append((item, end))
+        total = sum(end - item.header_offset for item, end in todo)
+        done, i = 0, 0
+        while i < len(todo):                             # benachbarte Dateien in einer Anfrage
+            j = i
+            while j + 1 < len(todo) and todo[j + 1][0].header_offset - todo[j][1] <= GAP \
+                    and todo[j + 1][1] - todo[i][0].header_offset <= 64 << 20:
+                j += 1
+            remote.hold(todo[i][0].header_offset, todo[j][1])
+            for item, end in todo[i:j + 1]:
+                with z.open(item) as src, open(new / item.filename[len(root):], "wb") as dst:
+                    shutil.copyfileobj(src, dst, 1 << 20)          # prüft dabei die Prüfsumme der Datei
+                done += end - item.header_offset
+                if progress:
+                    progress(done, total)
+            i = j + 1
+        if not (new / EXE).is_file():
+            raise RuntimeError("Im Paket fehlt LocalScribe.exe.")
+        return new, getattr(remote, "loaded", total), len(todo)
+    except (OSError, zipfile.BadZipFile, urllib.error.URLError) as e:
+        shutil.rmtree(new, ignore_errors=True)
+        raise RuntimeError(f"Das Update ließ sich nicht laden ({getattr(e, 'reason', None) or e}). Nichts wurde "
+                           "verändert. Später noch einmal versuchen oder die ZIP-Datei von Hand laden.") from e
+    except RuntimeError:
+        shutil.rmtree(new, ignore_errors=True)
+        raise
 
 
 def swap(prog: Path, new: Path, start=True) -> Path:

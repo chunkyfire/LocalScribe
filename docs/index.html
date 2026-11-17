@@ -208,7 +208,7 @@ code { font: 600 14px ui-monospace, Consolas, monospace; background: #eef0ed; pa
   <div class="lead">
     <a class="dl" href="https://github.com/chunkyfire/LocalScribe/releases/latest">Aktuelle Version laden<small>Windows · kostenlos · GitHub Releases</small></a>
     <div class="nums">
-      <div><b>8,3 %</b><span>Wortfehlerrate an fünf ärztlichen Diktaten eines Sprechers. Cloud-Dienste an denselben Diktaten: Tandem 8,3&nbsp;%, Orpheus 9,7&nbsp;%, Heidi 9,7&nbsp;%.</span></div>
+      <div><b>8,3 %</b><span>Wortfehlerrate an fünf ärztlichen Diktaten eines Sprechers. Drei Cloud-Dienste für ärztliche Dokumentation an denselben Diktaten: 8,3&nbsp;%, 9,7&nbsp;% und 9,7&nbsp;%.</span></div>
       <div><b>2 Sekunden</b><span>für ein 45-Sekunden-Diktat auf einem Büro-PC, ohne Grafikkarte.</span></div>
       <div><b>lokal</b><span>Die Spracherkennung läuft auf dem eigenen Rechner. Kein Ton geht ins Internet. Mehr auf Seite 6.</span></div>
     </div>
@@ -362,7 +362,7 @@ code { font: 600 14px ui-monospace, Consolas, monospace; background: #eef0ed; pa
   <h2>Benchmark: wie gut und wie schnell</h2>
   <p style="margin-bottom:26px">Gemessen wird die Wortfehlerrate: wie viele von hundert Wörtern falsch, zu viel oder zu wenig sind. Kleiner ist besser. Alle Zahlen mit Methode und Einschränkungen stehen in <code>werkzeug/messen/ERGEBNIS.md</code>.</p>
   <div class="four" style="grid-template-columns:repeat(3,1fr);row-gap:34px">
-    <div><b>8,3 %</b><p>Fünf ärztliche Diktate eines Sprechers (412 Wörter), ohne Sprachmodell-Korrektur. An denselben Diktaten: Tandem 8,3 %, Orpheus 9,7 %, Heidi 9,7 % (Cloud); Whisper Large v3 Turbo Deutsch 14,1 %, VibeVoice 16,3 % (lokal).</p></div>
+    <div><b>8,3 %</b><p>Fünf ärztliche Diktate eines Sprechers (412 Wörter), ohne Sprachmodell-Korrektur. An denselben Diktaten: drei Cloud-Dienste für ärztliche Dokumentation 8,3 %, 9,7 % und 9,7 %; Whisper Large v3 Turbo Deutsch 14,1 %, VibeVoice 16,3 % (lokal).</p></div>
     <div><b>11,1 %</b><p>Neun echte Arztdiktate von Corti (33 Minuten, sieben Fachgebiete), wenn die Fachwörter im eigenen Wortschatz stehen. Nur mit der mitgelieferten Kernliste: 15,4 %.</p></div>
     <div><b>7,5 %</b><p>Die fünf Diktate mit eingeschalteter Fachkorrektur durch ein Sprachmodell (älterer Stand, ohne den neuen Wortschatz gemessen). Corti damit: 13,7 %.</p></div>
     <div><b>2 Sekunden</b><p>So lange braucht ein 45-Sekunden-Diktat auf einem Büro-Prozessor von 2023 (Intel i7-13700KF), ohne Grafikkarte.</p></div>
@@ -380,7 +380,7 @@ code { font: 600 14px ui-monospace, Consolas, monospace; background: #eef0ed; pa
     <div><svg class="p pic"><use href="#p-audio"/></svg><b>Ton wird gelöscht</b><p>Diktate per Taste werden nie gespeichert. Einzige Ausnahme, nur wenn du sie einschaltest: Das Stimmtraining hebt die erfundenen Übungssätze auf, die du vorliest. Echte Diktate nie. Die Sicherung einer langen Aufnahme verschwindet, sobald der Text fertig ist.</p></div>
     <div><svg class="p pic"><use href="#p-seven"/></svg><b>Text bleibt 7 Tage</b><p>Danach löscht sich der Verlauf selbst. Frist ändern oder Verlauf ganz abschalten: Einstellungen.</p></div>
     <div><svg class="p pic"><use href="#f-talk"/></svg><b>Stimmabdrücke bleiben nicht</b><p>„Sprecher trennen“ vergleicht Stimmen nur, solange die Transkription läuft. Danach ist der Abdruck weg. Im Text stehen Nummern, keine Namen.</p></div>
-    <div><svg class="p pic"><use href="#i-once"/></svg><b>Internet nur für Modelle</b><p>Die App lädt das Sprachmodell einmal, ein anderes Modell beim Umschalten, das Stimmmodell beim ersten Einschalten. Sonst geht sie nie ins Netz.</p></div>
+    <div><svg class="p pic"><use href="#i-once"/></svg><b>Internet nur für Modelle</b><p>Die App lädt das Sprachmodell einmal, ein anderes Modell beim Umschalten, das Stimmmodell beim ersten Einschalten. Nach einer neuen Fassung fragt sie nur auf Klick. Sonst geht sie nie ins Netz.</p></div>
     <div><svg class="p pic"><use href="#p-key"/></svg><b>Ausnahme mit Ansage</b><p>Nur wenn du unter KI-Nachbearbeitung einen Server außerhalb deines Rechners einträgst, geht Text dorthin. Die App zeigt das rot an und ersetzt vorher Namen, Daten, Nummern und Anschriften durch Platzhalter. Fehlt die Namenserkennung auf dem Rechner, sendet sie nichts. Kein Verfahren findet alles; für echte Patientendaten gehört das Sprachmodell ins eigene Haus.</p></div>
   </div>
   <div class="tip"><svg class="p"><use href="#t-tip"/></svg><p>In Klinik und Praxis gilt: Was du diktierst, sind oft Patientendaten. Solange du keinen fremden Server einträgst, verlassen sie den Rechner nicht. Ob du LocalScribe dienstlich nutzen darfst, entscheidet dein Haus.</p></div>
@@ -413,7 +413,7 @@ code { font: 600 14px ui-monospace, Consolas, monospace; background: #eef0ed; pa
     <div><b>Die Sprecher stimmen nicht.</b><p>Hilft: nicht durcheinanderreden, das Mikrofon in die Mitte legen. Sehr ähnliche Stimmen kann die App verwechseln. Fehlen die Sprecherzeilen ganz, fehlt das Stimmmodell: Im Komplettpaket liegt es bei.</p></div>
     <div><b>Die Aufnahme wurde unterbrochen.</b><p>Beim nächsten Öffnen bietet die Seite Aufnahme an, den gesicherten Ton nachträglich zu transkribieren.</p></div>
     <div><b>F8 fügt ungeglätteten Text ein.</b><p>Dann ist kein Sprachmodell erreichbar. Unter KI-Nachbearbeitung den Server prüfen.</p></div>
-    <div><b>Wie genau ist die Erkennung?</b><p>An fünf ärztlichen Diktaten gemessen: 8 von 100 Wörtern weichen ab; bei den Cloud-Diensten Tandem, Orpheus und Heidi 8, 10 und 10. Bei fremden Sprechern und seltenen Fachgebieten sind es mehr. Am meisten helfen eigene Begriffe für Medikamente und Namen.</p></div>
+    <div><b>Wie genau ist die Erkennung?</b><p>An fünf ärztlichen Diktaten gemessen: 8 von 100 Wörtern weichen ab; bei drei Cloud-Diensten für ärztliche Dokumentation 8, 10 und 10. Bei fremden Sprechern und seltenen Fachgebieten sind es mehr. Am meisten helfen eigene Begriffe für Medikamente und Namen.</p></div>
   </div>
   <span class="no">9</span>
 </section>
@@ -421,8 +421,8 @@ code { font: 600 14px ui-monospace, Consolas, monospace; background: #eef0ed; pa
 <section class="sheet end" id="entfernen">
   <div>
     <h2>Aktualisieren</h2>
-    <p>Neue ZIP herunterladen, das kleine Paket genügt. In der App: Einstellungen, ganz unten <span class="hl">Aus ZIP-Datei aktualisieren</span>, die ZIP auswählen. LocalScribe ersetzt den Programmordner und startet neu. Einstellungen, Verlauf und Sprachmodell bleiben.</p>
-    <p>Von Hand geht es auch: LocalScribe über das Symbol neben der Uhr beenden, die neue ZIP in einen neuen Ordner entpacken, von dort starten.</p>
+    <p>Einstellungen, ganz unten <span class="hl">Nach Updates suchen</span>. Gibt es eine neuere Fassung, lädt ein zweiter Klick nur die geänderten Dateien, ersetzt den Programmordner und startet neu. Einstellungen, Verlauf und Sprachmodell bleiben.</p>
+    <p>Erreicht der Rechner GitHub nicht (häufig in Kliniken): die neue ZIP an einem anderen Rechner laden, das kleine Paket genügt, und über <span class="hl">Aus ZIP-Datei aktualisieren</span> auswählen.</p>
     <h2 style="margin-top:34px">Entfernen</h2>
     <p>Einstellungen, ganz unten <span class="hl">LocalScribe entfernen</span>: löscht Verknüpfungen, Autostart und Programmordner, auf Wunsch auch die eigenen Daten.</p>
     <p>Von Hand: LocalScribe beenden, den Ordner löschen, dazu <code>%LOCALAPPDATA%\LocalScribe</code>.</p>

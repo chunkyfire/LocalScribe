@@ -462,6 +462,55 @@ if sys.platform == "win32":
             break
         _time.sleep(0.2)
     check("Pflege: Entfernen löscht den Programmordner", not _prog.exists())
+# Online-Update: nur geänderte Dateien kommen aus dem Paket, der Rest aus dem Programmordner
+import os as _os
+import zipfile as _zip2
+from diktat import pflege as _pf
+check("Update: 1.10.0 ist neuer als 1.9.3", _pf.number("v1.10.0") > _pf.number("1.9.3") and _pf.number("1.0.0") == (1, 0, 0))
+_ub = pathlib.Path(tempfile.mkdtemp())
+_have = _ub / "LocalScribe"
+(_have / "_internal" / "qt").mkdir(parents=True)
+_same = _os.urandom(300_000)
+(_have / "_internal" / "qt" / "gross.dll").write_bytes(_same)
+(_have / "_internal" / "weg.pyd").write_bytes(b"gibt es in der neuen Fassung nicht mehr")
+(_have / "LocalScribe.exe").write_bytes(b"alt" * 1000)
+(_have / "LIESMICH.txt").write_bytes(b"gleich")
+_zipped = _ub / "paket.zip"
+with _zip2.ZipFile(_zipped, "w", _zip2.ZIP_DEFLATED) as _z:
+    _z.writestr("LocalScribe/LIESMICH.txt", b"gleich")
+    _z.writestr("LocalScribe/_internal/qt/gross.dll", _same)
+    _z.writestr("LocalScribe/LocalScribe.exe", b"neu" * 1000)
+    _z.writestr("LocalScribe/_internal/dazu.dll", b"neue Datei")
+
+
+class _Local(_pf.Remote):
+    """Liest die Ausschnitte aus einer Datei statt aus dem Netz und zählt mit."""
+    def hold(self, start, end):
+        start, end = max(0, start), min(self.size, end)
+        if start >= self.start and end <= self.start + len(self.data):
+            return
+        with open(self.url, "rb") as f:
+            f.seek(start)
+            self.start, self.data = start, f.read(end - start)
+        self.loaded += len(self.data)
+
+
+_src = _Local(str(_zipped), _zipped.stat().st_size)
+_steps = []
+_built, _bytes, _count = _pf.fetch({}, _have, progress=lambda d, n: _steps.append((d, n)), source=_src)
+check("Update: neue Fassung vollständig", (_built / "LocalScribe.exe").read_bytes() == b"neu" * 1000
+      and (_built / "_internal" / "qt" / "gross.dll").read_bytes() == _same
+      and (_built / "_internal" / "dazu.dll").read_bytes() == b"neue Datei"
+      and (_built / "LIESMICH.txt").read_bytes() == b"gleich" and not (_built / "_internal" / "weg.pyd").exists())
+check("Update: nur die zwei geänderten Dateien geladen", _count == 2 and _bytes < 5000, (_count, _bytes))
+check("Update: Fortschritt endet bei 100 %", _steps and _steps[-1][0] == _steps[-1][1], _steps)
+check("Update: alter Ordner unberührt", (_have / "LocalScribe.exe").read_bytes() == b"alt" * 1000)
+(_ub / "kaputt.zip").write_bytes(b"kein zip" * 100)
+try:
+    _pf.fetch({}, _have, source=_Local(str(_ub / "kaputt.zip"), 800))
+    check("Update: kaputtes Paket wird abgelehnt", False)
+except RuntimeError:
+    check("Update: kaputtes Paket wird abgelehnt und nichts bleibt liegen", not (_ub / "LocalScribe.neu").exists())
 # Modellordner: der eingestellte Ordner wird gefunden, ohne Netz
 _shared = pathlib.Path(tempfile.mkdtemp())
 (_shared / "fremd--modell--abcdefabcdef").mkdir()

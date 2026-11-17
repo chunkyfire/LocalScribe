@@ -63,8 +63,14 @@ entpackt haben.
 Scheitert der Download des Modells (Proxy, Firewall), zeigt das Fenster den Grund im Klartext, dazu die Knöpfe
 „Erneut versuchen“, „Komplettpaket herunterladen“ und „Protokoll öffnen“.
 
-Aktualisieren: Einstellungen, „Aus ZIP-Datei aktualisieren“. Die App entpackt das Paket neben den Programmordner
-(`<Ordner>.neu`), beendet sich, und ein Skript im Temp-Ordner tauscht die Ordner, sobald die Dateien frei sind, und
+Aktualisieren, zwei Wege (Einstellungen, ganz unten). **Nach Updates suchen**: Auf Klick fragt die App bei
+`github.com` nach der neuesten Fassung (`pflege.latest`, die Weiterleitung von `…/releases/latest` nennt die Nummer).
+Gibt es eine neuere, liest sie das Inhaltsverzeichnis des kleinen Pakets über HTTP-Range-Anfragen, vergleicht Größe
+und CRC-32 jeder Datei mit dem Programmordner, kopiert Unverändertes von dort und lädt nur die geänderten Dateien
+(`pflege.fetch`); beim Entpacken prüft sie deren Prüfsummen. Von 0.15.2 auf 1.0.0 sind das 4 Dateien, rund 12 statt 112 MB. Von selbst
+fragt die App nie nach. **Aus ZIP-Datei aktualisieren**: für Rechner, die GitHub nicht erreichen; die App entpackt
+das gewählte Paket. Beide Wege legen die neue Fassung neben den Programmordner
+(`<Ordner>.neu`); die App beendet sich, und ein Skript im Temp-Ordner tauscht die Ordner, sobald die Dateien frei sind, und
 startet neu (`diktat/pflege.py`). Das Skript läuft unsichtbar, enthält nur ASCII und bekommt alle Pfade als
 Umgebungsvariablen, damit Umlaute und Leerzeichen im Pfad (`Oberärzte\…`) unabhängig von der Codepage stimmen. Modelle, die das Paket nicht mitbringt, wandern aus dem Ordner `modelle` der alten
 Fassung in die neue; für ein Update genügt deshalb das kleine Paket. Ob sich der Ordner überhaupt ersetzen lässt,
@@ -203,16 +209,18 @@ einer Datei. Ton aus Diktaten per Taste wird nie auf die Platte geschrieben.
 
 ## 8. Netzwerkverbindungen
 
-Ab Werk baut die App genau eine Art von Verbindung auf: den einmaligen Download der Modelle.
+Von sich aus baut die App genau eine Art von Verbindung auf: den einmaligen Download der Modelle. Dazu kommt, nur
+auf Klick, die Frage nach einer neuen Fassung.
 
 | Ziel | Wann | Was geht hinaus |
 |---|---|---|
 | `github.com` (Release `modell-primeline-1`) | erster Start | nichts außer der Anfrage |
 | `huggingface.co` | Ausweichquelle für das Modell; Stimmmodell beim ersten Einschalten der Sprechertrennung | nichts außer der Anfrage |
+| `github.com` (Releases) | nur auf Klick: „Nach Updates suchen“ und das Laden der geänderten Dateien | nichts außer der Anfrage |
 | selbst eingetragener Sprachmodell-Server | nur wenn KI-Nachbearbeitung oder Fachkorrektur eingeschaltet sind oder in „Visite & Übergabe“ auf „Auswerten“ gedrückt wird | der diktierte Text bzw. der Fall, nach dem Schutz aus `schutz.py` |
 | eigenes Netz, Port 8765 | nur wenn „Handy als Mikrofon“ eingeschaltet ist | nichts; das Telefon schickt Ton an den Rechner |
 
-Telemetrie, Lizenzabfragen oder automatische Updates gibt es nicht. Für eine Firewall genügt es, nach dem ersten
+Telemetrie, Lizenzabfragen oder Updates ohne Klick gibt es nicht. Für eine Firewall genügt es, nach dem ersten
 Start alles zu sperren.
 
 Ist ein Sprachmodell-Server außerhalb des Rechners eingetragen, ersetzt `schutz.py` vor dem Versand Namen,
@@ -286,7 +294,7 @@ Wortfehlerrate nach der Nachbearbeitung, ohne Sprachmodell-Korrektur. Methode, E
 
 | Material | LocalScribe | zum Vergleich |
 |---|---|---|
-| fünf eigene ärztliche Diktate (412 Wörter, ein Sprecher) | 8,3 % | Cloud-Dienste: Tandem 8,3 %, Orpheus 9,7 %, Heidi 9,7 %. Lokal: Whisper Large v3 Turbo Deutsch mit Wortliste 14,1 %, VibeVoice 16,3 % |
+| fünf eigene ärztliche Diktate (412 Wörter, ein Sprecher) | 8,3 % | Drei Cloud-Dienste für ärztliche Dokumentation: 8,3 %, 9,7 %, 9,7 %. Lokal: Whisper Large v3 Turbo Deutsch mit Wortliste 14,1 %, VibeVoice 16,3 % |
 | Corti Med-Dictate, neun echte Diktate, 33 Minuten | 15,4 % mit Kernliste; 11,1 % mit dem Wortschatz aus den eigenen Texten | 16,6 % ohne Wortschatz beim Dekodieren |
 | dieselben mit Fachkorrektur durch ein Sprachmodell (älterer Stand, ohne Wortschatz beim Dekodieren) | 7,5 % und 13,7 % | – |
 

@@ -1,17 +1,20 @@
 ## LocalScribe 1.0.0
 
-Erste Fassung mit der Nummer 1.0. Am Programm ändert sich gegenüber 0.15.2 nichts; Handbuch, technische Dokumentation
-und alle Pakete wurden noch einmal durchgesehen, geprüft und neu gebaut.
+Erste Fassung mit der Nummer 1.0.
 
+- **Update per Klick**: Einstellungen, ganz unten „Nach Updates suchen“. LocalScribe fragt bei GitHub nach der
+  neuesten Fassung, vergleicht sie Datei für Datei mit der installierten und lädt nur, was sich geändert hat
+  (von 0.15.2 auf 1.0.0: 4 Dateien, rund 12 statt 112 MB). Danach ersetzt es den Programmordner und startet neu. Von selbst fragt
+  die App nie nach. Erreicht der Rechner GitHub nicht, wie oft in Kliniken, bleibt der Weg über die ZIP-Datei.
+- **Vergleichswerte ohne Produktnamen**: Handbuch, Webseite und Dokumentation nennen die drei zum Vergleich gemessenen
+  Cloud-Dienste nicht mehr beim Namen. Die Messung ist klein (fünf Diktate, ein Sprecher).
+- Handbuch und technische Dokumentation durchgesehen. Neu darin: Lässt sich der Programmordner auf einem Netzlaufwerk
+  nicht löschen, hilft ein Neustart des Rechners und sofortiges Löschen danach. So beobachtet auf einem Klinikrechner;
+  welcher Prozess die Dateien dort festhielt, ist nicht geklärt.
 - Was LocalScribe kann: Diktieren per Taste in jedes Textfeld, lange Aufnahmen mit Live-Text, Dateien transkribieren,
   Sprecher trennen, Wörterbuch und Stimmtraining, Textbausteine, auf Wunsch Nachbearbeitung durch ein eigenes
   Sprachmodell. Die Spracherkennung läuft auf dem eigenen Rechner, ohne Grafikkarte und ohne Adminrechte.
-- Gemessen: 8,3 % Wortfehlerrate an fünf ärztlichen Diktaten eines Sprechers, 2 Sekunden Rechenzeit für 45 Sekunden
-  Diktat. Einzelwerte und Grenzen stehen im Handbuch und in `werkzeug/messen/ERGEBNIS.md`.
-- Für Klinikrechner das Komplettpaket nehmen: Alle Modelle liegen bei, es braucht kein Internet.
-- Handbuch und technische Dokumentation: Lässt sich der Programmordner auf einem Netzlaufwerk nicht löschen, hilft
-  ein Neustart des Rechners und sofortiges Löschen danach. So beobachtet auf einem Klinikrechner; welcher Prozess die
-  Dateien dort festhielt, ist nicht geklärt.
+  Gemessen: 8,3 % Wortfehlerrate an fünf ärztlichen Diktaten eines Sprechers, 2 Sekunden für 45 Sekunden Diktat.
 - Noch nicht enthalten: Nachtraining des Sprachmodells auf die eigene Stimme. Das Stimmtraining sammelt dafür auf
   Wunsch die vorgelesenen Übungssätze.
 
@@ -200,7 +203,7 @@ und alle Pakete wurden noch einmal durchgesehen, geprüft und neu gebaut.
 - **Anbieter speichern und wechseln**: mehrere Server mit eigenem Namen und eigenem Schlüssel (OpenRouter, IONOS,
   lokal), Auswahl auf der Seite KI-Nachbearbeitung.
 - **Fachkorrektur für große Sprachmodelle**: neuer Türsteher, lange Texte gehen in Stücken gleichzeitig an den Server.
-  Mit Gemini Flash Lite gemessen: eigene Diktate 9,0 → 7,5 % Wortfehler (Tandem 8,3 %), neun fremde ärztliche
+  Mit Gemini Flash Lite gemessen: eigene Diktate 9,0 → 7,5 % Wortfehler (Dienst A 8,3 %), neun fremde ärztliche
   Diktate (Med-Dictate von Corti) 16,7 → 13,7 %, Arztbrief-Sätze 10,2 → 8,4 %, rund eine Sekunde je Diktat.
 - **Satzzeichen diktieren** (Einstellungen, ab Werk aus): „Punkt“, „Komma“, „Doppelpunkt“, „neue Zeile“ … werden
   zu Zeichen. Auf Med-Dictate 18,3 → 16,7 %.
@@ -230,14 +233,14 @@ signiert: Meldet Windows „Der Computer wurde geschützt“, auf **Weitere Info
   ist („Kabel“ statt Cave), wird angezeigt, aber nicht gelernt.
 - **Normalbefunde als Textbausteine** (Seite Textbausteine, Knopf „Normalbefunde hinzufügen“): zehn Formulierungen
   für unauffällige Befunde, abrufbar per Stichwort („Normalbefund Lunge“). Jeder Text lässt sich ändern oder löschen.
-- Orpheus an denselben fünf Diktaten gemessen: 9,7 % Wortfehler (LocalScribe 9,0 %, Tandem 8,3 %, Heidi 9,7 %).
+- Dienst B an denselben fünf Diktaten gemessen: 9,7 % Wortfehler (LocalScribe 9,0 %, Dienst A 8,3 %, Dienst C 9,7 %).
 
 Installation: ZIP entpacken, `LocalScribe.exe` starten. Keine Adminrechte nötig. Die Datei ist nicht
 signiert: Meldet Windows „Der Computer wurde geschützt“, auf **Weitere Informationen → Trotzdem ausführen**.
 
 ## LocalScribe 0.9.7
 
-- **Wortfehler an den fünf eigenen Diktaten: 9,0 %** (0.9.6: 11,2 %; Tandem 8,3 %, Heidi 9,7 %). Gleiche
+- **Wortfehler an den fünf eigenen Diktaten: 9,0 %** (0.9.6: 11,2 %; Dienst A 8,3 %, Dienst C 9,7 %). Gleiche
   Geschwindigkeit, weiter ohne Cloud. Auf den unabhängigen Prüfsätzen 10,15 % statt 10,30 % und 11,98 % statt 12,00 %.
 - **Kurze Handelsnamen und Abkürzungen**: Unbekannte kurze Wörter werden mit der Kernliste verglichen
   („Trimbo“ wird Trimbow, „Trossiba“ Tresiba, „Nabik“ Nabic, „Sdemi“ STEMI).
@@ -252,7 +255,7 @@ signiert: Meldet Windows „Der Computer wurde geschützt“, auf **Weitere Info
 ## LocalScribe 0.9.6
 
 - **Handbuch auf dem Stand der App**: Meine Begriffe, Wirkstoffnamen, Fachkorrektur, Mikrofon offen halten, Hinweis zur
-  Tonqualität, Aufnahmen im Stimmtraining und die gemessene Genauigkeit im Vergleich zu Tandem und Heidi.
+  Tonqualität, Aufnahmen im Stimmtraining und die gemessene Genauigkeit im Vergleich zu Dienst A und Dienst C.
 - Seite Stimmtraining: Der Text am neuen Häkchen war zu lang und hat die Seite bei schmalem Fenster rechts abgeschnitten.
 
 Installation: ZIP entpacken, `LocalScribe.exe` starten. Keine Adminrechte nötig. Die Datei ist nicht
@@ -272,8 +275,8 @@ signiert: Meldet Windows „Der Computer wurde geschützt“, auf **Weitere Info
 
 ## LocalScribe 0.9.4
 
-- **Vergleich mit Tandem und Heidi gemessen**: dieselben fünf Diktate, digital eingespielt. Wortfehler: Tandem 8,3 %,
-  Heidi 9,7 %, LocalScribe 11,2 % (0.9.3: 12,6 %). Beide laufen in der Cloud; Heidi korrigiert das Rohtranskript
+- **Vergleich mit Dienst A und Dienst C gemessen**: dieselben fünf Diktate, digital eingespielt. Wortfehler: Dienst A 8,3 %,
+  Dienst C 9,7 %, LocalScribe 11,2 % (0.9.3: 12,6 %). Beide laufen in der Cloud; Dienst C korrigiert das Rohtranskript
   mit einem Sprachmodell nach.
 - **Wirkstoffnamen am Wortstamm**: Wer auf -mab, -sartan, -prazol und ähnlich endet und kein bekanntes Wort ist, wird
   mit den Wirkstoffen desselben Stamms verglichen („Pempolyzomap“ wird Pembrolizumab, „Retroximab“ Rituximab).

@@ -142,32 +142,32 @@ inhalativer, Retroximab → Rituximab), keine falsche; 14,3 → 13,8 % Wortfehle
 (Hydralacin → Hydrochlorothiazid, gürtelförmiger → keilförmiger) hält der Türsteher auf. Ab Werk aus, weil der
 Schritt ohne Grafikkarte zu lange dauert; mit einem stärkeren Modell hinter einer Schnittstelle noch nicht gemessen.
 
-## Was die anderen tun
+## Was kommerzielle Dienste tun
 
-- Heidi hat nach eigener Darstellung NVIDIA Parakeet V2 mit NeMo auf 1 500 Stunden klinischer Aufnahmen
-  nachtrainiert, gezielt auf die Fachbegriffe, an denen das Grundmodell scheitert.
-- ID (ORPHEUS) nennt eigene, am UKE trainierte Modelle, ein Vokabular für eigene Schreibweisen, das ab der
-  nächsten Aufnahme gilt, automatische Satzzeichen und Sprechertrennung.
-- Tandem nennt Sprach- und Textmodelle, die auf medizinische Sprache abgestimmt sind, und ist als
-  Medizinprodukt der Klasse IIa zertifiziert.
+Nach den öffentlichen Angaben mehrerer Anbieter ärztlicher Spracherkennung: nachtrainierte Erkennungsmodelle
+(in einem Fall ein Parakeet-Modell, nachtrainiert auf rund 1 500 Stunden klinischer Aufnahmen), ein Vokabular für
+eigene Schreibweisen, automatische Satzzeichen, Sprechertrennung, teils eine Zertifizierung als Medizinprodukt.
 
 Gemeinsam ist allen: ein auf echten klinischen Aufnahmen nachtrainiertes Erkennungsmodell plus Vokabular.
 LocalScribe hat das Vokabular (Wörterbuch, Lautschlüssel, Stimmtraining), aber kein nachtrainiertes Modell.
 Der nächste große Schritt wäre ein deutsches medizinisches Parakeet (etwa Mediform/parakeet-medical-de) als
 ONNX-Fassung oder ein eigenes Nachtraining auf eigenen Diktaten.
 
-## Vergleich mit Tandem, Heidi und Orpheus (16.11.2026)
+## Vergleich mit drei Cloud-Diensten (16.11.2026)
+
+Die Dienste sind hier nicht namentlich genannt (A, B, C). Die Messung ist klein (fünf Diktate, ein Sprecher) und
+sagt nichts über ihre Leistung im Alltag.
 
 Fünf eigene Diktate (412 Wörter, 4 min), als 16-kHz-Datei digital in den Browser eingespielt: Die Seite bekommt
-statt des Mikrofons einen Tonstrom aus der Datei, ohne Lautsprecher und Raum. Beide Programme im Diktiermodus,
+statt des Mikrofons einen Tonstrom aus der Datei, ohne Lautsprecher und Raum. Die Programme im Diktiermodus,
 ohne eigenes Vokabular. Gezählt wie in `eigene.py`, für alle gleich.
 
 | Programm | KHK | Tumorboard | OP | Übergabe | Fälle | gesamt |
 |---|---|---|---|---|---|---|
-| Tandem, Diktat | 10,3 % | 10,9 % | 13,7 % | 6,2 % | 5,4 % | **8,3 %** |
-| Heidi, Rohtranskript | 11,8 % | 25,0 % | 11,8 % | 2,5 % | 4,7 % | 9,5 % |
-| Heidi, fertiger Text | 10,3 % | 17,2 % | 15,7 % | 13,6 % | 2,0 % | **9,7 %** |
-| Orpheus, Diktat | 13,2 % | 12,5 % | 13,7 % | 11,1 % | 4,7 % | **9,7 %** |
+| Dienst A, Diktat | 10,3 % | 10,9 % | 13,7 % | 6,2 % | 5,4 % | **8,3 %** |
+| Dienst C, Rohtranskript | 11,8 % | 25,0 % | 11,8 % | 2,5 % | 4,7 % | 9,5 % |
+| Dienst C, fertiger Text | 10,3 % | 17,2 % | 15,7 % | 13,6 % | 2,0 % | **9,7 %** |
+| Dienst B, Diktat | 13,2 % | 12,5 % | 13,7 % | 11,1 % | 4,7 % | **9,7 %** |
 | LocalScribe 0.9.7 | 11,8 % | 17,2 % | 15,7 % | 8,6 % | 2,0 % | **9,0 %** |
 | LocalScribe 0.9.4 | 11,8 % | 18,8 % | 13,7 % | 9,9 % | 7,4 % | 11,2 % |
 | LocalScribe 0.9.3 | | | | | | 12,6 % |
@@ -177,11 +177,11 @@ Rund fünf der Fehler je Programm stammen aus der Vorlage (dort steht „Tumorko
 
 Was man an den Ausgaben sieht:
 
-- Heidi arbeitet zweistufig. Das Rohtranskript enthält dieselben Verhörer wie LocalScribe („Kabel“ für Cave,
+- Dienst C arbeitet zweistufig. Das Rohtranskript enthält dieselben Verhörer wie LocalScribe („Kabel“ für Cave,
   „Schon nach SET-Implantation“). Ein Sprachmodell macht daraus den fertigen Text, bessert vieles aus
   („Z. n. Stent-Implantation“), lässt aber auch Gesprochenes weg („im RIVA“, „Nabic“) und fügt Überschriften
   ein, die niemand diktiert hat („Diagnose:“, „Eingriff:“).
-- Tandem schreibt schon während des Sprechens fertig formatierten Text (Z.n., i.v., mg/m², 1-0-0) und trifft fast
+- Dienst A schreibt schon während des Sprechens fertig formatierten Text (Z.n., i.v., mg/m², 1-0-0) und trifft fast
   alle Wirkstoffnamen. Fehler: „SET-Implantation“, „linker Sprung“ statt „linkes Sprunggelenk“, „Krea“ statt Cave.
 - LocalScribe verliert vor allem bei Wirkstoff- und Handelsnamen (Ondansetron, Trimbow, Tresiba, Nabic,
   Sevelamer) und bei kurzen Alltagswörtern, die nur der Zusammenhang klärt (Sehne/Szene, Bohren/Born, Cave/Kabel).
@@ -190,10 +190,9 @@ Was man an den Ausgaben sieht:
 0.9.7 holt den Abstand zu einem Teil mit Regeln auf, die an diesen fünf Diktaten entstanden sind (kurze Handelsnamen,
 zerlegte Begriffe). Auf den unabhängigen Prüfsätzen bringen dieselben Regeln 10,30 → 10,15 % und 12,00 → 11,98 %.
 
-Orpheus (Programm 4.9.0) bekam denselben Ton über ein virtuelles Audiokabel, Diktat per gehaltener Taste Strg rechts.
-Es trifft alle Wirkstoffnamen bis auf zwei („Narbig“, „Trossiva“), kürzt von sich aus ab („AZ“, „bds.“, „KOF“), setzt im
-Diktat ohne Zusatzfunktion keine Satzzeichen, hängt an drei Diktate das Wort „Trial“ an und schreibt am Ende der
-Übergabe „Reha-Verordnung liegt“ statt „Brief ist schon angelegt“. Ohne die drei „Trial“ wären es 9,0 %.
+Dienst B bekam denselben Ton über ein virtuelles Audiokabel, Diktat per gehaltener Taste. Er trifft alle
+Wirkstoffnamen bis auf zwei, kürzt von sich aus ab („AZ“, „bds.“, „KOF“) und setzt im Diktat ohne Zusatzfunktion
+keine Satzzeichen. Die Testfassung hängte an drei Diktate ein Wort an; ohne diese drei Wörter wären es 9,0 %.
 
 ## Sprechertrennung an einem deutschen Arzt-Patienten-Gespräch (16.11.2026)
 
@@ -251,7 +250,7 @@ und MultiMed hat er dabei nicht gesehen.
 | Arztbrief-Sätze, vorgelesen (GraSCCo) | 395 Sätze | | 10,2 % | **8,4 %** |
 | MultiMed (YouTube, Laiensprache) | 318 Aufnahmen | | 12,3 % | 12,2 % |
 
-Zum Vergleich auf den eigenen Diktaten: Tandem 8,3 %, Orpheus 9,7 %, Heidi 9,7 %.
+Zum Vergleich auf den eigenen Diktaten: Dienst A 8,3 %, Dienst B 9,7 %, Dienst C 9,7 %.
 
 Med-Dictate (`corti.py`, `corti_auswerten.py`): neun deutsche ärztliche Diktate von Corti-Mitarbeitenden ohne
 Patientendaten, mit diktierten Satzzeichen, erkannt in 151 s für 32,6 min Ton. Fachbegriffe richtig: roh 57,6 %,

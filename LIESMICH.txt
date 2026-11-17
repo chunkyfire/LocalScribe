@@ -34,8 +34,10 @@ Liegt neben LocalScribe.exe ein Ordner "daten", liegen sie stattdessen dort
 
 Aktualisieren und entfernen
 ---------------------------
-Beides im Fenster unter Einstellungen, ganz unten. Für ein Update die ZIP-Datei
-der neuen Fassung herunterladen (das kleine Paket genügt) und dort auswählen.
+Beides im Fenster unter Einstellungen, ganz unten. "Nach Updates suchen" fragt
+bei GitHub nach und lädt nur, was sich geändert hat. Erreicht der Rechner
+GitHub nicht: die ZIP-Datei der neuen Fassung an einem anderen Rechner laden
+(das kleine Paket genügt) und dort auswählen.
 Von Hand: LocalScribe über das Symbol neben der Uhr beenden, dann den Ordner
 ersetzen oder löschen.
 

@@ -2023,17 +2023,20 @@ class SettingsPage(Page):
             hbox(button("Daten in diesem Programmordner ablegen", self._own), None),
             self.own_note))
         self.care_note = label("", "muted", wrap=True)
+        self.check_button = button("Nach Updates suchen", self._check, name="primary")
+        self.found = None                    # neuere Fassung bei GitHub, sobald gefunden
         self.body.addWidget(card(
             label("Aktualisieren und entfernen", "h2"),
-            label(f"Installiert ist Fassung {__version__}. Für ein Update die ZIP-Datei der neuen Fassung herunterladen "
-                  "und hier auswählen; das kleine Paket genügt, das Sprachmodell bleibt erhalten. LocalScribe ersetzt "
-                  "den Programmordner und startet neu. Einstellungen, Verlauf und Wörterbuch bleiben, wie sie sind.",
+            label(f"Installiert ist Fassung {__version__}. „Nach Updates suchen“ fragt bei GitHub nach der neuesten "
+                  "Fassung und lädt auf Wunsch nur die Dateien, die sich geändert haben. Erreicht der Rechner GitHub "
+                  "nicht (häufig in Kliniken): die ZIP-Datei an einem anderen Rechner laden und hier auswählen, das "
+                  "kleine Paket genügt. Einstellungen, Verlauf, Wörterbuch und Sprachmodell bleiben, wie sie sind.",
                   "muted", wrap=True),
-            hbox(button("Aus ZIP-Datei aktualisieren …", self._update, name="primary"),
-                 button("Neue Fassung suchen", lambda: QtGui.QDesktopServices.openUrl(
-                     QtCore.QUrl("https://github.com/chunkyfire/LocalScribe/releases/latest"))),
+            hbox(self.check_button, button("Aus ZIP-Datei aktualisieren …", self._update),
                  button("LocalScribe entfernen …", self._remove), None),
             self.care_note))
+        self.sig_latest.connect(self._latest)
+        self.sig_loading.connect(self._loading)
         self.sig_unpacked.connect(self._unpacked)
         a = 'style="color:#C6FF3D; text-decoration:none"'
         self.body.addWidget(card(
@@ -2046,6 +2049,8 @@ class SettingsPage(Page):
         self.body.addStretch(1)
 
     sig_unpacked = Signal(str, str)      # Ordner der neuen Fassung, Fehlertext
+    sig_latest = Signal(object, str)     # Auskunft von GitHub, Fehlertext
+    sig_loading = Signal(int, int)       # geladene Bytes, zu ladende Bytes
 
     def _pick_models(self):
         path = QtWidgets.QFileDialog.getExistingDirectory(self, "Ordner mit den Sprachmodellen", self.model_dir.text())
@@ -2078,6 +2083,56 @@ class SettingsPage(Page):
             return False
         return True
 
+    def _check(self):
+        """Erster Klick: bei GitHub nachfragen. Zweiter Klick (wenn es Neues gibt): laden und ersetzen."""
+        if self.found:
+            return self._online()
+        restyle(self.care_note, "muted")
+        self.care_note.setText("Frage bei GitHub nach der neuesten Fassung …")
+        self.check_button.setEnabled(False)
+
+        def work():
+            try:
+                self.sig_latest.emit(pflege.latest(), "")
+            except Exception as e:
+                self.sig_latest.emit(None, str(e))
+        threading.Thread(target=work, daemon=True).start()
+
+    def _latest(self, info, error):
+        self.check_button.setEnabled(True)
+        if error:
+            return self.saved(self.care_note, error, ok=False)
+        if not info["newer"]:
+            restyle(self.care_note, "ok")
+            return self.care_note.setText(f"Du hast die neueste Fassung ({__version__}).")
+        if not pflege.program():
+            return self.saved(self.care_note, f"Fassung {info['version']} ist da. Diese hier läuft aus dem Quelltext; "
+                              "aktualisiert wird sie mit git.", ok=False)
+        self.found = info
+        self.check_button.setText(f"Auf {info['version']} aktualisieren")
+        restyle(self.care_note, "ok")
+        self.care_note.setText(f"Fassung {info['version']} ist da, du hast {__version__}. Ein Klick lädt nur, was sich "
+                               "geändert hat, ersetzt den Programmordner und startet LocalScribe neu.")
+
+    def _online(self):
+        if not self._care_ready():
+            return
+        prog, info = pflege.program(), self.found
+        self.check_button.setEnabled(False)
+        restyle(self.care_note, "muted")
+        self.care_note.setText("Vergleiche die installierten Dateien mit der neuen Fassung …")
+
+        def work():
+            try:
+                new, _, _ = pflege.fetch(info, prog, progress=self.sig_loading.emit)
+                self.sig_unpacked.emit(str(new), "")
+            except Exception as e:
+                self.sig_unpacked.emit("", str(e))
+        threading.Thread(target=work, daemon=True).start()
+
+    def _loading(self, done, total):
+        self.care_note.setText(f"Lade die geänderten Dateien: {done / 1e6:.0f} von {total / 1e6:.0f} MB …")
+
     def _update(self):
         prog = pflege.program()
         if not prog:
@@ -2099,6 +2154,7 @@ class SettingsPage(Page):
         threading.Thread(target=work, daemon=True).start()
 
     def _unpacked(self, new, error):
+        self.check_button.setEnabled(True)
         if error:
             self.saved(self.care_note, error, ok=False)
             return

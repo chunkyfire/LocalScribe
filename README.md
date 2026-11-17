@@ -14,7 +14,7 @@ beim ersten Start).
 
 | Messung | LocalScribe | zum Vergleich |
 |---|---|---|
-| Wortfehlerrate, fünf ärztliche Diktate eines Sprechers (412 Wörter) | **8,3 %** | Cloud: Tandem 8,3 %, Orpheus 9,7 %, Heidi 9,7 %. Lokal: Whisper Large v3 Turbo Deutsch 14,1 % |
+| Wortfehlerrate, fünf ärztliche Diktate eines Sprechers (412 Wörter) | **8,3 %** | Drei Cloud-Dienste für ärztliche Dokumentation: 8,3 %, 9,7 %, 9,7 %. Lokal: Whisper Large v3 Turbo Deutsch 14,1 % |
 | Wortfehlerrate, neun echte Arztdiktate (Corti Med-Dictate, 33 Minuten) | **11,1 %** mit eigenem Wortschatz, 15,4 % ohne | 16,6 % ohne Wortschatz beim Dekodieren |
 | Rechenzeit für 45 Sekunden Diktat (Büro-PC, nur Prozessor) | **2 Sekunden** | |
 | Sprechertrennung, richtig zugeordnete Sprechzeit | 93 % Interviews, 81 % Telefon | bisheriges Verfahren: 89 % und 75 % |
@@ -44,8 +44,9 @@ Wenige Sprecher, ruhige Umgebung; Dialekt und Lärm sind nicht gemessen.
    Sperrt das Netz den Download, nennt das Fenster den Grund; dann das Komplettpaket nehmen.
 5. Verknüpfungen für Desktop und Startmenü: im Fenster unter **Einstellungen**.
 
-Aktualisieren: neue ZIP laden (das kleine Paket genügt), in der App unter **Einstellungen → Aus ZIP-Datei
-aktualisieren** auswählen. Entfernen: **Einstellungen → LocalScribe entfernen**; von Hand: App beenden, Ordner
+Aktualisieren: in der App unter **Einstellungen → Nach Updates suchen**; geladen wird nur, was sich geändert hat.
+Erreicht der Rechner GitHub nicht: neue ZIP an einem anderen Rechner laden (das kleine Paket genügt) und unter
+**Aus ZIP-Datei aktualisieren** auswählen. Entfernen: **Einstellungen → LocalScribe entfernen**; von Hand: App beenden, Ordner
 löschen, dazu `%LOCALAPPDATA%\LocalScribe` (Einstellungen, Verlauf, Sprachmodelle).
 Wer eine Fassung vor 0.8 benutzt hat, findet das Modell zusätzlich unter `%USERPROFILE%\.cache\huggingface`;
 LocalScribe verwendet es von dort weiter und lädt nichts doppelt.
@@ -126,7 +127,7 @@ Einstellungen in den Programmordner (Ordner `daten`). Die Sprachmodelle können 
   Cloud-Zwischenablage ausgenommen.
 - **Netz.** Die App geht nur ins Internet, um ein Modell zu laden: beim ersten Start das Sprachmodell,
   beim Wechsel des Sprachmodells und beim ersten Einschalten von „Sprecher trennen“ (jeweils feste
-  Fassung, Hugging Face). Danach arbeitet sie offline. Die KI-Nachbearbeitung ist ab Werk aus;
+  Fassung, Hugging Face). Nach einer neuen Fassung fragt sie nur auf Klick („Nach Updates suchen“). Sonst arbeitet sie offline. Die KI-Nachbearbeitung ist ab Werk aus;
   ist dort eine Adresse außerhalb des eigenen Netzes eingetragen, zeigt die App das an.
 - **Schutz vor dem Versand.** Geht Text an ein Sprachmodell außerhalb des Rechners (OpenRouter, IONOS …),
   ersetzt LocalScribe vorher auf dem Rechner Namen, Geburts- und andere Daten, Telefonnummern, E-Mail-Adressen,
@@ -193,7 +194,7 @@ Verarbeitungskette. Ergebnis und Vergleich stehen in `tests/langzeit/ERGEBNIS.md
 - Das Sprachmodell ist primeline-Parakeet in einer eigenen, schonender gekürzten 8-Bit-Fassung (siehe
   `werkzeug/messen/ERGEBNIS.md`).
 - Gemessen ist an fünf ärztlichen Diktaten eines Sprechers (9,0 % Wortfehler, mit Fachkorrektur durch ein großes
-  Sprachmodell 7,5 %; Tandem 8,3 %, Orpheus und Heidi 9,7 %), an neun fremden ärztlichen Diktaten aus Med-Dictate von
+  Sprachmodell 7,5 %; drei Cloud-Dienste für ärztliche Dokumentation 8,3 %, 9,7 % und 9,7 %), an neun fremden ärztlichen Diktaten aus Med-Dictate von
   Corti (32 Minuten, sieben Fachgebiete: 16,7 %, mit Fachkorrektur 13,7 %), an 395 vorgelesenen Arztbrief-Sätzen
   (10,2 %, mit Fachkorrektur 8,4 %) und an echten Aufnahmen aus MultiMed (12,3 %). Dialekt und laute Umgebung sind
   damit nicht belegt. Jeder Text muss vor der Übernahme gegengelesen werden.
@@ -360,8 +361,8 @@ aktiv, sobald er nach `.github/workflows/build.yml` verschoben wird.
 
 ## Herkunft
 
-Eigener Code, eigene Gestaltung, eigene Töne. Vorbild für den Ablauf war Wispr Flow;
-aus dessen Programm wurde nichts übernommen. Modell: primeline/parakeet-primeline
+Eigener Code, eigene Gestaltung, eigene Töne. Der Ablauf (Taste halten, sprechen, loslassen) ist bei
+Diktier-Apps üblich; aus fremden Programmen wurde nichts übernommen. Modell: primeline/parakeet-primeline
 (CC-BY-4.0, primeline und NVIDIA), ONNX-Export OpenVoiceOS/primeline-parakeet-onnx.
 Sprechpausen: Silero VAD. Wer eine fertige, ausgereifte Diktier-App für alle Betriebssysteme
 sucht, findet sie in [Handy](https://github.com/cjpais/Handy).
