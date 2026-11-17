@@ -340,7 +340,8 @@ def allow_foreground():
 def launch_target():
     """(Programm, Argumente, Arbeitsordner) – als gebaute EXE oder aus dem Quellordner."""
     if getattr(sys, "frozen", False):
-        exe = Path(sys.executable)
+        from . import ort
+        exe = ort.root() / ort.EXE         # immer die EXE im Programmordner: Sie startet die jeweils aktuelle Fassung
         return str(exe), "", str(exe.parent)
     exe = Path(sys.executable)
     pyw = exe.with_name("pythonw.exe")

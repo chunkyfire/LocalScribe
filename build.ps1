@@ -35,6 +35,9 @@ Copy-Item LIESMICH.txt dist\LocalScribe\LIESMICH.txt
 Copy-Item LICENSE dist\LocalScribe\LICENSE.txt
 Copy-Item THIRD_PARTY.md dist\LocalScribe\THIRD_PARTY.txt
 Copy-Item docs\LocalScribe-Handbuch.pdf dist\LocalScribe\LocalScribe-Handbuch.pdf
+# Für das Update: Nummer der Fassung und „Was ist neu“ als schlichter Text (liest die App aus dem Paket)
+& .venv\Scripts\python.exe -c "import pathlib; from diktat import __version__, pflege; d = pathlib.Path('dist/LocalScribe'); (d / pflege.VERSION_FILE).write_text(__version__, encoding='utf-8'); (d / pflege.NOTES).write_text(pflege.plain(pathlib.Path('RELEASE_NOTES.md').read_text(encoding='utf-8')), encoding='utf-8')"
+if ($LASTEXITCODE -ne 0) { throw "fassung.txt und NEUES.txt ließen sich nicht schreiben" }
 $zip = "dist\LocalScribe-$version-windows.zip"
 if (Test-Path $zip) { Remove-Item $zip }
 Compress-Archive -Path dist\LocalScribe -DestinationPath $zip

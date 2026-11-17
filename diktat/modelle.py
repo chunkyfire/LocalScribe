@@ -44,7 +44,8 @@ def _mark(patterns) -> str:
 
 
 def _beside() -> Path:
-    base = Path(sys.executable).parent if getattr(sys, "frozen", False) else Path(__file__).resolve().parent.parent
+    from . import ort
+    base = ort.root() or Path(__file__).resolve().parent.parent
     return base / "modelle"
 
 

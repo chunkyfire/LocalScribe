@@ -1,15 +1,18 @@
 """Aktualisieren und Entfernen ohne Installationsprogramm und ohne Adminrechte.
 
-Ein laufendes Programm kann seinen eigenen Ordner weder ersetzen noch löschen. LocalScribe legt deshalb ein kleines
-Skript in den Temp-Ordner, beendet sich, und das Skript erledigt den Rest, sobald die Dateien frei sind. Einstellungen,
-Verlauf und Sprachmodelle im Benutzerkonto bleiben bei einem Update unberührt.
+Ein Update ersetzt nichts: Die neue Fassung kommt in einen eigenen Ordner (fassungen\\<Nummer>), danach nennt
+aktuell.txt ihre Nummer. Die LocalScribe.exe im Programmordner startet beim nächsten Mal diese Fassung (siehe ort.py).
+Wer gerade diktiert, arbeitet mit seiner Fassung weiter, auch auf anderen Rechnern am selben Laufwerk. Ältere Ordner
+verschwinden, sobald niemand mehr daraus arbeitet. Einstellungen, Verlauf und Sprachmodelle bleiben unberührt.
+
+Nur das Entfernen braucht noch ein kleines Skript im Temp-Ordner: Ein laufendes Programm kann seinen eigenen Ordner
+nicht löschen.
 """
 import os
 import re
 import shutil
 import ssl
 import subprocess
-import sys
 import tempfile
 import urllib.error
 import urllib.request
@@ -17,10 +20,11 @@ import zipfile
 import zlib
 from pathlib import Path
 
-from . import __version__, config
+from . import __version__, config, ort
+from .ort import EXE, number
 
-EXE = "LocalScribe.exe"
-FAILED = "update-fehlgeschlagen"       # legt das Skript in den Datenordner, wenn der alte Ordner nicht frei wurde
+VERSION_FILE = "fassung.txt"           # im Paket: die Nummer der Fassung
+NOTES = "NEUES.txt"                    # im Paket: was sich mit jeder Fassung geändert hat
 # Die Skripte enthalten nur ASCII; alle Pfade kommen als Umgebungsvariablen (LS_…). In einer Batchdatei selbst
 # gehen Umlaute je nach Codepage kaputt („Oberärzte“ wurde zu „OberÃ¤rzte“, der Ordner nicht gefunden).
 HEAD = "@echo off\r\n"
@@ -28,8 +32,22 @@ WAIT = "ping -n 2 127.0.0.1 >nul\r\n"   # eine Sekunde; „timeout“ verweigert
 
 
 def program():
-    """Ordner der gepackten App; None, wenn sie aus dem Quelltext läuft (dann gibt es nichts zu ersetzen)."""
-    return Path(sys.executable).parent if getattr(sys, "frozen", False) else None
+    """Der Programmordner; None, wenn LocalScribe aus dem Quelltext läuft (dann gibt es nichts zu aktualisieren)."""
+    return ort.root()
+
+
+def readonly(prog: Path) -> str:
+    """Leer, wenn dieses Konto im Programmordner neue Fassungen anlegen darf; sonst der Grund in einem Satz."""
+    try:
+        (prog / ort.VERSIONS).mkdir(exist_ok=True)
+        probe = prog / ort.VERSIONS / f".schreibtest-{os.getpid()}"
+        probe.write_text("", encoding="utf-8")
+        probe.unlink()
+        return ""
+    except OSError as e:
+        return (f"Diese Installation wird zentral gepflegt: In {prog} darf dieses Konto nichts anlegen "
+                f"({e.strerror or e}). Aktualisieren kann, wer dort schreiben darf. LocalScribe übernimmt die neue "
+                "Fassung dann auf jedem Rechner beim nächsten Start von selbst.")
 
 
 def blocked(prog: Path) -> str:
@@ -71,41 +89,87 @@ def _run(script: str, **paths) -> Path:
     return Path(name)
 
 
-def unpack(archive, prog: Path) -> Path:
-    """ZIP einer LocalScribe-Fassung neben den Programmordner entpacken. Gibt den Ordner der neuen Fassung zurück."""
+def _slot(prog: Path, version: str) -> Path:
+    """Ordner für eine neue Fassung. Umbenannt wird nichts: Manche Laufwerke erlauben das Anlegen, aber nicht das
+    Umbenennen. Vollständig ist der Ordner erst mit der Markierung, die _finish zuletzt schreibt."""
+    reason = readonly(prog)
+    if reason:
+        raise RuntimeError(reason)
+    if not re.fullmatch(r"\d+(\.\d+){1,2}", version):
+        raise RuntimeError("Dem Paket fehlt die Nummer der Fassung.")
+    if number(version) <= number(__version__):
+        raise RuntimeError(f"Das Paket enthält die Fassung {version}; hier läuft schon {__version__}.")
+    folder = prog / ort.VERSIONS / version
+    folder.mkdir(parents=True, exist_ok=True)
+    return folder
+
+
+def _finish(prog: Path, folder: Path, version: str):
+    if not (folder / EXE).is_file():
+        raise RuntimeError("Im Paket fehlt LocalScribe.exe.")
+    (folder / ort.DONE).write_text(version, encoding="utf-8")
+    current = prog / ort.CURRENT
+    try:
+        part = current.with_name(current.name + f".{os.getpid()}")
+        part.write_text(version, encoding="utf-8")
+        os.replace(part, current)
+    except OSError:
+        current.write_text(version, encoding="utf-8")       # Laufwerk ohne Umbenennen: direkt schreiben
+
+
+def complete(prog: Path, version: str) -> bool:
+    folder = prog / ort.VERSIONS / version
+    return (folder / ort.DONE).is_file() and (folder / EXE).is_file()
+
+
+def _root_in(z: zipfile.ZipFile) -> str:
+    roots = {n.split("/")[0] for n in z.namelist() if n.count("/") == 1 and n.endswith("/" + EXE)}
+    if len(roots) != 1:
+        raise RuntimeError("Das ist kein LocalScribe-Paket: In der ZIP-Datei fehlt LocalScribe.exe.")
+    return roots.pop() + "/"
+
+
+def _version_in(z: zipfile.ZipFile, root: str, name: str = "") -> str:
+    try:
+        return z.read(root + VERSION_FILE).decode("utf-8").strip()
+    except KeyError:
+        found = re.search(r"LocalScribe-(\d+\.\d+\.\d+)", name)
+        return found.group(1) if found else ""
+
+
+def unpack(archive, prog: Path) -> str:
+    """ZIP einer LocalScribe-Fassung als neue Fassung einrichten. Gibt ihre Nummer zurück.
+
+    Sprachmodelle aus einem Komplettpaket bleiben außen vor: Die liegen schon im Programmordner oder im Konto."""
     try:
         z = zipfile.ZipFile(archive)
     except (OSError, zipfile.BadZipFile) as e:
         raise RuntimeError(f"Die Datei lässt sich nicht als ZIP öffnen ({e}).") from e
     with z:
-        roots = {n.split("/")[0] for n in z.namelist() if n.count("/") == 1 and n.endswith("/" + EXE)}
-        if len(roots) != 1:
-            raise RuntimeError("Das ist kein LocalScribe-Paket: In der ZIP-Datei fehlt LocalScribe.exe.")
-        root = roots.pop()
-        reason = blocked(prog)
-        if reason:
-            raise RuntimeError(reason + " Entpacke die neue Fassung stattdessen von Hand in einen neuen Ordner.")
-        new, tmp = prog.with_name(prog.name + ".neu"), prog.with_name(prog.name + ".entpackt")
-        for old in (new, tmp):
-            shutil.rmtree(old, ignore_errors=True)
+        root = _root_in(z)
+        version = _version_in(z, root, Path(str(archive)).name)
+        if complete(prog, version):
+            _finish(prog, prog / ort.VERSIONS / version, version)
+            return version
+        folder = _slot(prog, version)
         try:
-            z.extractall(tmp)
-            (tmp / root).rename(new)
-        except OSError as e:
-            shutil.rmtree(new, ignore_errors=True)
-            raise RuntimeError(f"Entpacken fehlgeschlagen ({e.strerror or e}). Ist genug Platz im Ordner?") from e
-        finally:
-            shutil.rmtree(tmp, ignore_errors=True)
-    return new
+            for item in z.infolist():
+                rel = item.filename[len(root):]
+                if not item.filename.startswith(root) or item.is_dir() or rel.startswith("modelle/"):
+                    continue
+                target = folder / rel
+                target.parent.mkdir(parents=True, exist_ok=True)
+                with z.open(item) as src, open(target, "wb") as dst:
+                    shutil.copyfileobj(src, dst, 1 << 20)
+        except (OSError, zipfile.BadZipFile) as e:
+            raise RuntimeError(f"Entpacken fehlgeschlagen ({getattr(e, 'strerror', None) or e}). Ist genug Platz "
+                               "im Ordner? Die laufende Fassung ist unverändert.") from e
+        _finish(prog, folder, version)
+    return version
 
 
 RELEASES = "https://github.com/chunkyfire/LocalScribe/releases"
 GAP = 64 * 1024        # liegen zwei geänderte Dateien im Paket so nah beieinander, kommen sie in einer Anfrage
-
-
-def number(version: str) -> tuple:
-    """„v1.2.10“ → (1, 2, 10), damit 1.2.10 neuer ist als 1.2.9."""
-    return tuple(int(n) for n in re.findall(r"\d+", version)[:3])
 
 
 def _open(url, start=None, end=None, timeout=20):
@@ -203,34 +267,37 @@ def _crc(path: Path) -> int:
     return crc
 
 
-def fetch(info: dict, prog: Path, progress=None, source=None):
-    """Neue Fassung neben dem Programmordner aufbauen und dafür nur laden, was sich geändert hat.
+def fetch(info: dict, prog: Path, progress=None, source=None, base=None):
+    """Neue Fassung einrichten und dafür nur laden, was sich geändert hat. Gibt (Nummer, geladene Bytes, Zahl der
+    geladenen Dateien) zurück.
 
-    Das Inhaltsverzeichnis des Pakets nennt für jede Datei Größe und Prüfsumme. Was im Programmordner schon genau so
-    liegt, wird von dort kopiert; nur der Rest kommt aus dem Netz. Gibt (Ordner der neuen Fassung, geladene Bytes,
-    Zahl der geladenen Dateien) zurück. progress(geladen, gesamt) meldet den Stand."""
-    reason = blocked(prog)
-    if reason:
-        raise RuntimeError(reason + " Entpacke die neue Fassung stattdessen von Hand in einen neuen Ordner.")
+    Das Inhaltsverzeichnis des Pakets nennt für jede Datei Größe und Prüfsumme. Was in der laufenden Fassung (base)
+    schon genau so liegt, wird von dort kopiert; nur der Rest kommt aus dem Netz. progress(geladen, gesamt) meldet
+    den Stand."""
+    base = Path(base or ort.here() or prog)
     remote = source or Remote(info["url"], info["size"])
-    new = prog.with_name(prog.name + ".neu")
-    shutil.rmtree(new, ignore_errors=True)
     try:
         z = zipfile.ZipFile(remote)
-        roots = {n.split("/")[0] for n in z.namelist() if n.count("/") == 1 and n.endswith("/" + EXE)}
-        if len(roots) != 1:
-            raise RuntimeError("Das Paket bei GitHub ist kein LocalScribe-Paket.")
-        root = roots.pop() + "/"
+        root = _root_in(z)
+        version = _version_in(z, root, info.get("url", "")) or info.get("version", "")
+        if complete(prog, version):
+            _finish(prog, prog / ort.VERSIONS / version, version)
+            return version, 0, 0
+        new = _slot(prog, version)
         files = sorted((i for i in z.infolist() if i.filename.startswith(root) and not i.is_dir()),
                        key=lambda i: i.header_offset)
         ends = [i.header_offset for i in files[1:]] + [z.start_dir]
         todo = []                                        # (Eintrag, Ende seiner Daten im Paket)
         for item, end in zip(files, ends):
             rel = item.filename[len(root):]
-            have, target = prog / rel, new / rel
+            if rel.startswith("modelle/"):
+                continue
+            have, target = base / rel, new / rel
             target.parent.mkdir(parents=True, exist_ok=True)
+            if target.is_file() and target.stat().st_size == item.file_size and _crc(target) == item.CRC:
+                continue                                 # liegt schon da (abgebrochenes Update)
             if have.is_file() and have.stat().st_size == item.file_size and _crc(have) == item.CRC:
-                shutil.copy2(have, target)
+                shutil.copyfile(have, target)
             else:
                 todo.append((item, end))
         total = sum(end - item.header_offset for item, end in todo)
@@ -248,56 +315,99 @@ def fetch(info: dict, prog: Path, progress=None, source=None):
                 if progress:
                     progress(done, total)
             i = j + 1
-        if not (new / EXE).is_file():
-            raise RuntimeError("Im Paket fehlt LocalScribe.exe.")
-        return new, getattr(remote, "loaded", total), len(todo)
+        _finish(prog, new, version)
+        return version, getattr(remote, "loaded", total), len(todo)
     except (OSError, zipfile.BadZipFile, urllib.error.URLError) as e:
-        shutil.rmtree(new, ignore_errors=True)
-        raise RuntimeError(f"Das Update ließ sich nicht laden ({getattr(e, 'reason', None) or e}). Nichts wurde "
-                           "verändert. Später noch einmal versuchen oder die ZIP-Datei von Hand laden.") from e
-    except RuntimeError:
-        shutil.rmtree(new, ignore_errors=True)
-        raise
+        raise RuntimeError(f"Das Update ließ sich nicht laden ({getattr(e, 'reason', None) or e}). Die laufende "
+                           "Fassung ist unverändert. Später noch einmal versuchen oder die ZIP-Datei von Hand "
+                           "laden.") from e
 
 
-def swap(prog: Path, new: Path, start=True) -> Path:
-    """Nach dem Beenden: alten Ordner beiseite, neuen an seine Stelle, Sprachmodell mitnehmen, neu starten.
-
-    Modelle, die das neue Paket nicht mitbringt, wandern aus dem Ordner „modelle“ der alten Fassung in die neue:
-    Für ein Update genügt deshalb das kleine Paket. Ein Ordner „daten“ (eigene Daten im Programmordner) zieht mit."""
-    old = prog.with_name(prog.name + ".alt")
-    launch = 'start "" "%LS_PROG%\\%LS_EXE%"\r\n' if start else ""
-    return _run(HEAD + f'''set N=0
-:warten
-ren "%LS_PROG%" "%LS_OLDNAME%" 2>nul && goto frei
-set /a N+=1
-if %N% geq 60 goto fehler
-{WAIT}goto warten
-:frei
-if not exist "%LS_NEW%\\modelle" mkdir "%LS_NEW%\\modelle"
-for /d %%D in ("%LS_OLD%\\modelle\\*") do if not exist "%LS_NEW%\\modelle\\%%~nxD" move "%%D" "%LS_NEW%\\modelle\\" >nul
-if exist "%LS_OLD%\\%LS_DATA%" move "%LS_OLD%\\%LS_DATA%" "%LS_NEW%\\%LS_DATA%" >nul
-ren "%LS_NEW%" "%LS_NAME%"
-{launch}rmdir /s /q "%LS_OLD%"
-goto ende
-:fehler
-rmdir /s /q "%LS_NEW%"
-echo x> "%LS_FAILED%"
-{launch}:ende
-del "%~f0"
-'''.replace("\n", "\r\n").replace("\r\r\n", "\r\n"),
-                LS_PROG=prog, LS_NEW=new, LS_OLD=old, LS_OLDNAME=old.name, LS_NAME=prog.name, LS_EXE=EXE,
-                LS_DATA=config.PORTABLE, LS_FAILED=config.DIR / FAILED)
+def pending() -> str:
+    """Nummer einer eingerichteten Fassung, die neuer ist als die laufende; sonst leer."""
+    prog = program()
+    pick = ort.chosen(prog, __version__) if prog else None
+    return pick[0] if pick else ""
 
 
-def failed() -> bool:
-    """Hat das letzte Update nicht geklappt? Die Markierung wird dabei gelöscht."""
-    mark = config.DIR / FAILED
+def restart():
+    """Die EXE im Programmordner starten; sie übergibt an die aktuelle Fassung. Der Aufrufer beendet sich danach."""
+    prog = program()
+    subprocess.Popen([str(prog / EXE), "--nach-update"], cwd=str(prog), close_fds=True)
+
+
+def tidy(prog=None) -> list:
+    """Ordner älterer Fassungen löschen, aus denen niemand mehr arbeitet. Gibt die gelöschten Nummern zurück.
+
+    Probe ist das Umbenennen: Solange irgendwo eine LocalScribe.exe aus dem Ordner läuft, verweigert Windows das.
+    Erst danach wird gelöscht; so verliert kein laufendes Programm Dateien."""
+    prog = prog or program()
+    if not prog or not (prog / ort.VERSIONS).is_dir():
+        return []
+    pick = ort.chosen(prog, "0")
+    keep = number(pick[0]) if pick else ()
+    mine = ort.here()
+    gone = []
+    for folder in (prog / ort.VERSIONS).iterdir():
+        if not folder.is_dir():
+            continue
+        if folder.name.endswith(".weg"):
+            shutil.rmtree(folder, ignore_errors=True)
+            continue
+        if not re.fullmatch(r"\d+(\.\d+){1,2}", folder.name) or not keep or number(folder.name) >= keep:
+            continue
+        if mine and folder.resolve() == mine.resolve():
+            continue
+        away = folder.with_name(folder.name + ".weg")
+        try:
+            folder.rename(away)
+        except OSError:
+            continue                                     # wird noch benutzt, oder das Laufwerk erlaubt es nicht
+        shutil.rmtree(away, ignore_errors=True)
+        gone.append(folder.name)
+    return gone
+
+
+def plain(markdown: str) -> str:
+    """RELEASE_NOTES.md als schlichter Text: „LocalScribe 1.2.0“ als Zeile, darunter die Punkte."""
+    text = re.sub(r"^##\s+", "", markdown, flags=re.M)
+    text = re.sub(r"\*\*(.+?)\*\*", r"\1", text, flags=re.S)
+    return text.replace("`", "")
+
+
+def sections(text: str, since: str = "", upto: str = "") -> list:
+    """[(Nummer, Text)] der Fassungen, die neuer sind als since und höchstens upto; neueste zuerst."""
+    parts = re.split(r"^LocalScribe (\d+\.\d+\.\d+)[ \t]*$", text, flags=re.M)
+    out = []
+    for version, body in zip(parts[1::2], parts[2::2]):
+        if (not since or number(version) > number(since)) and (not upto or number(version) <= number(upto)):
+            out.append((version, re.sub(r"\s*\n[ \t]+", " ", body).strip()))
+    return out
+
+
+def notes(since: str = "", version: str = "") -> list:
+    """Änderungen aus der eingerichteten Fassung version (sonst der laufenden), neuer als since."""
+    prog = program()
+    if prog is None:
+        path = Path(__file__).resolve().parent.parent / "RELEASE_NOTES.md"
+    elif version and version != __version__:
+        path = prog / ort.VERSIONS / version / NOTES
+    else:
+        path = ort.here() / NOTES
     try:
-        mark.unlink()
-        return True
+        text = path.read_text(encoding="utf-8")
     except OSError:
-        return False
+        return []
+    return sections(plain(text), since, version or __version__)
+
+
+def remote_notes(info: dict, source=None) -> list:
+    """Änderungen der Fassung bei GitHub, gelesen aus dem Paket selbst (eine kleine Datei, kein ganzer Download)."""
+    try:
+        z = zipfile.ZipFile(source or Remote(info["url"], info["size"]))
+        return sections(z.read(_root_in(z) + NOTES).decode("utf-8"), __version__, info.get("version", ""))
+    except (OSError, KeyError, RuntimeError, zipfile.BadZipFile, urllib.error.URLError, UnicodeDecodeError):
+        return []
 
 
 def remove(prog, data: bool) -> Path:

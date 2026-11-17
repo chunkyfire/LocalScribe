@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml" lang="de" xml:lang="de">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
 <head>
   <meta charset="utf-8" />
   <meta name="generator" content="pandoc" />
@@ -172,7 +172,7 @@
 <body>
 <h1 id="localscribe--technische-dokumentation">LocalScribe – Technische
 Dokumentation</h1>
-<p>Stand: Version 1.1.1. Für Betrieb, IT und alle, die den Code lesen
+<p>Stand: Version 1.2.0. Für Betrieb, IT und alle, die den Code lesen
 oder prüfen wollen. Die Bedienung steht im <a
 href="https://chunkyfire.github.io/LocalScribe/">Handbuch</a>, die Messwerte mit Methode
 in <a
@@ -281,28 +281,64 @@ Updates suchen</strong>: Auf Klick fragt die App bei
 (<code>pflege.latest</code>, die Weiterleitung von
 <code>…/releases/latest</code> nennt die Nummer). Gibt es eine neuere,
 liest sie das Inhaltsverzeichnis des kleinen Pakets über
-HTTP-Range-Anfragen, vergleicht Größe und CRC-32 jeder Datei mit dem
-Programmordner, kopiert Unverändertes von dort und lädt nur die
-geänderten Dateien (<code>pflege.fetch</code>); beim Entpacken prüft sie
-deren Prüfsummen. Von 0.15.2 auf 1.0.0 sind das 4 Dateien, rund 12 statt
-112 MB. Von selbst fragt die App nie nach. <strong>Aus ZIP-Datei
+HTTP-Range-Anfragen, daraus die Datei <code>NEUES.txt</code> („Was ist
+neu“), vergleicht Größe und CRC-32 jeder Datei mit der laufenden
+Fassung, kopiert Unverändertes von dort und lädt nur die geänderten
+Dateien (<code>pflege.fetch</code>); beim Entpacken prüft sie deren
+Prüfsummen. Von 0.15.2 auf 1.0.0 waren das 4 Dateien, rund 12 statt 112
+MB. Von selbst fragt die App nie im Netz nach. <strong>Aus ZIP-Datei
 aktualisieren</strong>: für Rechner, die GitHub nicht erreichen; die App
-entpackt das gewählte Paket. Beide Wege legen die neue Fassung neben den
-Programmordner (<code>&lt;Ordner&gt;.neu</code>); die App beendet sich,
-und ein Skript im Temp-Ordner tauscht die Ordner, sobald die Dateien
-frei sind, und startet neu (<code>diktat/pflege.py</code>). Das Skript
-läuft unsichtbar, enthält nur ASCII und bekommt alle Pfade als
-Umgebungsvariablen, damit Umlaute und Leerzeichen im Pfad
-(<code>Oberärzte\…</code>) unabhängig von der Codepage stimmen. Modelle,
-die das Paket nicht mitbringt, wandern aus dem Ordner
-<code>modelle</code> der alten Fassung in die neue; für ein Update
-genügt deshalb das kleine Paket. Ob sich der Ordner überhaupt ersetzen
-lässt, prüft die App vorher: Netzwerkordner erlauben oft das Anlegen,
-aber nicht das Umbenennen oder Löschen. Dann sagt sie das und ändert
-nichts. Wird der alte Ordner binnen 60 Sekunden nicht frei, startet die
-bisherige Fassung wieder und meldet es. Einstellungen, Verlauf und
-Modell im Benutzerkonto bleiben bei jedem Update erhalten. Von Hand: App
-beenden, neues ZIP in einen neuen Ordner entpacken.</p>
+entpackt das gewählte Paket.</p>
+<p>Ab 1.2.0 ersetzt ein Update nichts mehr (<code>diktat/ort.py</code>,
+<code>diktat/pflege.py</code>):</p>
+<pre><code>LocalScribe\LocalScribe.exe          die einmal entpackte Fassung; sie startet immer
+LocalScribe\aktuell.txt              Nummer der Fassung, die laufen soll
+LocalScribe\fassungen\1.2.1\…       jede spätere Fassung vollständig in einem eigenen Ordner
+LocalScribe\modelle, …\daten        gehören allen Fassungen</code></pre>
+<p>Beide Update-Wege legen <code>fassungen\&lt;Nummer&gt;</code> an,
+schreiben zuletzt die Markierung <code>.vollstaendig</code> hinein und
+danach <code>aktuell.txt</code>. <code>LocalScribe.exe</code> im
+Programmordner liest beim Start <code>aktuell.txt</code>; nennt sie eine
+vollständige, neuere Fassung, startet sie deren
+<code>LocalScribe.exe</code> und beendet sich
+(<code>ort.handover</code>, vor allen schweren Importen). Verknüpfungen
+und Autostart zeigen deshalb immer auf die EXE im Programmordner.
+Folgen:</p>
+<ul>
+<li>Keine Datei, die gerade jemand benutzt, wird angefasst. Ein Update
+geht, während LocalScribe läuft, auf demselben Rechner und auf beliebig
+vielen anderen, die aus demselben Ordner eines gemeinsamen Laufwerks
+arbeiten.</li>
+<li>Gebraucht wird nur das Recht, im Programmordner Ordner und Dateien
+anzulegen; umbenannt oder gelöscht wird für das Update nichts. Wer das
+Recht nicht hat, sieht „wird zentral gepflegt“ und kann nichts
+ändern.</li>
+<li>Jede laufende App liest alle zehn Minuten <code>aktuell.txt</code>
+(eine kleine Datei im Programmordner, keine Netzabfrage nach außen).
+Liegt eine neuere Fassung bereit, steht im Fenster eine Leiste mit „Was
+ist neu“ und „Jetzt neu starten“, im Menü neben der Uhr „Fassung …
+starten“. Nichts springt auf. Ohne Klick gilt die neue Fassung ab dem
+nächsten Start, in Kliniken also meist am nächsten Morgen.</li>
+<li>Ältere Ordner unter <code>fassungen</code> löscht die App beim
+Start, wenn niemand mehr daraus arbeitet. Probe ist das Umbenennen des
+Ordners: Solange irgendwo eine <code>LocalScribe.exe</code> daraus
+läuft, verweigert Windows das. Erlaubt das Laufwerk kein Löschen,
+bleiben die Ordner liegen (je rund 300 MB) und können von Hand entfernt
+werden.</li>
+<li>Zurück: <code>aktuell.txt</code> löschen (dann läuft die Fassung im
+Programmordner) oder eine ältere, noch vorhandene Nummer
+hineinschreiben, die neuer ist als die Fassung im Programmordner.</li>
+<li>Zentral verteilen ohne Klick in der App: neues Paket nach
+<code>fassungen\&lt;Nummer&gt;</code> entpacken (Inhalt des Ordners
+<code>LocalScribe</code> aus der ZIP, ohne <code>modelle</code>), darin
+eine Datei <code>.vollstaendig</code> anlegen, die Nummer in
+<code>aktuell.txt</code> schreiben.</li>
+</ul>
+<p>Wer von einer Fassung vor 1.2.0 kommt, aktualisiert einmal auf dem
+alten Weg (die App beendet sich, ein Skript tauscht den Ordner); auf
+einem gemeinsamen Laufwerk müssen dafür einmal alle LocalScribe beenden,
+oder man entpackt 1.2.0 in einen neuen Ordner. Einstellungen, Verlauf
+und Modell im Benutzerkonto bleiben bei jedem Update erhalten.</p>
 <p>Entfernen: Einstellungen, „LocalScribe entfernen“. Löscht die
 Verknüpfungen, den Autostart-Eintrag und den Programmordner, auf Wunsch
 auch <code>%LOCALAPPDATA%\LocalScribe</code> und die Schlüssel in der
@@ -550,15 +586,16 @@ Wunsch: Gibt es neben <code>LocalScribe.exe</code> einen Ordner
 Programmordner ablegen“). So hat jede Person mit eigenem Programmordner
 ihre eigene Fassung mit eigenem Wortschatz und Verlauf, auch auf einem
 Sammelkonto. Das gehört nur in einen Ordner, den sonst niemand lesen
-kann. Bei einem Update aus ZIP zieht <code>daten</code> mit. Ohne diesen
-Ordner gilt: Die Daten, auch das Protokoll, bleiben im Konto, selbst
-wenn das Programm auf einem Netzlaufwerk liegt: Der Programmordner wird
-oft von mehreren geteilt und ist häufig schreibgeschützt, Verlauf und
-Protokoll gehören dort nicht hin. Bei einem Sammelkonto teilen sich
-alle, die es benutzen, dieselben Einstellungen und denselben Verlauf.
-Lässt sich <code>%LOCALAPPDATA%</code> ausnahmsweise nicht beschreiben,
-weicht die App auf <code>%APPDATA%</code>, das Benutzerverzeichnis und
-zuletzt <code>%TEMP%</code> aus (<code>config._dir</code>).</p>
+kann. Der Ordner gehört allen Fassungen und bleibt bei Updates, wo er
+ist. Ohne diesen Ordner gilt: Die Daten, auch das Protokoll, bleiben im
+Konto, selbst wenn das Programm auf einem Netzlaufwerk liegt: Der
+Programmordner wird oft von mehreren geteilt und ist häufig
+schreibgeschützt, Verlauf und Protokoll gehören dort nicht hin. Bei
+einem Sammelkonto teilen sich alle, die es benutzen, dieselben
+Einstellungen und denselben Verlauf. Lässt sich
+<code>%LOCALAPPDATA%</code> ausnahmsweise nicht beschreiben, weicht die
+App auf <code>%APPDATA%</code>, das Benutzerverzeichnis und zuletzt
+<code>%TEMP%</code> aus (<code>config._dir</code>).</p>
 <table>
 <thead>
 <tr class="header">

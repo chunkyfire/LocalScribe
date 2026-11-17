@@ -430,3 +430,19 @@ Grenzen: neun und fünf Diktate, Schwellen an den neun gewählt, nur Unterschied
 nicht: Offen sind Unterschiede über mehrere Wörter, die Messung an den eigenen Diktaten und der Einbau als abschaltbare
 Stufe mit einmaligem Download des Modells.
 
+## Dasselbe Diktat in drei Geschwindigkeiten (18.11.2026): gemessen, nicht eingebaut
+
+Idee: Das Modell macht bei leicht verändertem Tempo andere Fehler. Jedes Corti-Diktat wurde dreimal erkannt (Original,
+10 % langsamer, 10 % schneller, jeweils einfaches Dekodieren ohne Wortschatz). Wo die beiden veränderten Fassungen an
+derselben Stelle dasselbe anders schreiben als das Original, gilt ihre Lesart (`rover.py`, 70 Stellen in 32,6 Minuten).
+
+| | roh | nach der Nachbearbeitung | Fachbegriffe |
+|---|---|---|---|
+| Original | 21,15 % | 16,59 % | 65,2 % |
+| 10 % langsamer | 21,05 % | 16,29 % | 65,0 % |
+| 10 % schneller | 20,82 % | 16,19 % | 66,0 % |
+| Abstimmung der drei | 20,10 % | 15,67 % | 66,2 % |
+
+Knapp ein Prozentpunkt, also etwa so viel wie die Suche mit der Kernliste (15,77 %), aber für die dreifache Rechenzeit
+des Encoders, der ohnehin den größten Teil der Wartezeit ausmacht. Ob sich der Gewinn zur Suche mit Wortschatz
+addiert, ist nicht gemessen. Nicht eingebaut: Die Wartezeit ist für diese App wichtiger als ein Punkt.

@@ -77,6 +77,7 @@ class Diktat(QtCore.QObject):
                             lambda: QtGui.QGuiApplication.clipboard().setMimeData(private_mime(self.store.last())))
         self.menu.addSeparator()
         self.menu.addAction("Beenden", self.quit)
+        self.restart_action = QtGui.QAction("", self.menu, triggered=self.restart_new)
         self.tray.setContextMenu(self.menu)
         self.tray.activated.connect(lambda why: self.hub.open()
                                     if why == QtWidgets.QSystemTrayIcon.Trigger else None)
@@ -91,13 +92,10 @@ class Diktat(QtCore.QObject):
         self.overlay.set_mode("message", "Modell lädt …")
         threading.Thread(target=self._load, daemon=True).start()
         threading.Thread(target=self._worker, daemon=True).start()
-        from . import pflege
-        if pflege.failed():
-            QTimer.singleShot(800, lambda: QtWidgets.QMessageBox.warning(
-                self.hub, "LocalScribe", "Das Update hat nicht geklappt: Der Programmordner ließ sich binnen einer Minute nicht "
-                "ersetzen. Meist sind noch Dateien daraus geöffnet. Es läuft weiter die bisherige Fassung. Bitte alle "
-                "Fenster dieses Ordners schließen und es noch einmal versuchen, sonst die neue Fassung von Hand in "
-                "einen neuen Ordner entpacken."))
+        self.offered = ""                    # Nummer der neueren Fassung, auf die das Fenster schon hinweist
+        self._watch = QTimer(self, interval=600_000, timeout=self.watch_update)
+        self._watch.start()
+        QTimer.singleShot(1500, self.after_start)
 
     # ---------- Schnittstelle für das App-Fenster ----------
     parse_keys = staticmethod(winio.parse_keys)
@@ -109,6 +107,43 @@ class Diktat(QtCore.QObject):
     @staticmethod
     def create_shortcuts():
         winio.create_shortcuts(str(config.ICON))
+
+    def after_start(self):
+        """Nach einem Update einmal zeigen, was neu ist; alte Fassungen wegräumen; nach einer neueren sehen."""
+        from . import pflege
+        seen = self.cfg.get("seen_version", "")
+        if seen and pflege.number(seen) < pflege.number(__version__):
+            self.hub.announce(seen)
+        elif seen != __version__:
+            self.seen()
+        threading.Thread(target=pflege.tidy, daemon=True).start()
+        self.watch_update()
+
+    def seen(self):
+        self.cfg["seen_version"] = __version__
+        config.save(self.cfg)
+
+    def watch_update(self):
+        """Hat jemand (hier oder an einem anderen Rechner am selben Ordner) eine neuere Fassung eingerichtet?
+        Dann weist das Fenster darauf hin. Liest nur eine kleine Datei im Programmordner, fragt nichts im Netz."""
+        from . import pflege
+        try:
+            version = pflege.pending()
+        except OSError:
+            return
+        if version and version != self.offered:
+            if not self.offered:
+                self.menu.insertAction(self.menu.actions()[-1], self.restart_action)
+            self.offered = version
+            self.restart_action.setText(f"Fassung {version} starten")
+            self.hub.offer_restart(version)
+
+    def restart_new(self):
+        from . import pflege
+        if self.hub.busy():
+            return self.hub.news_note("Erst die laufende Aufnahme oder Transkription beenden.")
+        pflege.restart()
+        self.quit()
 
     def uninstall(self, data: bool):
         """Verknüpfungen, Autostart und Programmordner entfernen, auf Wunsch auch die eigenen Daten samt Schlüsseln."""
@@ -586,7 +621,8 @@ def selftest(path):
         who = f" [{len(set(sprecher.assign(stats['words'], labels, step)))} Sprecher]"
     import keyring
     log.info("Schlüsselspeicher: %s", type(keyring.get_keyring()).__name__)
-    line = f"Selbsttest: {seconds or 0:.1f} s Audio in {time.time() - start:.2f} s{who} -> {text!r}"
+    from . import ort
+    line = f"Selbsttest {__version__} aus {ort.here() or 'dem Quelltext'}: {seconds or 0:.1f} s Audio in {time.time() - start:.2f} s{who} -> {text!r}"
     log.info(line)
     print(line)
 
@@ -622,16 +658,24 @@ def main():
     if getattr(sys, "frozen", False):
         # Läuft LocalScribe schon aus einem ANDEREN Ordner? Dann würde hier nur dessen Fenster aufgehen, und der
         # andere Ordner bliebe gesperrt (nicht löschbar), ohne dass man sieht, warum.
-        here = os.path.normcase(os.path.dirname(sys.executable))
+        # Dieselbe Installation in einer anderen Fassung (fassungen\…) zählt nicht als anderer Ordner.
+        from . import ort
+        here = os.path.normcase(str(ort.root()))
+        if "--nach-update" in sys.argv:      # die bisherige Fassung beendet sich gerade: kurz auf sie warten
+            for _ in range(60):
+                if not winio.others():
+                    break
+                time.sleep(0.25)
+            QtNetwork.QLocalServer.removeServer(INSTANCE)
         elsewhere = [(pid, path) for pid, path in winio.others()
-                     if os.path.normcase(os.path.dirname(path)) != here]
+                     if os.path.normcase(str(ort.root_of(os.path.dirname(path)))) != here]
         if elsewhere:
             box = QtWidgets.QMessageBox()
             box.setWindowTitle("LocalScribe läuft schon")
             box.setIcon(QtWidgets.QMessageBox.Question)
             box.setText("LocalScribe läuft bereits, aber aus einem anderen Ordner:\n\n"
                         + "\n".join(sorted({os.path.dirname(path) for _, path in elsewhere}))
-                        + f"\n\nDu startest gerade die Fassung {__version__} aus:\n\n{os.path.dirname(sys.executable)}"
+                        + f"\n\nDu startest gerade die Fassung {__version__} aus:\n\n{ort.root()}"
                         "\n\nSolange die andere läuft, lässt sich ihr Ordner nicht löschen.")
             mine = box.addButton("Die andere beenden und diese starten", QtWidgets.QMessageBox.AcceptRole)
             box.addButton("Bei der anderen bleiben", QtWidgets.QMessageBox.RejectRole)

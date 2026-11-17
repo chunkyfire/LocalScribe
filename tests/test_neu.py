@@ -502,31 +502,7 @@ if sys.platform == "win32":
     (_prog / "LocalScribe.exe").write_text("alt")
     (_prog / "daten").mkdir()
     (_prog / "daten" / "config.json").write_text("{}")
-    _pack = _base / "neu.zip"
-    with _zip.ZipFile(_pack, "w") as _z:
-        _z.writestr("LocalScribe/LocalScribe.exe", "neu")
-        _z.writestr("LocalScribe/_internal/x.dll", "neu")
-        _z.writestr("LocalScribe/modelle/stimme/g", "neu")
     check("Pflege: Ordner ist änderbar", pflege.blocked(_prog) == "")
-    _new = pflege.unpack(_pack, _prog)
-    check("Pflege: entpackt neben den Programmordner", (_new / "LocalScribe.exe").read_text() == "neu")
-    _script = pflege.swap(_prog, _new, start=False)
-    for _ in range(100):
-        if not _script.exists():
-            break
-        _time.sleep(0.2)
-    check("Pflege: neue Fassung steht am alten Platz", (_prog / "LocalScribe.exe").read_text() == "neu"
-          and (_prog / "_internal" / "x.dll").exists())
-    check("Pflege: Sprachmodell wandert mit", (_prog / "modelle" / "m" / "gewichte").read_text() == "alt")
-    check("Pflege: mitgeliefertes Modell gewinnt", (_prog / "modelle" / "stimme" / "g").read_text() == "neu")
-    check("Pflege: eigene Daten im Programmordner ziehen mit", (_prog / "daten" / "config.json").exists())
-    check("Pflege: nichts bleibt liegen", sorted(p.name for p in _base.iterdir()) == ["LocalScribe v2", "neu.zip"],
-          sorted(p.name for p in _base.iterdir()))
-    try:
-        pflege.unpack(pathlib.Path(__file__), _prog)
-        check("Pflege: falsche Datei wird abgelehnt", False)
-    except RuntimeError:
-        check("Pflege: falsche Datei wird abgelehnt", True)
     _script = pflege.remove(_prog, False)
     for _ in range(100):
         if not _script.exists():
@@ -566,22 +542,75 @@ class _Local(_pf.Remote):
         self.loaded += len(self.data)
 
 
+from diktat import __version__ as _own, ort as _ort
+_next = ".".join(str(n) for n in (_pf.number(_own)[0] + 1, 0, 0))
+with _zip2.ZipFile(_zipped, "a", _zip2.ZIP_DEFLATED) as _z:
+    _z.writestr("LocalScribe/fassung.txt", _next)
+    _z.writestr("LocalScribe/NEUES.txt", _pf.plain(f"## LocalScribe {_next}\n\n- **Neu.** Erster Punkt,\n  zweite Zeile.\n- Zweiter\n\n"
+                                                    f"## LocalScribe {_own}\n\n- alt\n"))
+    _z.writestr("LocalScribe/modelle/m/gewichte", b"gehoert nicht ins Update")
 _src = _Local(str(_zipped), _zipped.stat().st_size)
+check("Update: Änderungen aus dem Paket gelesen", _pf.remote_notes({"version": _next}, _Local(str(_zipped), _zipped.stat().st_size))
+      == [(_next, "- Neu. Erster Punkt, zweite Zeile.\n- Zweiter")],
+      _pf.remote_notes({"version": _next}, _Local(str(_zipped), _zipped.stat().st_size)))
 _steps = []
-_built, _bytes, _count = _pf.fetch({}, _have, progress=lambda d, n: _steps.append((d, n)), source=_src)
-check("Update: neue Fassung vollständig", (_built / "LocalScribe.exe").read_bytes() == b"neu" * 1000
+check("Update: vorher zeigt nichts auf eine neue Fassung", _ort.chosen(_have, _own) is None)
+_ver, _bytes, _count = _pf.fetch({}, _have, progress=lambda d, n: _steps.append((d, n)), source=_src, base=_have)
+_built = _have / "fassungen" / _next
+check("Update: neue Fassung vollständig im eigenen Ordner", _ver == _next and (_built / "LocalScribe.exe").read_bytes() == b"neu" * 1000
       and (_built / "_internal" / "qt" / "gross.dll").read_bytes() == _same
       and (_built / "_internal" / "dazu.dll").read_bytes() == b"neue Datei"
-      and (_built / "LIESMICH.txt").read_bytes() == b"gleich" and not (_built / "_internal" / "weg.pyd").exists())
-check("Update: nur die zwei geänderten Dateien geladen", _count == 2 and _bytes < 5000, (_count, _bytes))
+      and (_built / "LIESMICH.txt").read_bytes() == b"gleich" and not (_built / "_internal" / "weg.pyd").exists()
+      and not (_built / "modelle").exists())
+check("Update: nur die geänderten Dateien geladen", _count == 4 and _bytes < 6000, (_count, _bytes))
 check("Update: Fortschritt endet bei 100 %", _steps and _steps[-1][0] == _steps[-1][1], _steps)
-check("Update: alter Ordner unberührt", (_have / "LocalScribe.exe").read_bytes() == b"alt" * 1000)
+check("Update: laufende Fassung unberührt", (_have / "LocalScribe.exe").read_bytes() == b"alt" * 1000
+      and (_have / "_internal" / "weg.pyd").exists())
+check("Update: aktuell.txt zeigt auf die neue Fassung", _ort.chosen(_have, _own) == (_next, _built)
+      and (_have / "aktuell.txt").read_text() == _next)
+check("Update: Programmordner bleibt derselbe", _ort.root_of(_built) == _have and _ort.root_of(_have) == _have)
+check("Update: noch einmal dasselbe lädt nichts", _pf.fetch({}, _have, source=_Local(str(_zipped), _zipped.stat().st_size), base=_have)[1:] == (0, 0))
+# Zweite, neuere Fassung aus einer ZIP-Datei; die ältere verschwindet erst, wenn niemand mehr daraus arbeitet
+_next2 = ".".join(str(n) for n in (_pf.number(_own)[0] + 1, 0, 1))
+_zip3 = _ub / f"LocalScribe-{_next2}-windows.zip"
+with _zip2.ZipFile(_zip3, "w") as _z:
+    _z.writestr("LocalScribe/LocalScribe.exe", b"neuer")
+    _z.writestr("LocalScribe/modelle/x", b"modell")
+check("Update aus ZIP: Nummer aus dem Dateinamen, Modelle bleiben draußen", _pf.unpack(_zip3, _have) == _next2
+      and (_have / "fassungen" / _next2 / "LocalScribe.exe").read_bytes() == b"neuer"
+      and not (_have / "fassungen" / _next2 / "modelle").exists() and _ort.chosen(_have, _own)[0] == _next2)
+(_have / "fassungen" / "halb").mkdir()
+_busy = open(_built / "LocalScribe.exe", "rb") if sys.platform == "win32" else None
+if _busy:
+    check("Aufräumen: benutzte Fassung bleibt", _pf.tidy(_have) == [] and (_built / "LocalScribe.exe").exists())
+    _busy.close()
+check("Aufräumen: freie ältere Fassung verschwindet, aktuelle bleibt", _pf.tidy(_have) == [_next] and not _built.exists()
+      and (_have / "fassungen" / _next2 / "LocalScribe.exe").exists() and (_have / "fassungen" / "halb").exists())
+(_have / "aktuell.txt").write_text("Unsinn")
+check("Update: unbrauchbare aktuell.txt heißt eigene Fassung", _ort.chosen(_have, _own) is None)
+(_have / "aktuell.txt").write_text(_own)
+check("Update: gleiche Nummer heißt eigene Fassung", _ort.chosen(_have, _own) is None)
+try:
+    _old = _ub / "LocalScribe-0.0.1-windows.zip"
+    with _zip2.ZipFile(_old, "w") as _z:
+        _z.writestr("LocalScribe/LocalScribe.exe", b"uralt")
+    _pf.unpack(_old, _have)
+    check("Update: ältere Fassung wird abgelehnt", False)
+except RuntimeError:
+    check("Update: ältere Fassung wird abgelehnt", not (_have / "fassungen" / "0.0.1").exists())
 (_ub / "kaputt.zip").write_bytes(b"kein zip" * 100)
 try:
-    _pf.fetch({}, _have, source=_Local(str(_ub / "kaputt.zip"), 800))
+    _pf.fetch({}, _have, source=_Local(str(_ub / "kaputt.zip"), 800), base=_have)
     check("Update: kaputtes Paket wird abgelehnt", False)
 except RuntimeError:
-    check("Update: kaputtes Paket wird abgelehnt und nichts bleibt liegen", not (_ub / "LocalScribe.neu").exists())
+    check("Update: kaputtes Paket wird abgelehnt", True)
+try:
+    _pf.unpack(pathlib.Path(__file__), _have)
+    check("Update: falsche Datei wird abgelehnt", False)
+except RuntimeError:
+    check("Update: falsche Datei wird abgelehnt", True)
+_n = _pf.notes()
+check("Was ist neu: Änderungen der laufenden Fassung lesbar", _n and _n[0][0] == _own and "**" not in _n[0][1], [v for v, _ in _n[:1]])
 # Modellordner: der eingestellte Ordner wird gefunden, ohne Netz
 _shared = pathlib.Path(tempfile.mkdtemp())
 (_shared / "fremd--modell--abcdefabcdef").mkdir()

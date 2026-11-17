@@ -35,11 +35,19 @@ Liegt neben LocalScribe.exe ein Ordner "daten", liegen sie stattdessen dort
 Aktualisieren und entfernen
 ---------------------------
 Beides im Fenster unter Einstellungen, ganz unten. "Nach Updates suchen" fragt
-bei GitHub nach und lädt nur, was sich geändert hat. Erreicht der Rechner
-GitHub nicht: die ZIP-Datei der neuen Fassung an einem anderen Rechner laden
-(das kleine Paket genügt) und dort auswählen.
-Von Hand: LocalScribe über das Symbol neben der Uhr beenden, dann den Ordner
-ersetzen oder löschen.
+bei GitHub nach, zeigt, was neu ist, und lädt nur, was sich geändert hat.
+Erreicht der Rechner GitHub nicht: die ZIP-Datei der neuen Fassung an einem
+anderen Rechner laden (das kleine Paket genügt) und dort auswählen.
+
+Ein Update ersetzt nichts. Die neue Fassung kommt in den Ordner
+fassungen\<Nummer>, die Datei aktuell.txt nennt ihre Nummer, und
+LocalScribe.exe startet beim nächsten Mal diese Fassung. Deshalb geht ein
+Update auch, während LocalScribe läuft, und auch dann, wenn dieser Ordner auf
+einem gemeinsamen Laufwerk liegt und viele Rechner daraus arbeiten: Jeder
+übernimmt die neue Fassung bei seinem nächsten Start. Ältere Fassungen räumt
+LocalScribe weg, sobald niemand mehr daraus arbeitet. Zurück zur ersten
+Fassung dieses Ordners: aktuell.txt löschen.
+Was sich geändert hat, steht in NEUES.txt.
 
 Mehr
 ----

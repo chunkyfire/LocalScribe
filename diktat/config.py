@@ -24,7 +24,8 @@ def _dir() -> Path:
     Netzlaufwerk, das sich mehrere teilen, und dort hätten Verlauf und Protokoll ungefragt nichts zu suchen."""
     import sys
     import tempfile
-    own = Path(sys.executable).parent / PORTABLE if getattr(sys, "frozen", False) else None
+    from . import ort
+    own = ort.root() / PORTABLE if ort.root() else None
     places = [own] if own is not None and own.is_dir() else []
     places += [Path(base) / APP for base in (os.environ.get("LOCALAPPDATA"), os.environ.get("APPDATA"),
                                              str(Path.home()), tempfile.gettempdir()) if base]
@@ -95,6 +96,7 @@ DEFAULTS = {
     "visite_prompt": "",          # Visite & Übergabe: eigene Anweisung an das Sprachmodell; leer = die mitgelieferte
     "visite_model": "",           # Modell für den Arztbrief; leer = Gemini 3.1 Pro bei OpenRouter, sonst das LLM-Modell
     "visite_jev": "",             # Jev-Modell für die Ersteinschätzung; leer = ~typesafe/jev-latest
+    "seen_version": "",           # zuletzt gesehene Fassung: Nach einem Update zeigt das Fenster einmal, was neu ist
     "visite_rules": "",           # Hausregeln (Schockraum, Labor, Zuständigkeiten), die Jev mitbekommt; leer = keine
     "training_done": [],          # Stimmtraining: schon gelesene Sätze
     "phone": {"enabled": False, "port": 8765, "token": ""},   # Handy als Mikrofon (Webseite im eigenen Netz)

@@ -1,6 +1,6 @@
 # LocalScribe – Technische Dokumentation
 
-Stand: Version 1.1.1. Für Betrieb, IT und alle, die den Code lesen oder prüfen wollen. Die Bedienung steht im
+Stand: Version 1.2.0. Für Betrieb, IT und alle, die den Code lesen oder prüfen wollen. Die Bedienung steht im
 [Handbuch](LocalScribe-Handbuch.pdf), die Messwerte mit Methode in [`werkzeug/messen/ERGEBNIS.md`](../werkzeug/messen/ERGEBNIS.md).
 
 ## 1. Was die App ist
@@ -65,19 +65,46 @@ Scheitert der Download des Modells (Proxy, Firewall), zeigt das Fenster den Grun
 
 Aktualisieren, zwei Wege (Einstellungen, ganz unten). **Nach Updates suchen**: Auf Klick fragt die App bei
 `github.com` nach der neuesten Fassung (`pflege.latest`, die Weiterleitung von `…/releases/latest` nennt die Nummer).
-Gibt es eine neuere, liest sie das Inhaltsverzeichnis des kleinen Pakets über HTTP-Range-Anfragen, vergleicht Größe
-und CRC-32 jeder Datei mit dem Programmordner, kopiert Unverändertes von dort und lädt nur die geänderten Dateien
-(`pflege.fetch`); beim Entpacken prüft sie deren Prüfsummen. Von 0.15.2 auf 1.0.0 sind das 4 Dateien, rund 12 statt 112 MB. Von selbst
-fragt die App nie nach. **Aus ZIP-Datei aktualisieren**: für Rechner, die GitHub nicht erreichen; die App entpackt
-das gewählte Paket. Beide Wege legen die neue Fassung neben den Programmordner
-(`<Ordner>.neu`); die App beendet sich, und ein Skript im Temp-Ordner tauscht die Ordner, sobald die Dateien frei sind, und
-startet neu (`diktat/pflege.py`). Das Skript läuft unsichtbar, enthält nur ASCII und bekommt alle Pfade als
-Umgebungsvariablen, damit Umlaute und Leerzeichen im Pfad (`Oberärzte\…`) unabhängig von der Codepage stimmen. Modelle, die das Paket nicht mitbringt, wandern aus dem Ordner `modelle` der alten
-Fassung in die neue; für ein Update genügt deshalb das kleine Paket. Ob sich der Ordner überhaupt ersetzen lässt,
-prüft die App vorher: Netzwerkordner erlauben oft das Anlegen, aber nicht das Umbenennen oder Löschen. Dann sagt sie
-das und ändert nichts. Wird der alte Ordner binnen 60 Sekunden nicht frei, startet die bisherige Fassung wieder und
-meldet es. Einstellungen, Verlauf und Modell im Benutzerkonto bleiben bei jedem Update erhalten. Von Hand: App
-beenden, neues ZIP in einen neuen Ordner entpacken.
+Gibt es eine neuere, liest sie das Inhaltsverzeichnis des kleinen Pakets über HTTP-Range-Anfragen, daraus die Datei
+`NEUES.txt` („Was ist neu“), vergleicht Größe und CRC-32 jeder Datei mit der laufenden Fassung, kopiert Unverändertes
+von dort und lädt nur die geänderten Dateien (`pflege.fetch`); beim Entpacken prüft sie deren Prüfsummen. Von 0.15.2
+auf 1.0.0 waren das 4 Dateien, rund 12 statt 112 MB. Von selbst fragt die App nie im Netz nach.
+**Aus ZIP-Datei aktualisieren**: für Rechner, die GitHub nicht erreichen; die App entpackt das gewählte Paket.
+
+Ab 1.2.0 ersetzt ein Update nichts mehr (`diktat/ort.py`, `diktat/pflege.py`):
+
+```
+LocalScribe\LocalScribe.exe          die einmal entpackte Fassung; sie startet immer
+LocalScribe\aktuell.txt              Nummer der Fassung, die laufen soll
+LocalScribe\fassungen\1.2.1\…       jede spätere Fassung vollständig in einem eigenen Ordner
+LocalScribe\modelle, …\daten        gehören allen Fassungen
+```
+
+Beide Update-Wege legen `fassungen\<Nummer>` an, schreiben zuletzt die Markierung `.vollstaendig` hinein und danach
+`aktuell.txt`. `LocalScribe.exe` im Programmordner liest beim Start `aktuell.txt`; nennt sie eine vollständige,
+neuere Fassung, startet sie deren `LocalScribe.exe` und beendet sich (`ort.handover`, vor allen schweren Importen).
+Verknüpfungen und Autostart zeigen deshalb immer auf die EXE im Programmordner. Folgen:
+
+- Keine Datei, die gerade jemand benutzt, wird angefasst. Ein Update geht, während LocalScribe läuft, auf demselben
+  Rechner und auf beliebig vielen anderen, die aus demselben Ordner eines gemeinsamen Laufwerks arbeiten.
+- Gebraucht wird nur das Recht, im Programmordner Ordner und Dateien anzulegen; umbenannt oder gelöscht wird für das
+  Update nichts. Wer das Recht nicht hat, sieht „wird zentral gepflegt“ und kann nichts ändern.
+- Jede laufende App liest alle zehn Minuten `aktuell.txt` (eine kleine Datei im Programmordner, keine Netzabfrage
+  nach außen). Liegt eine neuere Fassung bereit, steht im Fenster eine Leiste mit „Was ist neu“ und „Jetzt neu
+  starten“, im Menü neben der Uhr „Fassung … starten“. Nichts springt auf. Ohne Klick gilt die neue Fassung ab dem
+  nächsten Start, in Kliniken also meist am nächsten Morgen.
+- Ältere Ordner unter `fassungen` löscht die App beim Start, wenn niemand mehr daraus arbeitet. Probe ist das
+  Umbenennen des Ordners: Solange irgendwo eine `LocalScribe.exe` daraus läuft, verweigert Windows das. Erlaubt das
+  Laufwerk kein Löschen, bleiben die Ordner liegen (je rund 300 MB) und können von Hand entfernt werden.
+- Zurück: `aktuell.txt` löschen (dann läuft die Fassung im Programmordner) oder eine ältere, noch vorhandene Nummer
+  hineinschreiben, die neuer ist als die Fassung im Programmordner.
+- Zentral verteilen ohne Klick in der App: neues Paket nach `fassungen\<Nummer>` entpacken (Inhalt des Ordners
+  `LocalScribe` aus der ZIP, ohne `modelle`), darin eine Datei `.vollstaendig` anlegen, die Nummer in `aktuell.txt`
+  schreiben.
+
+Wer von einer Fassung vor 1.2.0 kommt, aktualisiert einmal auf dem alten Weg (die App beendet sich, ein Skript
+tauscht den Ordner); auf einem gemeinsamen Laufwerk müssen dafür einmal alle LocalScribe beenden, oder man entpackt
+1.2.0 in einen neuen Ordner. Einstellungen, Verlauf und Modell im Benutzerkonto bleiben bei jedem Update erhalten.
 
 Entfernen: Einstellungen, „LocalScribe entfernen“. Löscht die Verknüpfungen, den Autostart-Eintrag und den
 Programmordner, auf Wunsch auch `%LOCALAPPDATA%\LocalScribe` und die Schlüssel in der Anmeldeinformationsverwaltung.
@@ -187,8 +214,8 @@ Alles Eigene, auch der gelernte Wortschatz, liegt unter `%LOCALAPPDATA%\LocalScr
 (nicht im Roaming-Profil, wandert also nicht durchs Firmennetz). Ausnahme auf Wunsch: Gibt es neben
 `LocalScribe.exe` einen Ordner `daten`, liegt alles dort (Einstellungen, „Daten in diesem Programmordner ablegen“).
 So hat jede Person mit eigenem Programmordner ihre eigene Fassung mit eigenem Wortschatz und Verlauf, auch auf einem
-Sammelkonto. Das gehört nur in einen Ordner, den sonst niemand lesen kann. Bei einem Update aus ZIP zieht `daten`
-mit. Ohne diesen Ordner gilt:
+Sammelkonto. Das gehört nur in einen Ordner, den sonst niemand lesen kann. Der Ordner gehört allen Fassungen und bleibt
+bei Updates, wo er ist. Ohne diesen Ordner gilt:
 Die Daten, auch das Protokoll, bleiben im Konto, selbst wenn das Programm auf einem Netzlaufwerk liegt: Der Programmordner
 wird oft von mehreren geteilt und ist häufig schreibgeschützt, Verlauf und Protokoll gehören dort nicht hin. Bei
 einem Sammelkonto teilen sich alle, die es benutzen, dieselben Einstellungen und denselben Verlauf. Lässt sich

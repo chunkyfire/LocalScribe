@@ -236,6 +236,38 @@ def keys_text(keys) -> str:
     return " + ".join(KEY_LABEL.get(k, k.upper()) for k in (keys or []))
 
 
+def show_notes(parent, items, version):
+    """Fenster „Was ist neu“: je Fassung eine Überschrift und ihre Punkte."""
+    box = QtWidgets.QDialog(parent)
+    box.setWindowTitle(f"Was ist neu in LocalScribe {version}")
+    box.setStyleSheet(STYLE)
+    box.resize(640, 520)
+    inner = QtWidgets.QVBoxLayout()
+    inner.setContentsMargins(22, 18, 22, 18)
+    inner.setSpacing(8)
+    if not items:
+        inner.addWidget(label("Für diese Fassung liegen hier keine Angaben vor. Alle Änderungen stehen bei GitHub "
+                              "unter Releases.", "muted", wrap=True))
+    for number, text in items:
+        inner.addWidget(label(f"LocalScribe {number}", "h2"))
+        for point in re.split(r"\n(?=- )", text):
+            inner.addWidget(label(point.lstrip("- ").strip() if point.startswith("- ") else point, wrap=True))
+        inner.addSpacing(8)
+    inner.addStretch(1)
+    body = QtWidgets.QWidget()
+    body.setLayout(inner)
+    area = QtWidgets.QScrollArea(widgetResizable=True)
+    area.setFrameShape(QtWidgets.QFrame.NoFrame)
+    area.setWidget(body)
+    lay = QtWidgets.QVBoxLayout(box)
+    lay.setContentsMargins(0, 0, 0, 12)
+    lay.addWidget(area, 1)
+    foot = hbox(None, button("Schließen", box.accept, "primary"))
+    foot.setContentsMargins(0, 0, 18, 0)
+    lay.addLayout(foot)
+    box.exec()
+
+
 class KeyField(QtWidgets.QLineEdit):
     """Tastenkürzel festlegen: hineinklicken, Kombination drücken, fertig. Entf leert, Esc bricht ab."""
     sig_keys = Signal(object)
@@ -2509,14 +2541,16 @@ class SettingsPage(Page):
         self.care_note = label("", "muted", wrap=True)
         self.check_button = button("Nach Updates suchen", self._check, name="primary")
         self.found = None                    # neuere Fassung bei GitHub, sobald gefunden
+        self.notes_button = button("Was ist neu", self._notes)
         self.body.addWidget(card(
             label("Aktualisieren und entfernen", "h2"),
             label(f"Installiert ist Fassung {__version__}. „Nach Updates suchen“ fragt bei GitHub nach der neuesten "
                   "Fassung und lädt auf Wunsch nur die Dateien, die sich geändert haben. Erreicht der Rechner GitHub "
                   "nicht (häufig in Kliniken): die ZIP-Datei an einem anderen Rechner laden und hier auswählen, das "
-                  "kleine Paket genügt. Einstellungen, Verlauf, Wörterbuch und Sprachmodell bleiben, wie sie sind.",
+                  "kleine Paket genügt. Ein Update richtet die neue Fassung neben der laufenden ein: Du arbeitest "
+                  "weiter, sie gilt ab dem nächsten Start. Einstellungen, Verlauf, Wörterbuch und Sprachmodell bleiben.",
                   "muted", wrap=True),
-            hbox(self.check_button, button("Aus ZIP-Datei aktualisieren …", self._update),
+            hbox(self.check_button, self.notes_button, button("Aus ZIP-Datei aktualisieren …", self._update),
                  button("LocalScribe entfernen …", self._remove), None),
             self.care_note))
         self.sig_latest.connect(self._latest)
@@ -2532,7 +2566,7 @@ class SettingsPage(Page):
                  f'Handbuch: <a href="https://chunkyfire.github.io/LocalScribe/" {a}>online</a>.')))
         self.body.addStretch(1)
 
-    sig_unpacked = Signal(str, str)      # Ordner der neuen Fassung, Fehlertext
+    sig_unpacked = Signal(str, str)      # Nummer der neuen Fassung, Fehlertext
     sig_latest = Signal(object, str)     # Auskunft von GitHub, Fehlertext
     sig_loading = Signal(int, int)       # geladene Bytes, zu ladende Bytes
 
@@ -2577,10 +2611,19 @@ class SettingsPage(Page):
 
         def work():
             try:
-                self.sig_latest.emit(pflege.latest(), "")
+                info = pflege.latest()
+                if info["newer"]:
+                    info["notes"] = pflege.remote_notes(info)
+                self.sig_latest.emit(info, "")
             except Exception as e:
                 self.sig_latest.emit(None, str(e))
         threading.Thread(target=work, daemon=True).start()
+
+    def _notes(self):
+        """Vor dem Update: was die neue Fassung bringt. Sonst: was die letzten Fassungen gebracht haben."""
+        if self.found:
+            return show_notes(self, self.found.get("notes") or [], self.found["version"])
+        show_notes(self, pflege.notes()[:8], __version__)
 
     def _latest(self, info, error):
         self.check_button.setEnabled(True)
@@ -2592,15 +2635,24 @@ class SettingsPage(Page):
         if not pflege.program():
             return self.saved(self.care_note, f"Fassung {info['version']} ist da. Diese hier läuft aus dem Quelltext; "
                               "aktualisiert wird sie mit git.", ok=False)
+        if pflege.complete(pflege.program(), info["version"]):
+            self.ctl.watch_update()
+            restyle(self.care_note, "ok")
+            return self.care_note.setText(f"Fassung {info['version']} ist hier schon eingerichtet und startet beim "
+                                          "nächsten Start von LocalScribe.")
         self.found = info
+        self.notes_button.setText(f"Was ist neu in {info['version']}")
+        reason = pflege.readonly(pflege.program())
+        if reason:
+            return self.saved(self.care_note, f"Fassung {info['version']} ist da, du hast {__version__}. {reason}",
+                              ok=False)
         self.check_button.setText(f"Auf {info['version']} aktualisieren")
         restyle(self.care_note, "ok")
         self.care_note.setText(f"Fassung {info['version']} ist da, du hast {__version__}. Ein Klick lädt nur, was sich "
-                               "geändert hat, ersetzt den Programmordner und startet LocalScribe neu.")
+                               "geändert hat, und richtet die neue Fassung neben der laufenden ein. Du kannst dabei "
+                               "weiterarbeiten.")
 
     def _online(self):
-        if not self._care_ready():
-            return
         prog, info = pflege.program(), self.found
         self.check_button.setEnabled(False)
         restyle(self.care_note, "muted")
@@ -2608,8 +2660,8 @@ class SettingsPage(Page):
 
         def work():
             try:
-                new, _, _ = pflege.fetch(info, prog, progress=self.sig_loading.emit)
-                self.sig_unpacked.emit(str(new), "")
+                version, _, _ = pflege.fetch(info, prog, progress=self.sig_loading.emit)
+                self.sig_unpacked.emit(version, "")
             except Exception as e:
                 self.sig_unpacked.emit("", str(e))
         threading.Thread(target=work, daemon=True).start()
@@ -2622,17 +2674,15 @@ class SettingsPage(Page):
         if not prog:
             self.saved(self.care_note, "Diese Fassung läuft aus dem Quelltext; aktualisiert wird sie mit git.", ok=False)
             return
-        if not self._care_ready():
-            return
         path, _ = QtWidgets.QFileDialog.getOpenFileName(self, "ZIP-Datei der neuen Fassung", "", "LocalScribe-Paket (*.zip)")
         if not path:
             return
         restyle(self.care_note, "muted")
-        self.care_note.setText("Die neue Fassung wird entpackt. Das dauert beim Komplettpaket ein bis zwei Minuten …")
+        self.care_note.setText("Die neue Fassung wird eingerichtet. Du kannst dabei weiterarbeiten …")
 
         def work():
             try:
-                self.sig_unpacked.emit(str(pflege.unpack(path, prog)), "")
+                self.sig_unpacked.emit(pflege.unpack(path, prog), "")
             except Exception as e:
                 self.sig_unpacked.emit("", str(e))
         threading.Thread(target=work, daemon=True).start()
@@ -2642,9 +2692,14 @@ class SettingsPage(Page):
         if error:
             self.saved(self.care_note, error, ok=False)
             return
-        from pathlib import Path
-        pflege.swap(pflege.program(), Path(new))
-        self.ctl.quit()
+        self.found = None
+        self.check_button.setText("Nach Updates suchen")
+        self.notes_button.setText("Was ist neu")
+        restyle(self.care_note, "ok")
+        self.care_note.setText(f"Fassung {new} ist eingerichtet. Sie startet beim nächsten Start von LocalScribe; "
+                               "oben im Fenster steht „Jetzt neu starten“. Läuft LocalScribe aus diesem Ordner auch "
+                               "auf anderen Rechnern, übernehmen die sie ebenfalls bei ihrem nächsten Start.")
+        self.ctl.watch_update()
 
     def _remove(self):
         if not self._care_ready():
@@ -2885,6 +2940,24 @@ class Hub(QtWidgets.QWidget):
         self.banner_wrap.setLayout(wrap)
         self.banner_wrap.hide()
         right.addWidget(self.banner_wrap)
+        # Schmale Leiste: neue Fassung liegt bereit, oder nach einem Update „Was ist neu“
+        self.news = QtWidgets.QFrame(objectName="card")
+        self.news_text = label("", wrap=True)
+        self.news_go = button("Jetzt neu starten", lambda: self.ctl.restart_new(), "primary")
+        self.news_what = button("Was ist neu", self._news_notes)
+        self.news_close = button("Schließen", self._news_done)
+        nl = hbox(self.news_text, self.news_what, self.news_go, self.news_close)
+        nl.setContentsMargins(16, 10, 12, 10)
+        nl.setStretch(0, 1)
+        self.news.setLayout(nl)
+        nw = QtWidgets.QVBoxLayout()
+        nw.setContentsMargins(28, 14, 28, 0)
+        nw.addWidget(self.news)
+        self.news_wrap = QtWidgets.QWidget()
+        self.news_wrap.setLayout(nw)
+        self.news_wrap.hide()
+        self.news_since, self.news_version = "", ""
+        right.addWidget(self.news_wrap)
         right.addWidget(self.stack, 1)
 
         lay = QtWidgets.QHBoxLayout(self)
@@ -2893,6 +2966,32 @@ class Hub(QtWidgets.QWidget):
         lay.addWidget(side)
         lay.addLayout(right, 1)
         self.show_page(0)
+
+    def offer_restart(self, version):
+        """Eine neuere Fassung ist eingerichtet (hier oder von einem anderen Rechner am selben Ordner)."""
+        self.news_since, self.news_version = __version__, version
+        self.news_text.setText(f"LocalScribe {version} ist eingerichtet. Hier läuft noch {__version__}; die neue "
+                               "Fassung startet beim nächsten Start von selbst.")
+        self.news_go.show()
+        self.news_wrap.show()
+
+    def announce(self, before):
+        """Erster Start nach einem Update."""
+        self.news_since, self.news_version = before, ""
+        self.news_text.setText(f"LocalScribe ist jetzt auf dem Stand {__version__} (vorher {before}).")
+        self.news_go.hide()
+        self.news_wrap.show()
+
+    def news_note(self, text):
+        self.news_text.setText(text)
+
+    def _news_notes(self):
+        show_notes(self, pflege.notes(self.news_since, self.news_version), self.news_version or __version__)
+
+    def _news_done(self):
+        self.news_wrap.hide()
+        if not self.news_version:
+            self.ctl.seen()
 
     def show_page(self, i):
         self.buttons.button(i).setChecked(True)

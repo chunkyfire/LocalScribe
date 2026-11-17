@@ -1,3 +1,23 @@
+## LocalScribe 1.2.0
+
+- **Updates, während LocalScribe läuft, auch für viele Rechner an einem Ordner.** Ein Update ersetzt nichts mehr. Die
+  neue Fassung kommt in einen eigenen Ordner (`fassungen\<Nummer>`), die Datei `aktuell.txt` nennt ihre Nummer, und
+  `LocalScribe.exe` startet beim nächsten Mal diese Fassung. Niemand muss LocalScribe dafür beenden: nicht am eigenen
+  Rechner und nicht an den anderen, wenn der Ordner auf einem gemeinsamen Laufwerk liegt. Jeder Rechner übernimmt die
+  neue Fassung bei seinem nächsten Start. Bis dahin steht im Fenster eine schmale Leiste mit „Jetzt neu starten“;
+  nichts springt auf. Ältere Fassungen räumt LocalScribe weg, sobald niemand mehr daraus arbeitet.
+- **Was ist neu.** Vor dem Update zeigt „Was ist neu in …“ die Änderungen der neuen Fassung, gelesen aus dem Paket.
+  Nach dem Update weist das Fenster einmal darauf hin. Jederzeit: Einstellungen, ganz unten, „Was ist neu“. Im
+  Programmordner liegt dasselbe als `NEUES.txt`.
+- **Zentral gepflegt.** Wer im Programmordner nichts anlegen darf, sieht das beim Suchen nach Updates und bekommt die
+  neue Fassung, sobald jemand mit Schreibrecht sie eingerichtet hat.
+- **Einmalig zu beachten:** Das Update von 1.1.1 oder älter auf 1.2.0 läuft noch auf dem alten Weg (LocalScribe
+  beendet sich und tauscht den Ordner). Auf einem gemeinsamen Laufwerk müssen dafür einmal alle LocalScribe beenden.
+  Ab 1.2.0 ist das vorbei.
+- **Gemessen, nicht eingebaut.** medBERT als Schiedsrichter bringt an den fünf eigenen Diktaten 8,3 → 8,0 % und bleibt
+  draußen (133 MB für einen Fehler weniger). Dasselbe Diktat in drei Geschwindigkeiten erkennen und abstimmen lassen:
+  16,6 → 15,7 % an neun echten Diktaten, bei dreifacher Rechenzeit. Einzelheiten in `werkzeug/messen/ERGEBNIS.md`.
+
 ## LocalScribe 1.1.1
 
 - **Visite & Übergabe aufgeräumt.** Die große Aufnahmekarte ist weg: oben eine schmale Leiste mit Fallbezeichnung,

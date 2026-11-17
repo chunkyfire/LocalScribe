@@ -44,7 +44,7 @@ Wenige Sprecher, ruhige Umgebung; Dialekt und Lärm sind nicht gemessen.
    Sperrt das Netz den Download, nennt das Fenster den Grund; dann das Komplettpaket nehmen.
 5. Verknüpfungen für Desktop und Startmenü: im Fenster unter **Einstellungen**.
 
-Aktualisieren: in der App unter **Einstellungen → Nach Updates suchen**; geladen wird nur, was sich geändert hat.
+Aktualisieren: in der App unter **Einstellungen → Nach Updates suchen**; die App zeigt, was neu ist, und lädt nur, was sich geändert hat. Ein Update richtet die neue Fassung neben der laufenden ein, auch während LocalScribe läuft und auch auf einem gemeinsamen Laufwerk, aus dem viele Rechner arbeiten.
 Erreicht der Rechner GitHub nicht: neue ZIP an einem anderen Rechner laden (das kleine Paket genügt) und unter
 **Aus ZIP-Datei aktualisieren** auswählen. Entfernen: **Einstellungen → LocalScribe entfernen**; von Hand: App beenden, Ordner
 löschen, dazu `%LOCALAPPDATA%\LocalScribe` (Einstellungen, Verlauf, Sprachmodelle).

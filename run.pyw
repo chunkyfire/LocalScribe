@@ -6,6 +6,9 @@ import traceback
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 try:
+    from diktat import __version__, ort
+    if ort.handover(__version__):      # eine neuere Fassung ist eingerichtet: sie übernimmt
+        sys.exit(0)
     from diktat.app import main
     main()
 except SystemExit:
