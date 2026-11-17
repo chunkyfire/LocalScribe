@@ -18,6 +18,7 @@ import numpy as np
 
 MIN_WORD = 4        # kürzere Wörter passen auf zu viele Alltagswörter
 GAMMA = 2.3         # eine Pause kommt nur infrage, wenn das Modell sie selbst ernsthaft erwägt
+REACH = 7.0         # Wortstücke, die das Modell für so viel unwahrscheinlicher hält als das beste, bleiben außen vor
 ENDINGS = ("e", "en", "er", "es", "em", "n", "s", "ern", "nen", "se", "sen")
 
 
@@ -122,9 +123,11 @@ def decode(asr, enc, beam=8, bias=None, nbest=1):
             if h.emitted >= max_sym:
                 continue
             state = (a[:, i], b[:, i])
-            for tok in np.argpartition(lp[i], -(beam + 1))[-(beam + 1):]:
+            row = lp[i]
+            floor = row.max() - REACH
+            for tok in np.argpartition(row, -(beam + 1))[-(beam + 1):]:
                 tok = int(tok)
-                if tok == blank:
+                if tok == blank or row[tok] < floor:
                     continue
                 score, st = h.score + float(lp[i, tok]), h.st
                 if bias is not None:

@@ -1,3 +1,13 @@
+## LocalScribe 0.12.1
+
+- **Rund dreimal so schnell.** Encoder und Decoder des Sprachmodells haben je eigene Rechen-Threads; in der
+  Voreinstellung der Laufzeitbibliothek drehten beide nach getaner Arbeit weiter und nahmen sich gegenseitig die
+  Kerne weg. Abgestellt. Gemessen auf einem i7-13700KF an 45 Sekunden Diktat: Encoder 3,2 → 0,9 s, einfaches
+  Dekodieren 0,75 → 0,17 s, Dekodieren mit Wortschatz 1,7 → 0,6 s. Die Erkennung ist damit trotz Wortschatz
+  schneller als vorher ohne. An der Genauigkeit ändert das nichts (Corti: 11,1 %).
+- Diktierte Satzzeichen (Punkt, Komma, Doppelpunkt …) stehen immer im Wortschatz und kleben seltener am Vorwort.
+- Fachgebiets-Pakete als fertiger Wortschatz gemessen und verworfen (kein Gewinn, `werkzeug/messen/ERGEBNIS.md`).
+
 ## LocalScribe 0.12.0
 
 - **Erkennung mit Wortschatz**: Beim Erkennen laufen jetzt acht Lesarten nebeneinander her, und eine Lesart, die

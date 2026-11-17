@@ -329,3 +329,17 @@ passendste 15,44 %, gegenüber 15,77 % mit der Kernliste allein. Allgemeine List
 Wortformen eines einzelnen Arztes zu selten; der Gewinn (11,1 %) kommt erst mit den Wörtern aus den eigenen Texten.
 Deshalb gibt es keine Pakete, sondern „Aus eigenen Texten lernen“. Die diktierten Satzzeichen-Wörter (Punkt, Komma,
 Doppelpunkt …) im Wortschatz bringen 15,77 → 15,35 % und sind seitdem immer dabei.
+
+### Geschwindigkeit (0.12.1)
+
+`session.intra_op.allow_spinning = 0` für beide ONNX-Sitzungen. Vorher drehten die Rechen-Threads von Encoder und
+Decoder nach jedem Aufruf weiter und bremsten sich im Wechsel gegenseitig. i7-13700KF, 45 s Diktat in elf Stücken:
+
+| | Encoder | einfach dekodieren | Suche mit Wortschatz |
+|---|---|---|---|
+| Voreinstellung | 3,22 s | 0,75 s | 1,74 s |
+| ohne Spinning | 0,94 s | 0,17 s | 0,58 s |
+
+Nicht besser: feste Thread-Zahlen (8, 12, 16), Bindung an die schnellen Kerne, Decoder mit einem Thread, erst alle
+Stücke durch den Encoder und dann dekodieren. In der Suche bleiben Wortstücke außen vor, die das Modell für um mehr
+als 7 (logarithmisch) unwahrscheinlicher hält als das beste; Corti unverändert 11,08 %.

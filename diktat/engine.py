@@ -390,6 +390,9 @@ class Transcriber:
         so = ort.SessionOptions()
         if cfg.get("threads"):
             so.intra_op_num_threads = int(cfg["threads"])
+        # Encoder und Decoder haben je eigene Rechen-Threads. Lässt man sie nach getaner Arbeit weiterdrehen
+        # (Voreinstellung), nehmen sie sich gegenseitig die Kerne weg: 45 s Ton brauchten 4,2 s statt 1,1 s.
+        so.add_session_config_entry("session.intra_op.allow_spinning", "0")
         kw = dict(quantization=cfg.get("quantization") or None,
                   providers=[cfg.get("provider") or "CPUExecutionProvider"], sess_options=so)
         t = time.time()
