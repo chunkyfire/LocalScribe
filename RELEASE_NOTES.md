@@ -1,3 +1,12 @@
+## LocalScribe 0.14.1
+
+- „Visite & Übergabe“ ist als **experimenteller Modus für Benchmarking** beschriftet: Er soll Messwerte liefern, mit
+  denen ein Haus entscheidet, ob sich eine eigene Entwicklung unter der Inhouse-Ausnahme (Art. 5 Abs. 5 MDR) lohnt.
+- Handbuch und technische Dokumentation heben die Benchmark-Ergebnisse hervor und beschreiben, wie sich ein
+  Sprachmodell im eigenen Haus anschließen lässt (Rechner mit Grafikkarte, zum Beispiel über Ollama oder LM Studio).
+- Stimmtraining: Die Beschriftung sagt jetzt unmissverständlich, dass nur die angezeigten, erfundenen Übungssätze
+  aufgehoben werden können, nie Diktate.
+
 ## LocalScribe 0.14.0
 
 - **Visite & Übergabe** (neuer Bereich, aus WacheNG übernommen): Fall diktieren oder tippen, ein Sprachmodell erzeugt

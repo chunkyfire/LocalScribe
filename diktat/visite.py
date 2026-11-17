@@ -4,8 +4,9 @@
 KI-Nachbearbeitung eingetragene Sprachmodell; liegt es außerhalb des Rechners, sieht es nur die geschützte Fassung
 (schutz.py). Fälle liegen in einer eigenen Datei auf diesem Rechner, Löschen führt zuerst in den Papierkorb.
 
-Kein Medizinprodukt: Die Ausgaben sind Entwürfe eines Sprachmodells für Forschung, Lehre und den Vergleich von
-Modellen, keine Diagnose- oder Therapieempfehlung.
+Experimenteller Modus, kein Medizinprodukt: Die Ausgaben sind Entwürfe eines Sprachmodells für Benchmarking, Forschung
+und Lehre, keine Diagnose- oder Therapieempfehlung. Er dient dazu, mit Messwerten zu prüfen, ob sich eine eigene
+Entwicklung im Haus (Inhouse-Ausnahme nach Art. 5 Abs. 5 MDR) lohnt.
 """
 import json
 import re

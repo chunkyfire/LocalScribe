@@ -1,6 +1,6 @@
 # LocalScribe – Technische Dokumentation
 
-Stand: Version 0.14.0. Für Betrieb, IT und alle, die den Code lesen oder prüfen wollen. Die Bedienung steht im
+Stand: Version 0.14.1. Für Betrieb, IT und alle, die den Code lesen oder prüfen wollen. Die Bedienung steht im
 [Handbuch](LocalScribe-Handbuch.pdf), die Messwerte mit Methode in [`werkzeug/messen/ERGEBNIS.md`](../werkzeug/messen/ERGEBNIS.md).
 
 ## 1. Was die App ist
@@ -14,11 +14,14 @@ stellt keine Diagnosen, gibt keine Therapieempfehlungen und trägt kein CE-Zeich
 vergleichen oder Texte von einem Sprachmodell bearbeiten lassen, dienen Forschung, Lehre und Benchmarking. Jeder
 Text ist vor der Verwendung zu lesen.
 
-Eine Ausnahme in der Sache ist der Bereich „Visite & Übergabe“ (`diktat/visite.py`): Dort erzeugt ein Sprachmodell
-aus einem Fall Hinweise auf Risiken und gezielte Rückfragen, zieht also medizinische Schlüsse. Für die Versorgung
-eingesetzt wäre das Software mit medizinischer Zweckbestimmung (MDCG 2019-11, Regel 11). Der Bereich ist deshalb
-ausdrücklich auf Forschung, Lehre und Modellvergleich mit erfundenen oder anonymisierten Fällen beschränkt und so
-beschriftet; ein Einsatz an Patienten setzt eine eigene Bewertung des Betreibers voraus.
+Eine Ausnahme in der Sache ist der Bereich „Visite & Übergabe“ (`diktat/visite.py`), eine klinische
+Entscheidungsunterstützung im Versuchsstadium: Ein Sprachmodell erzeugt aus einem Fall Hinweise auf Risiken und
+gezielte Rückfragen, zieht also medizinische Schlüsse. In der Versorgung eingesetzt wäre das Software mit
+medizinischer Zweckbestimmung (MDCG 2019-11, Regel 11, mindestens Klasse IIa). Der Bereich ist deshalb ein
+**experimenteller Modus für Benchmarking**: Er soll Messwerte liefern, mit denen ein Haus entscheiden kann, ob sich
+eine eigene Entwicklung unter der Inhouse-Ausnahme (Art. 5 Abs. 5 MDR, mit Qualitätsmanagement und Dokumentation)
+lohnt. Bis dahin fließen seine Ausgaben in keine Behandlungsentscheidung. Für eine Pilotphase bietet sich als
+Risikobegrenzung an, ihn nur Fachärztinnen und Fachärzten zu geben, die jede Ausgabe selbst beurteilen können.
 
 ## 2. Systemvoraussetzungen
 
@@ -154,8 +157,12 @@ Start alles zu sperren.
 Ist ein Sprachmodell-Server außerhalb des Rechners eingetragen, ersetzt `schutz.py` vor dem Versand Namen,
 Geburts- und andere Daten, Orte, Nummern und Kontaktangaben durch Platzhalter und setzt sie in der Antwort wieder
 ein. Das senkt das Risiko, ersetzt aber keine Vereinbarung zur Auftragsverarbeitung; ob klinischer Text an einen
-solchen Server gehen darf, entscheidet der Betreiber. Mit einem Server auf dem eigenen Rechner (Ollama, LM Studio)
-bleibt alles lokal.
+solchen Server gehen darf, entscheidet der Betreiber.
+
+**Sprachmodell im eigenen Haus:** Die Schnittstelle ist OpenAI-kompatibel. Damit lässt sich jedes lokal betriebene
+Sprachmodell anschließen: auf dem eigenen Rechner oder auf einem Rechner mit Grafikkarte im Kliniknetz, zum Beispiel
+über Ollama, LM Studio, llama.cpp oder vLLM. Der eigene Rechner und private IP-Adressen (10.x, 172.16–31.x, 192.168.x) gelten als lokal;
+Fachkorrektur und „Visite & Übergabe“ arbeiten dann, ohne dass Text das Haus verlässt, und ohne Kosten je Anfrage.
 
 Handy als Mikrofon: Die App öffnet einen HTTPS-Server mit eigenem Zertifikat im lokalen Netz. Zugang nur mit einem
 zufälligen Schlüssel aus dem QR-Code. Ab Werk aus.
@@ -199,7 +206,7 @@ Messwerkzeuge liegen in `werkzeug/messen` (Wortfehlerrate an eigenen Diktaten, C
 MultiMed; Sprechertrennung; Geschwindigkeit), das Werkzeug zum Kürzen des Modells in `werkzeug/modell`, der Bau
 des Lexikons in `werkzeug/woerterbuch`, die Versuche zum Nachtraining in `werkzeug/training`.
 
-## 11. Messwerte in Kürze
+## 11. Benchmark-Ergebnisse
 
 Wortfehlerrate nach der Nachbearbeitung, ohne Sprachmodell-Korrektur. Methode, Einzelwerte und Einschränkungen in
 `ERGEBNIS.md`.

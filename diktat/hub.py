@@ -1033,9 +1033,10 @@ class VisitPage(Page):
 
     def __init__(self, ctl):
         super().__init__("Visite & Übergabe",
-                         "Nur für Forschung, Lehre und den Vergleich von Modellen. Kein Medizinprodukt: Die Ausgaben sind "
-                         "Entwürfe eines Sprachmodells, keine Diagnose- oder Therapieempfehlung, und vor jeder Verwendung "
-                         "zu prüfen. Das Sprachmodell stellst du unter KI-Nachbearbeitung ein.", scroll=False)
+                         "Experimenteller Modus für Benchmarking, Forschung und Lehre: Er zeigt, wie gut ein Sprachmodell "
+                         "solche Entwürfe liefert. Kein Medizinprodukt; die Ausgaben sind keine Diagnose- oder "
+                         "Therapieempfehlung und vor jeder Verwendung zu prüfen. Das Sprachmodell stellst du unter "
+                         "KI-Nachbearbeitung ein, am besten eines im eigenen Haus (zum Beispiel über Ollama).", scroll=False)
         self.ctl = ctl
         self.store = visite.Store()
         self.case, self.result, self.copy = None, None, {}
@@ -1289,7 +1290,7 @@ class TrainPage(Page):
         self.body.addWidget(card(
             hbox(self.words_n, None, button("Aus eigenen Texten lernen …", self._learn_files),
                  button("Leeren", self._learn_clear)), self.words))
-        self.keep = QtWidgets.QCheckBox("Vorgelesene Sätze als Tonaufnahme aufheben (nur diese erfundenen Sätze, nie Diktate)")
+        self.keep = QtWidgets.QCheckBox("Die oben angezeigten, erfundenen Übungssätze beim Vorlesen als Ton aufheben")
         self.keep.setChecked(bool(self.ctl.cfg.get("training_keep")))
         self.keep.toggled.connect(self._keep)
         self.kept = label("", "muted", wrap=True)
@@ -1362,9 +1363,10 @@ class TrainPage(Page):
 
     def _kept(self):
         n, sec = training.kept()
-        self.kept.setText(f"{n} Aufnahme{'n' if n != 1 else ''}, {sec / 60:.1f} Minuten, nur auf diesem Rechner. "
-                          "Ab etwa 30 Minuten lohnt ein Versuch, das Sprachmodell auf deine Stimme nachzutrainieren "
-                          "(werkzeug/training); ob das die Erkennung verbessert, ist noch nicht gemessen. Ab Werk aus.")
+        self.kept.setText(f"{n} Aufnahme{'n' if n != 1 else ''}, {sec / 60:.1f} Minuten, nur auf diesem Rechner. Aufgehoben werden "
+                          "ausschließlich die erfundenen Übungssätze dieser Seite, während du sie vorliest. Diktate, eingelesene "
+                          "Aufnahmen und alles andere werden nie gespeichert. Ab etwa 30 Minuten lohnt ein Versuch, das "
+                          "Sprachmodell auf deine Stimme nachzutrainieren; ob das hilft, ist noch nicht gemessen. Ab Werk aus.")
 
     def _pairs(self):
         if self.ctl.transcriber is None or not getattr(self.ctl, "ready", True):
