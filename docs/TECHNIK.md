@@ -1,6 +1,6 @@
 # LocalScribe – Technische Dokumentation
 
-Stand: Version 0.15.2. Für Betrieb, IT und alle, die den Code lesen oder prüfen wollen. Die Bedienung steht im
+Stand: Version 1.0.0. Für Betrieb, IT und alle, die den Code lesen oder prüfen wollen. Die Bedienung steht im
 [Handbuch](LocalScribe-Handbuch.pdf), die Messwerte mit Methode in [`werkzeug/messen/ERGEBNIS.md`](../werkzeug/messen/ERGEBNIS.md).
 
 ## 1. Was die App ist
@@ -79,7 +79,10 @@ Von Hand: App beenden, Programmordner und `%LOCALAPPDATA%\LocalScribe` löschen.
 oder erscheint `LocalScribe.exe` auf einem Netzlaufwerk nach dem Löschen wieder, läuft das Programm noch aus diesem
 Ordner: Das Fenster zu schließen beendet es nicht (es bleibt im Infobereich), und ein Server gibt eine geöffnete
 Datei erst frei, wenn der Prozess endet. Beenden über das Symbol neben der Uhr oder im Task-Manager (Details,
-`LocalScribe.exe`).
+`LocalScribe.exe`). Beobachtet auf einem
+Klinik-Netzlaufwerk: Auch danach blieben die Ordner gesperrt und ließen sich erst unmittelbar nach einem Neustart des
+Rechners löschen. Welcher Prozess die Dateien dort nach der Anmeldung wieder öffnete (Autostart der App, Virenscanner
+oder Indexdienst), ist nicht geklärt. Abhilfe: „Mit Windows starten“ ausschalten, neu starten, gleich löschen.
 
 Eine Fassung je Sitzung: Startet jemand LocalScribe aus einem zweiten Ordner, während es aus einem anderen läuft,
 fragt die App, welche bleiben soll, und beendet auf Wunsch die andere (`winio.others`, `winio.end`). Vorher ging

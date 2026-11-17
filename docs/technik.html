@@ -170,15 +170,12 @@
   a{color:#0b57a4}@page{margin:16mm 14mm}</style>
 </head>
 <body>
-<header id="title-block-header">
-
-</header>
 <h1 id="localscribe--technische-dokumentation">LocalScribe – Technische
 Dokumentation</h1>
-<p>Stand: Version 0.15.2. Für Betrieb, IT und alle, die den Code lesen
+<p>Stand: Version 1.0.0. Für Betrieb, IT und alle, die den Code lesen
 oder prüfen wollen. Die Bedienung steht im <a
-href="https://chunkyfire.github.io/LocalScribe/">Handbuch</a>, die
-Messwerte mit Methode in <a
+href="https://chunkyfire.github.io/LocalScribe/">Handbuch</a>, die Messwerte mit Methode
+in <a
 href="https://github.com/chunkyfire/LocalScribe/blob/main/werkzeug/messen/ERGEBNIS.md"><code>werkzeug/messen/ERGEBNIS.md</code></a>.</p>
 <h2 id="1-was-die-app-ist">1. Was die App ist</h2>
 <p>LocalScribe ist ein Diktierprogramm für Windows. Taste halten,
@@ -305,7 +302,13 @@ Netzlaufwerk nach dem Löschen wieder, läuft das Programm noch aus diesem
 Ordner: Das Fenster zu schließen beendet es nicht (es bleibt im
 Infobereich), und ein Server gibt eine geöffnete Datei erst frei, wenn
 der Prozess endet. Beenden über das Symbol neben der Uhr oder im
-Task-Manager (Details, <code>LocalScribe.exe</code>).</p>
+Task-Manager (Details, <code>LocalScribe.exe</code>). Beobachtet auf
+einem Klinik-Netzlaufwerk: Auch danach blieben die Ordner gesperrt und
+ließen sich erst unmittelbar nach einem Neustart des Rechners löschen.
+Welcher Prozess die Dateien dort nach der Anmeldung wieder öffnete
+(Autostart der App, Virenscanner oder Indexdienst), ist nicht geklärt.
+Abhilfe: „Mit Windows starten“ ausschalten, neu starten, gleich
+löschen.</p>
 <p>Eine Fassung je Sitzung: Startet jemand LocalScribe aus einem zweiten
 Ordner, während es aus einem anderen läuft, fragt die App, welche
 bleiben soll, und beendet auf Wunsch die andere

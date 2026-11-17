@@ -1,3 +1,20 @@
+## LocalScribe 1.0.0
+
+Erste Fassung mit der Nummer 1.0. Am Programm ändert sich gegenüber 0.15.2 nichts; Handbuch, technische Dokumentation
+und alle Pakete wurden noch einmal durchgesehen, geprüft und neu gebaut.
+
+- Was LocalScribe kann: Diktieren per Taste in jedes Textfeld, lange Aufnahmen mit Live-Text, Dateien transkribieren,
+  Sprecher trennen, Wörterbuch und Stimmtraining, Textbausteine, auf Wunsch Nachbearbeitung durch ein eigenes
+  Sprachmodell. Die Spracherkennung läuft auf dem eigenen Rechner, ohne Grafikkarte und ohne Adminrechte.
+- Gemessen: 8,3 % Wortfehlerrate an fünf ärztlichen Diktaten eines Sprechers, 2 Sekunden Rechenzeit für 45 Sekunden
+  Diktat. Einzelwerte und Grenzen stehen im Handbuch und in `werkzeug/messen/ERGEBNIS.md`.
+- Für Klinikrechner das Komplettpaket nehmen: Alle Modelle liegen bei, es braucht kein Internet.
+- Handbuch und technische Dokumentation: Lässt sich der Programmordner auf einem Netzlaufwerk nicht löschen, hilft
+  ein Neustart des Rechners und sofortiges Löschen danach. So beobachtet auf einem Klinikrechner; welcher Prozess die
+  Dateien dort festhielt, ist nicht geklärt.
+- Noch nicht enthalten: Nachtraining des Sprachmodells auf die eigene Stimme. Das Stimmtraining sammelt dafür auf
+  Wunsch die vorgelesenen Übungssätze.
+
 ## LocalScribe 0.15.2
 
 - **Schutz vor dem Versand nachgeprüft und verschärft**: Geht Text an ein Sprachmodell außerhalb des Rechners,
