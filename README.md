@@ -53,6 +53,11 @@ beendet sie nicht; sie bleibt im Infobereich (Rechtsklick → Beenden).
 - **Sprecher trennen** (Häkchen bei Aufnahme und Datei) – für Gespräche: Der Text bekommt Zeilen
   „Sprecher 1: …“, „Sprecher 2: …“. Läuft auf der CPU dieses Rechners; beim ersten Einschalten wird einmalig
   ein Stimmmodell geladen (26 MB). Siehe „Sprecher trennen“ unten.
+- **Wortschatz beim Erkennen** – die Erkennung verfolgt acht Lesarten gleichzeitig und bevorzugt die, die auf ein
+  Fachwort aus deinem Wortschatz hinausläuft (Kernliste, **Meine Begriffe**, gelernte Wörter). LocalScribe lernt die
+  Fachwörter aus deinen Diktaten mit; über **Aus eigenen Texten lernen** (Seite Wörterbuch) liest es sie aus eigenen
+  Briefen und Befunden, nur einzelne Lexikonwörter, keine Sätze, keine Namen. An echten Arztdiktaten mit passendem
+  Wortschatz: 16,6 → 11,1 % Wortfehler.
 - **Wörterbuch** – falsch Erkanntes automatisch ersetzen. Unter **Meine Begriffe** reicht die richtige Schreibweise
   (RIVA, Trimbow, ein Name): Was ähnlich klingt und kein echtes Wort ist, wird so geschrieben. Mit **Wort einsprechen** lernt die App
   dazu: richtige Schreibweise eintippen, Knopf halten, Wort sprechen. Was die Erkennung daraus
@@ -150,7 +155,8 @@ Verarbeitungskette. Ergebnis und Vergleich stehen in `tests/langzeit/ERGEBNIS.md
 - Reine Stille wird nicht erkannt, weil das Modell daraus gelegentlich Wörter erfindet. Dafür müssen
   zwei Prüfungen übereinstimmen (Silero hört keine Sprache, der Pegel hebt sich nicht vom
   Grundrauschen ab); im Zweifel wird erkannt.
-- Echtes Wort-Boosting im Modell gibt es nicht. Das Wörterbuch korrigiert nach der Erkennung.
+- Der Wortschatz-Bonus beim Erkennen wirkt nur für Wörter, die im Wortschatz stehen; am ersten Tag ist das wenig
+  mehr als die Kernliste. Er wächst mit den Diktaten oder sofort über „Aus eigenen Texten lernen“.
 - Das Sprachmodell ist primeline-Parakeet in einer eigenen, schonender gekürzten 8-Bit-Fassung (siehe
   `werkzeug/messen/ERGEBNIS.md`).
 - Gemessen ist an fünf ärztlichen Diktaten eines Sprechers (9,0 % Wortfehler, mit Fachkorrektur durch ein großes

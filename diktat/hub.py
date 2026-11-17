@@ -12,7 +12,7 @@ from PySide6.QtCore import Qt, QTimer, Signal
 
 import secrets
 
-from . import config, engine, fach, handy, llm, schutz, training
+from . import config, engine, fach, handy, llm, schutz, training, wortschatz
 from . import sprecher
 from .longform import LongJob
 from .ui import make_icon, make_pixmap, private_mime
@@ -871,6 +871,10 @@ class MapPage(Page):
                       "LocalScribe erkennt am Klang, wenn die Erkennung daraus etwas Ähnliches macht (Riba wird RIVA), "
                       "und schreibt den Begriff so, wie er hier steht. Wörter, die es wirklich gibt, bleiben unberührt.",
                       "muted", wrap=True)))
+            self.learned = label("", "muted", wrap=True)
+            self.body.addWidget(card(
+                label("Gelernter Wortschatz", "h2"), self.learned,
+                hbox(button("Aus eigenen Texten lernen …", self._learn_files), button("Leeren", self._learn_clear), None)))
             self.base = QtWidgets.QCheckBox()
             self.base.toggled.connect(self._base)
             self.body.addWidget(self.base)
@@ -947,6 +951,26 @@ class MapPage(Page):
             self.ctl.cfg["vocabulary"] = terms
             self.ctl.apply_cfg()
 
+    def _learn_files(self):
+        paths, _ = QtWidgets.QFileDialog.getOpenFileNames(
+            self, "Eigene Texte auswählen (Briefe, Befunde, Textbausteine)", "",
+            "Texte (*.docx *.odt *.txt *.md *.rtf *.html *.pdf);;Alle Dateien (*)")
+        if not paths:
+            return
+        added, failed = wortschatz.learn_files(self.ctl.cfg, paths)
+        self.ctl.apply_cfg()
+        self.refresh()
+        note = f"{added} neue Fachwörter aus {len(paths) - len(failed)} Datei(en) gelernt."
+        if failed:
+            note += " Nicht lesbar: " + ", ".join(failed[:5]) + "."
+        self.learned.setText(note + " " + self.learned.text())
+
+    def _learn_clear(self):
+        if self.ctl.cfg.get("learned"):
+            self.ctl.cfg["learned"] = []
+            self.ctl.apply_cfg()
+            self.refresh()
+
     def _base(self, on):
         if not self.loading and on != bool(self.ctl.cfg.get("base_dictionary", True)):
             self.ctl.cfg["base_dictionary"] = on
@@ -956,6 +980,13 @@ class MapPage(Page):
         self.loading = True
         if hasattr(self, "base"):
             self.terms.setText(", ".join(self.ctl.cfg.get("vocabulary") or []))
+            n = len(self.ctl.cfg.get("learned") or [])
+            self.learned.setText(
+                f"{n:,} Fachwörter gelernt. ".replace(",", ".") +
+                "LocalScribe merkt sich, welche Fachwörter aus seinem Lexikon in deinen Diktaten vorkommen, und "
+                "bevorzugt sie beim Erkennen. Schneller geht es, wenn du eigene Briefe oder Befunde einliest: "
+                "Übernommen werden nur einzelne Fachwörter aus dem Lexikon, keine Sätze und keine Namen; die Dateien "
+                "bleiben unverändert auf diesem Rechner.")
             n, m = len(engine.base_dictionary()), len(fach.load()[0])
             self.base.setText(f"Medizinisches Basiswörterbuch anwenden: {m:,} Fachbegriffe werden am Klang erkannt, "
                               f"dazu {n:,} bekannte Fehlschreibungen".replace(",", "."))

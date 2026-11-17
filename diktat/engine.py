@@ -353,10 +353,27 @@ class Transcriber:
         self.model = None
         self.loaded = None       # Schlüssel des geladenen Modells aus config.MODELS
         self.kw = {}             # Zusatzangaben für das Modell (Sprache)
+        self.armed = None        # Stand des Wortschatzes, mit dem das Dekodieren eingerichtet ist
+
+    def arm(self):
+        """Dekodieren mit Wortschatz einrichten; neu nur, wenn sich Wortschatz oder Einstellung geändert haben."""
+        cfg = self.cfg
+        on = self.loaded in config.GERMAN and int(cfg.get("beam") or 0) >= 2
+        stamp = (id(self.model), on, int(cfg.get("beam") or 0), len(cfg.get("learned") or ()),
+                 tuple(cfg.get("vocabulary") or ()))
+        if stamp == self.armed:
+            return
+        try:
+            from . import beam, wortschatz
+            beam.install(self.model, wortschatz.terms(cfg) if on else [], int(cfg.get("beam") or 0))
+        except Exception:
+            log.exception("Dekodieren mit Wortschatz nicht einrichtbar, es bleibt beim einfachen")
+        self.armed = stamp
 
     def recognize(self, chunk: np.ndarray) -> str:
         """Ein Stück erkennen. Kurze englische Einwürfe verwirft die deutsche Erkennung: Aus einem
         Atemzug oder Räuspern vor dem ersten Wort macht das Modell gelegentlich „Hey!“ oder „Hello.“"""
+        self.arm()
         text = (self.model.recognize(chunk, sample_rate=RATE, **self.kw) or "").strip()
         if self.loaded in config.GERMAN:
             if len(chunk) < 2.5 * RATE and text.strip(" .!?,").lower() in PHANTOMS:

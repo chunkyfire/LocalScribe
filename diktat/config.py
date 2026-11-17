@@ -56,6 +56,9 @@ DEFAULTS = {
     "base_dictionary": True,
     "llm_fix": False,             # Fachkorrektur: Hörfehler bei Fachbegriffen vom Sprachmodell vorschlagen lassen
     "vocabulary": [],             # eigene Begriffe: nur die richtige Schreibweise, erkannt wird am Klang
+    "beam": 8,                    # Dekodieren mit so vielen Kandidaten und Wortschatz-Bonus (beam.py); 0 = einfach
+    "learn_terms": True,          # Fachwörter aus den eigenen Diktaten in den Wortschatz aufnehmen (nur Lexikonwörter)
+    "learned": [],                # gelernte Fachwörter (aus Diktaten und eingelesenen Texten)
     "mic_warm": False,            # Mikrofon dauerhaft offen halten: kein Startverzug, erste Silbe bleibt
     "speakers": False,            # Sprecher trennen bei Aufnahme und Datei
     "training_done": [],          # Stimmtraining: schon gelesene Sätze

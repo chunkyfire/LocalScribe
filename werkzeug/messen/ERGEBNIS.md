@@ -285,3 +285,37 @@ Was das Modell danach von sich aus richtig schreibt, fängt die Nachbearbeitung 
 Berichtigte Zieltexte (ab Lauf 3): Zieltext ist, was das Ausgangsmodell hört, nur falsch gehörte Wörter werden ersetzt;
 so bleibt seine Schreibweise für Zahlen und Einheiten. Das hat die Schäden verkleinert, aber keinen Gewinn gebracht.
 Offen und aussichtsreicher: Nachtraining mit echten Aufnahmen der eigenen Stimme (Stimmtraining, „Aufnahmen aufheben“).
+
+## Dekodieren mit Wortschatz (0.12.0): eingebaut
+
+`diktat/beam.py` dekodiert mit mehreren Kandidaten (Beam Search) und gibt Kandidaten einen Bonus, deren entstehendes
+Wort auf einen Begriff aus dem Wortschatz hinausläuft; der Bonus wird abgezogen, wenn kein Begriff daraus wird.
+Gemessen mit `wortschatz_corti.py` an den neun Corti-Diktaten (32,6 min, echte Stimmen), Wortfehlerrate nach der
+Nachbearbeitung der App, in Klammern die Trefferquote der von Corti markierten Fachbegriffe:
+
+| Wortschatz | einfaches Dekodieren | 8 Kandidaten mit Bonus |
+|---|---|---|
+| nur Kernliste der App (820 Begriffe) | 16,59 % (65,2 %) | 15,77 % (66,4 %) |
+| Kernliste + Lexikonwörter aus den Transkripten, wie die App sie lernt (1.732) | – | 11,11 % (81,4 %) |
+| Kernliste + von Corti markierte Begriffe aller neun Diktate (1.308) | 14,24 % (77,3 %), Begriffe nur in der Nachbearbeitung | 10,88 % (81,6 %); mit Begriffen auch in der Nachbearbeitung 10,82 % (86,5 %) |
+
+Was nicht hilft oder schadet:
+
+- Mehrere Kandidaten ohne Wortschatz: 16,29 % mit 4, 16,59 % mit 8. Der Gewinn kommt vom Wortschatz.
+- Das ganze Lexikon (39.600 Wörter) als Wortschatz: 17,30 %. Zu viele Wortanfänge passen, der Bonus zieht gewöhnliche
+  Wörter zu Lexikonwörtern („Beurteilung“ → „Verurteilung“). Mit 5.000 bzw. 15.000 fremden Lexikonwörtern zusätzlich zum
+  passenden Wortschatz: 11,76 % bzw. 12,25 %. Deshalb lernt die App höchstens 4.000 Wörter und nur solche, die vorkamen.
+- Das Basiswörterbuch (4.900 Begriffe) als Standard: 16,45 %, also nicht besser als die Kernliste.
+- Ein Bonus für alle bekannten deutschen Wörter (782.000) als zweite Stufe: kein Gewinn.
+- Ein Ausgleich je geschriebenem Wortstück gegen Auslassungen: 16,49 % bis 19,65 %, also schlechter. Stattdessen
+  gilt die einfache Lesart, wenn die Suche mehr als zwei Wörter weniger liefert.
+- Bonus 3 statt 2: gleich (11,01 %). 4 statt 8 Kandidaten: 11,63 %.
+
+Einschränkung: Der passende Wortschatz stammt hier aus den Transkripten derselben Diktate. Das bildet ab, dass ein
+Arzt seine eigenen Fachwörter immer wieder diktiert, überschätzt aber den Gewinn am ersten Tag. Rechenzeit: 32,6 min
+Ton dekodieren dauert auf einem Kern gut zwei Minuten statt einer halben; der Encoder dominiert weiter.
+
+Eigene fünf Diktate (412 Wörter, `tests/_cem/ws_eigene.py`): roh 19,7 → 15,0 % mit der Kernliste, 14,1 % mit dem aus
+den Solltexten gelernten Wortschatz (99 Wörter); nach der Nachbearbeitung 9,0 → 8,3 % bzw. 8,5 %. Hier fängt die
+Nachbearbeitung das meiste schon ab. Rechenzeit auf dem i7-13700KF: 28,3 s statt 19,1 s für alle fünf zusammen
+(rund 45 % mehr).

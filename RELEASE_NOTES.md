@@ -1,3 +1,21 @@
+## LocalScribe 0.12.0
+
+- **Erkennung mit Wortschatz**: Beim Erkennen laufen jetzt acht Lesarten nebeneinander her, und eine Lesart, die
+  auf ein Fachwort aus deinem Wortschatz hinausläuft, bekommt einen Bonus. Bisher wurde ein verhörtes Fachwort erst
+  nachträglich am Klang repariert; war es in Trümmer zerlegt („Ami no fenazo“), war nichts mehr zu retten. An neun
+  echten ärztlichen Diktaten (Corti Med-Dictate) sinkt die Wortfehlerrate mit passendem Wortschatz von 16,6 % auf
+  11,1 %, die Trefferquote bei Fachbegriffen steigt von 65 % auf 81 %; derselbe Wortschatz nur in der
+  Nachbearbeitung schafft 14,2 %. Ohne passenden Wortschatz bringt es wenig (16,6 → 15,8 %): Entscheidend ist,
+  dass die Wörter drinstehen, die du wirklich diktierst.
+- **Der Wortschatz wächst von selbst**: LocalScribe merkt sich, welche Fachwörter aus seinem Lexikon in deinen
+  Diktaten vorkommen. Schneller geht es über Wörterbuch, „Aus eigenen Texten lernen“: eigene Briefe oder Befunde
+  auswählen (docx, odt, txt, rtf, html), übernommen werden nur einzelne Fachwörter aus dem Lexikon, keine Sätze und
+  keine Namen. Alles bleibt auf dem Rechner. „Meine Begriffe“ zählen wie bisher dazu.
+- Kostet knapp die Hälfte mehr Rechenzeit beim Erkennen (45 Sekunden Diktat: rund 6 statt 4 Sekunden); abschaltbar mit `"beam": 0` in der Einstellungsdatei.
+- Die Idee stammt aus dem Austausch mit Dr. Sándor Kónya, der dasselbe Prinzip (Beam Search mit
+  Fachwörterbuch) für sein System gemessen hat; Verfahren und Messung hier sind eigenständig (`diktat/beam.py`,
+  `werkzeug/messen/wortschatz_corti.py`).
+
 ## LocalScribe 0.11.1
 
 - **Stimmtraining: fast doppelt so viel Lesematerial.** 297 statt 152 Sätze, 14 neue Themen: Endokrinologie,

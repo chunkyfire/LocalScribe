@@ -308,5 +308,33 @@ code, body = _call("/audio?k=geheim123", tone)
 check("Handy: Ton kommt als Diktat an", code == 200 and json.loads(body)["ok"] and len(got) == 1 and len(got[0]) == 16000 and abs(float(got[0].max()) - 12000 / 32768) < 0.01, str((code, body)))
 check("Handy: QR-Code ist ein PNG mit der Adresse", handy.qr_png(srv.url())[:4] == b"\x89PNG" and srv.url().endswith(":48765/?k=geheim123"))
 srv.stop()
+# ---- 0.12.0: Dekodieren mit Wortschatz ----
+from diktat import beam, wortschatz
+_v = {0: " Lis", 1: "ino", 2: "pril", 3: " und", 4: "eno", 5: "phril", 6: "s", 7: ","}
+_b = beam.Bias(_v, ["Lisinopril"], 2.0)
+def _bonus(seq):
+    st, total = _b.start, 0.0
+    for tok in seq:
+        st, d = _b.step(st, tok)
+        total += d
+    return total + _b.close(st)
+check("Wortschatz: ganzer Begriff behält den Bonus", _bonus([0, 1, 2, 3]) == 6.0 and _bonus([0, 1, 2, 7]) == 6.0)
+check("Wortschatz: wird kein Begriff daraus, bleibt nichts", _bonus([0, 4, 5, 3]) == 0.0 and _bonus([0, 1, 3]) == 0.0)
+check("Wortschatz: gebeugte Form zählt wie der Begriff, nicht mehr", _bonus([0, 1, 2, 6, 3]) == 6.0)
+_cfg = {"learned": []}
+_n = wortschatz.grow(_cfg, "Herr Mustermann: Diagnose Bronchiektasie, Therapie besprochen.")
+check("Wortschatz: lernt Fachwörter aus dem Lexikon, keine Namen",
+      _n >= 2 and "Diagnose" in _cfg["learned"] and "Mustermann" not in _cfg["learned"], str(_cfg))
+check("Wortschatz: nichts doppelt, abschaltbar", wortschatz.grow(_cfg, "Diagnose") == 0
+      and wortschatz.grow({"learn_terms": False, "learned": []}, "Diagnose") == 0)
+_f = pathlib.Path(_tf.mkdtemp()) / "brief.txt"
+_f.write_text("Diagnose: Glomerulonephritis. Therapie mit Prednisolon.", encoding="utf-8")
+_c2 = {"learned": [], "learn_terms": False}
+_r = wortschatz.learn_files(_c2, [_f, _f.with_name("fehlt.txt")])
+check("Wortschatz: liest eigene Texte ein", _r == (len(_c2["learned"]), ["fehlt.txt"]) and "Diagnose" in _c2["learned"],
+      str((_r, _c2)))
+check("Wortschatz: Kernliste und eigene Begriffe zählen mit",
+      {"Kreatinin", "Trimbow", "Prednisolon"} <= set(wortschatz.terms({"vocabulary": ["Trimbow"], "learned": ["Prednisolon"]})))
+check("Wortschatz: ab Werk an", config.DEFAULTS.get("beam") == 8 and config.DEFAULTS.get("learn_terms") is True)
 print("FEHLER:" if failed else "ALLES OK", failed or "")
 sys.exit(1 if failed else 0)

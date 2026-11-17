@@ -17,7 +17,7 @@ os.environ.setdefault("DO_NOT_TRACK", "1")
 from PySide6 import QtCore, QtGui, QtNetwork, QtWidgets
 from PySide6.QtCore import QTimer, Signal
 
-from . import config, engine, felder, handy, korrektor, llm, winio
+from . import config, engine, felder, handy, korrektor, llm, winio, wortschatz
 from .hub import Hub, keys_text
 from .ui import Overlay, Store, make_icon, make_pixmap, private_mime
 
@@ -273,6 +273,8 @@ class Diktat(QtCore.QObject):
                         clean, fixed = korrektor.correct(clean, cfg["llm"], memory=cfg.get("corrections"))
                         if fixed:
                             log.info("Fachkorrektur: %d Wort/Wörter ersetzt", len(fixed))
+                    if wortschatz.grow(cfg, clean):
+                        config.save(cfg)
                 else:
                     clean = job["text"]
                 out["raw"] = out["text"] = clean
