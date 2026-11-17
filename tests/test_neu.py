@@ -400,12 +400,15 @@ if sys.platform == "win32":
     _base = pathlib.Path(tempfile.mkdtemp())
     _prog = _base / "LocalScribe"
     (_prog / "modelle" / "m").mkdir(parents=True)
+    (_prog / "modelle" / "stimme").mkdir()
+    (_prog / "modelle" / "stimme" / "g").write_text("alt")
     (_prog / "modelle" / "m" / "gewichte").write_text("alt")
     (_prog / "LocalScribe.exe").write_text("alt")
     _pack = _base / "neu.zip"
     with _zip.ZipFile(_pack, "w") as _z:
         _z.writestr("LocalScribe/LocalScribe.exe", "neu")
         _z.writestr("LocalScribe/_internal/x.dll", "neu")
+        _z.writestr("LocalScribe/modelle/stimme/g", "neu")
     check("Pflege: Ordner ist änderbar", pflege.blocked(_prog) == "")
     _new = pflege.unpack(_pack, _prog)
     check("Pflege: entpackt neben den Programmordner", (_new / "LocalScribe.exe").read_text() == "neu")
@@ -417,6 +420,7 @@ if sys.platform == "win32":
     check("Pflege: neue Fassung steht am alten Platz", (_prog / "LocalScribe.exe").read_text() == "neu"
           and (_prog / "_internal" / "x.dll").exists())
     check("Pflege: Sprachmodell wandert mit", (_prog / "modelle" / "m" / "gewichte").read_text() == "alt")
+    check("Pflege: mitgeliefertes Modell gewinnt", (_prog / "modelle" / "stimme" / "g").read_text() == "neu")
     check("Pflege: nichts bleibt liegen", sorted(p.name for p in _base.iterdir()) == ["LocalScribe", "neu.zip"],
           sorted(p.name for p in _base.iterdir()))
     try:

@@ -19,6 +19,7 @@ MAX_SPEAKERS = 8
 SOLO_SECONDS = 8.0       # wer insgesamt kürzer spricht, gilt nicht als eigener Sprecher
 _session = None
 _mel = None
+_missing = False         # Stimmmodell fehlt und ließ sich nicht holen: während einer Aufnahme nicht erneut versuchen
 
 
 def _filters(n_fft=512, n_mels=80, low=20.0, high=8000.0):
@@ -61,17 +62,26 @@ def ready() -> bool:
 
 def prepare(progress=None) -> str:
     """Pfad des Stimmmodells; lädt es beim ersten Mal herunter (26 MB)."""
+    global _missing
     import os
     from . import modelle
-    return os.path.join(modelle.fetch(REPO, REVISION, [FILE], progress), FILE)
+    path = os.path.join(modelle.fetch(REPO, REVISION, [FILE], progress), FILE)
+    _missing = False
+    return path
 
 
 def embed(audio: np.ndarray):
     """Stimmabdruck einer Äußerung (Länge 1) oder None, wenn sie zu kurz ist."""
-    global _session
-    if len(audio) < MIN_SECONDS * RATE:
+    global _session, _missing
+    if len(audio) < MIN_SECONDS * RATE or _missing:
         return None
     if _session is None:
+        if not ready():
+            # Nie mitten in einer Aufnahme herunterladen: In gesperrten Netzen hinge jede Äußerung über eine
+            # Minute an der Zeitüberschreitung. Geladen wird beim Einschalten von „Sprecher trennen“.
+            _missing = True
+            log.warning("Stimmmodell fehlt auf diesem Rechner – Aufnahme läuft ohne Sprechertrennung")
+            return None
         import onnxruntime as ort
         so = ort.SessionOptions()
         so.intra_op_num_threads = 2

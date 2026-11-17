@@ -1,3 +1,12 @@
+## LocalScribe 0.14.4
+
+- **Sprecher trennen ohne Internet**: Das Komplettpaket bringt jetzt auch das Stimmmodell (26 MB) mit. Bisher wurde
+  es beim Einschalten nachgeladen; in Netzen, die Downloads sperren, blieb die Aufnahme dadurch nach dem Stopp bei
+  „Schreibe den Rest fertig“ hängen.
+- Fehlt das Stimmmodell, läuft die Aufnahme sofort ohne Sprecherzeilen durch und sagt das, statt bei jeder Äußerung
+  auf das Netz zu warten.
+- Update aus ZIP: Modelle, die das neue Paket nicht mitbringt, werden einzeln aus der alten Fassung übernommen.
+
 ## LocalScribe 0.14.3
 
 - **Aktualisieren aus der App**: Einstellungen, ganz unten „Aus ZIP-Datei aktualisieren“. ZIP der neuen Fassung

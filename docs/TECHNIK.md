@@ -1,6 +1,6 @@
 # LocalScribe – Technische Dokumentation
 
-Stand: Version 0.14.3. Für Betrieb, IT und alle, die den Code lesen oder prüfen wollen. Die Bedienung steht im
+Stand: Version 0.14.4. Für Betrieb, IT und alle, die den Code lesen oder prüfen wollen. Die Bedienung steht im
 [Handbuch](LocalScribe-Handbuch.pdf), die Messwerte mit Methode in [`werkzeug/messen/ERGEBNIS.md`](../werkzeug/messen/ERGEBNIS.md).
 
 ## 1. Was die App ist
@@ -39,7 +39,8 @@ Risikobegrenzung an, ihn nur Fachärztinnen und Fachärzten zu geben, die jede A
 Einzelner Rechner:
 
 1. Auf <https://github.com/chunkyfire/LocalScribe/releases/latest> eines der beiden Pakete laden:
-   `LocalScribe-<Version>-windows-komplett.zip` (rund 1 GB, das Sprachmodell liegt bei, kein Internet nötig) oder
+   `LocalScribe-<Version>-windows-komplett.zip` (rund 1 GB; Sprachmodell und Stimmmodell für die Sprechertrennung
+   liegen bei, kein Internet nötig) oder
    `LocalScribe-<Version>-windows.zip` (rund 100 MB, lädt das Sprachmodell beim ersten Start).
 2. Entpacken (Rechtsklick, „Alle extrahieren“), zum Beispiel nach `Dokumente\LocalScribe`.
 3. `LocalScribe.exe` starten. Die Datei ist nicht signiert; Windows SmartScreen fragt beim ersten Mal nach:
@@ -58,7 +59,7 @@ Scheitert der Download des Modells (Proxy, Firewall), zeigt das Fenster den Grun
 
 Aktualisieren: Einstellungen, „Aus ZIP-Datei aktualisieren“. Die App entpackt das Paket neben den Programmordner
 (`<Ordner>.neu`), beendet sich, und ein Skript im Temp-Ordner tauscht die Ordner, sobald die Dateien frei sind, und
-startet neu (`diktat/pflege.py`). Bringt das Paket kein Sprachmodell mit, wandert der Ordner `modelle` der alten
+startet neu (`diktat/pflege.py`). Modelle, die das Paket nicht mitbringt, wandern aus dem Ordner `modelle` der alten
 Fassung in die neue; für ein Update genügt deshalb das kleine Paket. Ob sich der Ordner überhaupt ersetzen lässt,
 prüft die App vorher: Netzwerkordner erlauben oft das Anlegen, aber nicht das Umbenennen oder Löschen. Dann sagt sie
 das und ändert nichts. Wird der alte Ordner binnen 60 Sekunden nicht frei, startet die bisherige Fassung wieder und

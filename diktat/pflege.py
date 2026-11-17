@@ -90,8 +90,8 @@ def unpack(archive, prog: Path) -> Path:
 def swap(prog: Path, new: Path, start=True) -> Path:
     """Nach dem Beenden: alten Ordner beiseite, neuen an seine Stelle, Sprachmodell mitnehmen, neu starten.
 
-    Bringt das Paket kein Sprachmodell mit, wandert der Ordner „modelle“ der alten Fassung in die neue: Für ein
-    Update genügt deshalb immer das kleine Paket."""
+    Modelle, die das neue Paket nicht mitbringt, wandern aus dem Ordner „modelle“ der alten Fassung in die neue:
+    Für ein Update genügt deshalb das kleine Paket."""
     old = prog.with_name(prog.name + ".alt")
     launch = f'start "" "{prog / EXE}"\r\n' if start else ""
     return _run(HEAD + f'''set N=0
@@ -101,7 +101,8 @@ set /a N+=1
 if %N% geq 60 goto fehler
 {WAIT}goto warten
 :frei
-if not exist "{new}\\modelle" if exist "{old}\\modelle" move "{old}\\modelle" "{new}\\modelle" >nul
+if not exist "{new}\\modelle" mkdir "{new}\\modelle"
+for /d %%D in ("{old}\\modelle\\*") do if not exist "{new}\\modelle\\%%~nxD" move "%%D" "{new}\\modelle\\" >nul
 ren "{new}" "{prog.name}"
 {launch}rmdir /s /q "{old}"
 goto ende

@@ -503,7 +503,10 @@ class LongPage(Page):
                         f"Stimmmodell wird einmalig geladen · {100 * done / max(1, total):.0f} % von {total / 1048576:.0f} MB"))
                     self.sig_voice.emit("Stimmmodell geladen. Sprecher werden ab jetzt getrennt.")
                 except Exception as e:
-                    self.sig_voice.emit(f"Stimmmodell nicht ladbar: {e}")
+                    log.warning("Stimmmodell nicht ladbar: %s", e)
+                    self.sig_voice.emit("Das Stimmmodell (26 MB) ließ sich nicht herunterladen, vermutlich sperrt das "
+                                        "Netz den Download. Im Komplettpaket liegt es bei. Bis dahin laufen Aufnahmen "
+                                        "ohne Sprecherzeilen.")
             threading.Thread(target=work, daemon=True).start()
 
     def refresh(self):
@@ -513,6 +516,8 @@ class LongPage(Page):
     def speakers_note(self) -> str:
         if not self.ctl.cfg.get("speakers"):
             return ""
+        if not sprecher.ready():
+            return " Sprecher nicht getrennt: Das Stimmmodell fehlt auf diesem Rechner (im Komplettpaket liegt es bei)."
         n = self.job.speakers
         return f" {n} Sprecher erkannt." if n > 1 else " Nur eine Stimme erkannt, daher ohne Sprecherzeilen."
 

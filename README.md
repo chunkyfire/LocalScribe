@@ -13,7 +13,7 @@ In den Einstellungen stehen zwei weitere Modelle zur Wahl: ein genaueres, langsa
 ## Installieren (ohne Adminrechte)
 
 1. Unter **Releases** eines der beiden Pakete herunterladen: `LocalScribe-…-windows-komplett.zip` (rund 1 GB,
-   das Sprachmodell liegt bei; für Klinikrechner und Rechner ohne Internet) oder `LocalScribe-…-windows.zip`
+   Sprachmodell und Stimmmodell liegen bei; für Klinikrechner und Rechner ohne Internet) oder `LocalScribe-…-windows.zip`
    (rund 100 MB, lädt das Sprachmodell beim ersten Start). Die Prüfsummen stehen daneben in `SHA256SUMS.txt`.
 2. Entpacken, zum Beispiel nach `Dokumente\LocalScribe`.
 3. `LocalScribe.exe` starten. Meldet Windows „Der Computer wurde geschützt“: **Weitere Informationen →
