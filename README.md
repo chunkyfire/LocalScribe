@@ -6,6 +6,8 @@ landet im gerade aktiven Textfeld. Die Spracherkennung läuft vollständig auf d
 In den Einstellungen stehen zwei weitere Modelle zur Wahl: ein genaueres, langsameres deutsches
 (NVIDIA Canary 1B v2) und ein mehrsprachiges (NVIDIA Parakeet v3, 25 europäische Sprachen).
 
+**Technische Dokumentation:** [docs/TECHNIK.md](docs/TECHNIK.md) – Aufbau, Datenablage, Netzwerkverbindungen, Verteilung.
+
 **Handbuch mit Bildern:** [docs/LocalScribe-Handbuch.pdf](docs/LocalScribe-Handbuch.pdf) – Installieren, Starten, Diktieren und alle Funktionen auf neun Seiten.
 
 ## Installieren (ohne Adminrechte)
@@ -55,7 +57,7 @@ beendet sie nicht; sie bleibt im Infobereich (Rechtsklick → Beenden).
   ein Stimmmodell geladen (26 MB). Siehe „Sprecher trennen“ unten.
 - **Wortschatz beim Erkennen** – die Erkennung verfolgt acht Lesarten gleichzeitig und bevorzugt die, die auf ein
   Fachwort aus deinem Wortschatz hinausläuft (Kernliste, **Meine Begriffe**, gelernte Wörter). LocalScribe lernt die
-  Fachwörter aus deinen Diktaten mit; über **Aus eigenen Texten lernen** (Seite Wörterbuch) liest es sie aus eigenen
+  Fachwörter aus deinen Diktaten mit; über **Aus eigenen Texten lernen** (Seite Stimmtraining) liest es sie aus eigenen
   Briefen und Befunden, nur einzelne Lexikonwörter, keine Sätze, keine Namen. An echten Arztdiktaten mit passendem
   Wortschatz: 16,6 → 11,1 % Wortfehler.
 - **Wörterbuch** – falsch Erkanntes automatisch ersetzen. Unter **Meine Begriffe** reicht die richtige Schreibweise
@@ -291,10 +293,11 @@ Notaufnahme, Chirurgie und Orthopädie, Onkologie und Hämatologie, Medikation, 
 (`diktat/lesetexte.json`, erweiterbar). Der Ton bleibt im Arbeitsspeicher. Alles Gelernte steht auf der Seite
 Wörterbuch und lässt sich dort ändern oder löschen.
 
-Mit dem Häkchen **Aufnahmen aufheben** (ab Werk aus) bleiben Ton und Satz jeder gelesenen Aufnahme auf dem Rechner
-(`%LOCALAPPDATA%\LocalScribe\training`, WAV und `index.jsonl`). Das ist Material für ein späteres Nachtraining des
-Sprachmodells auf die eigene Stimme; dafür braucht es etwa eine Stunde. Die Seite zeigt die gesammelten Minuten,
-öffnet den Ordner und löscht auf Wunsch alles. Das Nachtraining selbst ist noch nicht eingebaut.
+**Aus Aufnahme mit Transkript lernen**: Wer Diktate mit dem fertigen Text dazu hat, wählt die Tondateien aus; das
+Transkript liegt als Textdatei mit gleichem Namen daneben (`befund1.wav` und `befund1.txt` oder `.docx`). LocalScribe
+erkennt die Aufnahme, vergleicht mit dem Transkript und lernt Verhörer fürs Wörterbuch und Fachwörter für den
+Wortschatz. Der Ton wird nur gelesen. LocalScribe speichert keinen Ton aus dem Stimmtraining, auch nicht auf Wunsch
+(bis 0.12.1 ging das; alte Aufnahmen zeigt die Seite zum Löschen an).
 
 ## Sprecher trennen
 

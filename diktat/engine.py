@@ -365,7 +365,9 @@ class Transcriber:
             return
         try:
             from . import beam, wortschatz
-            beam.install(self.model, wortschatz.terms(cfg) if on else [], int(cfg.get("beam") or 0))
+            terms = wortschatz.terms(cfg) if on else []
+            if beam.install(self.model, terms, int(cfg.get("beam") or 0)):
+                log.info("Erkennung mit Wortschatz: %d Begriffe, %d Lesarten", len(terms), int(cfg.get("beam") or 0))
         except Exception:
             log.exception("Dekodieren mit Wortschatz nicht einrichtbar, es bleibt beim einfachen")
         self.armed = stamp

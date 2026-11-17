@@ -183,23 +183,39 @@ for word in ["Hautturgor", "Mundspatel", "Wiedervorstellung", "Stauungsbedingt",
     got = fach.correct("Befund: " + word + " heute.")
     check(f"{word} bleibt", word in got, got)
 
-# ---- 0.9.5: Aufnahmen aus dem Stimmtraining aufheben ----
+# ---- 0.13.0: Aufnahmen werden nicht mehr aufgehoben; alte lassen sich löschen ----
 with tempfile.TemporaryDirectory() as tmp:
     old = config.DIR
     config.DIR = pathlib.Path(tmp)
-    check("Ohne Aufnahmen ist der Zähler null", training.kept() == (0, 0.0))
-    path = training.keep(np.sin(np.arange(32000) / 9).astype(np.float32) * 0.4, "Der Patient ist kardiopulmonal stabil.")
-    training.keep(np.zeros(16000, dtype=np.float32), "Zweiter Satz.")
-    import wave as _wave
-    w = _wave.open(str(path))
-    check("Aufnahme liegt als WAV mit 16 kHz vor", w.getframerate() == 16000 and w.getnframes() == 32000 and w.getnchannels() == 1)
-    w.close()
-    rows = [json.loads(l) for l in open(training.store() / "index.jsonl", encoding="utf-8")]
-    check("Verzeichnis nennt Datei, Satz und Dauer", rows[0]["text"] == "Der Patient ist kardiopulmonal stabil." and rows[0]["sec"] == 2.0
-          and rows[0]["audio"] == path.name, str(rows[0]))
-    check("Zähler stimmt", training.kept() == (2, 3.0), str(training.kept()))
-    check("Löschen entfernt alles", training.clear() == 2 and training.kept() == (0, 0.0) and not list(training.store().glob("*")))
+    check("Ohne alte Aufnahmen ist der Zähler null", training.kept() == (0, 0.0))
+    training.store().mkdir()
+    (training.store() / "a.wav").write_bytes(b"RIFF")
+    (training.store() / "index.jsonl").write_text(json.dumps({"audio": "a.wav", "text": "Satz.", "sec": 2.0}) + "\n", encoding="utf-8")
+    check("Alte Aufnahmen werden gezählt", training.kept() == (1, 2.0), str(training.kept()))
+    check("Löschen entfernt alles", training.clear() == 1 and training.kept() == (0, 0.0) and not list(training.store().glob("*")))
+    check("Aufheben gibt es nicht mehr", not hasattr(training, "keep") and "training_keep" not in config.DEFAULTS)
     config.DIR = old
+# Aus Aufnahme mit Transkript lernen: Ton wird nur gelesen
+with tempfile.TemporaryDirectory() as tmp:
+    import wave as _wave
+    wav = pathlib.Path(tmp) / "befund.wav"
+    w = _wave.open(str(wav), "wb"); w.setnchannels(1); w.setsampwidth(2); w.setframerate(16000)
+    w.writeframes(np.zeros(16000, dtype="<i2").tobytes()); w.close()
+    check("Ohne Textdatei kein Partner", training.partner(wav) is None)
+    wav.with_suffix(".txt").write_text("Der Patient erhält Trossiba nicht, sondern Tresiba bei Bronchiektasie.", encoding="utf-8")
+    check("Transkript mit gleichem Namen wird gefunden", training.partner(wav) == wav.with_suffix(".txt"))
+    class _T:
+        def transcribe(self, audio):
+            return "Der Patient erhält Trossiba nicht, sondern Tressiba bei Bronchiektasie."
+    _c = {"dictionary": {}, "learned": [], "learn_terms": False, "base_dictionary": False}
+    before = sorted(p.name for p in pathlib.Path(tmp).iterdir())
+    ok, new, words = training.from_recording(_T(), _c, wav, wav.with_suffix(".txt").read_text(encoding="utf-8"))
+    check("Lernt Verhörer und Fachwörter aus Aufnahme und Transkript",
+          ok and ("Tressiba", "Tresiba") in new and _c["dictionary"].get("Tressiba") == "Tresiba" and words >= 1
+          and "Bronchiektasie" in _c["learned"], str((ok, new, words, _c)))
+    check("Dabei wird nichts gespeichert", sorted(p.name for p in pathlib.Path(tmp).iterdir()) == before)
+    ok, new, words = training.from_recording(_T(), _c, wav, "Ein ganz anderer Text über das Wetter von morgen früh.")
+    check("Passt das Transkript nicht zur Aufnahme, wird nichts gelernt", not ok and not new and not words)
 
 # ---- 0.9.7: kurze Namen aus der Kernliste, zerlegte Begriffe, Schreibweisen ----
 for heard, want in [("Trimbo", "Trimbow"), ("Trossiba", "Tresiba"), ("Nabik", "Nabic"), ("Sdemi", "STEMI"),

@@ -1,3 +1,16 @@
+## LocalScribe 0.13.0
+
+- **Aus Aufnahme mit Transkript lernen** (Seite Stimmtraining): Tondateien auswählen, das Transkript liegt als
+  Textdatei mit gleichem Namen daneben oder wird im zweiten Schritt gewählt. LocalScribe erkennt die Aufnahme,
+  vergleicht mit dem Transkript und lernt Verhörer fürs Wörterbuch und Fachwörter für den Wortschatz. Der Ton wird
+  nur gelesen und nirgends gespeichert.
+- **„Aufnahmen aufheben“ gibt es nicht mehr.** Das Stimmtraining speichert keinen Ton, auch nicht auf Wunsch.
+  Liegen aus einer früheren Version noch Aufnahmen vor, zeigt die Seite sie zum Löschen an.
+- „Aus eigenen Texten lernen“ und der gelernte Wortschatz stehen jetzt auf der Seite Stimmtraining; dort ist alles
+  beisammen, womit die App dazulernt.
+- Neu: technische Dokumentation (`docs/TECHNIK.md`) mit Aufbau, Datenablage, Netzwerkverbindungen, Verteilung ohne
+  Internet und Prüfwegen. Handbuch überarbeitet.
+
 ## LocalScribe 0.12.1
 
 - **Rund dreimal so schnell.** Encoder und Decoder des Sprachmodells haben je eigene Rechen-Threads; in der

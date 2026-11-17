@@ -1,4 +1,4 @@
-"""Stimmtraining: vorgegebene Sätze vorlesen, die App lernt daraus.
+"""Stimmtraining: vorgegebene Sätze vorlesen oder Aufnahmen mit Transkript einlesen, die App lernt daraus.
 
 Der gelesene Satz ist bekannt. Was die Erkennung stattdessen schreibt, wird Wort für Wort daneben
 gelegt. Ein falsch erkanntes Wort kommt ins persönliche Wörterbuch, wenn es dem richtigen ähnlich
@@ -103,34 +103,47 @@ def _pairs(exp, got):
     return out[::-1]
 
 
-# ---- Aufnahmen aufheben (freiwillig): Ton und Satz als Material für ein späteres Nachtraining ----
+# ---- Aus einer Aufnahme mit Transkript lernen: Der Ton wird nur gelesen, nie gespeichert ----
+TEXTS = (".txt", ".docx", ".odt", ".md", ".rtf")
+
+
+def partner(audio_path):
+    """Das Transkript zur Aufnahme: eine Textdatei mit gleichem Namen im selben Ordner, sonst None."""
+    path = Path(audio_path)
+    for suffix in TEXTS:
+        other = path.with_suffix(suffix)
+        if other.exists() and other != path:
+            return other
+    return None
+
+
+def from_recording(transcriber, cfg: dict, audio_path, text: str):
+    """Erkennt die Aufnahme, vergleicht mit dem Transkript und lernt: Verhörer fürs Wörterbuch, Fachwörter für den
+    Wortschatz. Gibt (passt zusammen, neue Wörterbuch-Paare, neue Fachwörter) zurück. Geschrieben wird nur in cfg;
+    der Ton bleibt im Arbeitsspeicher und ist danach weg."""
+    import numpy as np
+
+    from . import engine, wortschatz
+    _, blocks = engine.decode_file(audio_path)
+    audio = np.concatenate(list(blocks) or [np.zeros(0, dtype=np.float32)])
+    heard = engine.postprocess(transcriber.transcribe(audio), {
+        "dictionary": {}, "trailing_space": False, "base_dictionary": cfg.get("base_dictionary", True),
+        "model_choice": cfg.get("model_choice", "de")})
+    read, learned, _ = learn(text, heard)
+    if not read:
+        return False, [], 0
+    data = dict(cfg.get("dictionary") or {})
+    new = [(w, r) for w, r in dict(learned).items() if data.get(w) != r]
+    data.update(new)
+    cfg["dictionary"] = data
+    words = wortschatz.grow(dict(cfg, learn_terms=True, learned=cfg.setdefault("learned", [])), text)
+    return True, new, words
+
+
+# ---- Aufnahmen aus dem Stimmtraining früherer Versionen (bis 0.12.1 ließ sich Ton aufheben): nur noch löschen ----
 def store() -> Path:
     from . import config
     return config.DIR / "training"
-
-
-def keep(audio, text: str, rate: int = 16000) -> Path:
-    """Eine vorgelesene Aufnahme mit ihrem Satz ablegen (WAV, 16 kHz) und im Verzeichnis index.jsonl vermerken."""
-    import time
-    import wave
-
-    import numpy as np
-    folder = store()
-    folder.mkdir(parents=True, exist_ok=True)
-    stem, n = time.strftime("%Y%m%d-%H%M%S"), 1
-    path = folder / f"{stem}.wav"
-    while path.exists():
-        n += 1
-        path = folder / f"{stem}-{n}.wav"
-    data = (np.clip(np.asarray(audio, dtype=np.float32), -1, 1) * 32767).astype("<i2")
-    with wave.open(str(path), "wb") as w:
-        w.setnchannels(1)
-        w.setsampwidth(2)
-        w.setframerate(rate)
-        w.writeframes(data.tobytes())
-    with open(folder / "index.jsonl", "a", encoding="utf-8") as f:
-        f.write(json.dumps({"audio": path.name, "text": text, "sec": round(len(data) / rate, 2)}, ensure_ascii=False) + "\n")
-    return path
 
 
 def kept():

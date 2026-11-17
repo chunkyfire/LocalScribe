@@ -871,10 +871,6 @@ class MapPage(Page):
                       "LocalScribe erkennt am Klang, wenn die Erkennung daraus etwas Ähnliches macht (Riba wird RIVA), "
                       "und schreibt den Begriff so, wie er hier steht. Wörter, die es wirklich gibt, bleiben unberührt.",
                       "muted", wrap=True)))
-            self.learned = label("", "muted", wrap=True)
-            self.body.addWidget(card(
-                label("Gelernter Wortschatz", "h2"), self.learned,
-                hbox(button("Aus eigenen Texten lernen …", self._learn_files), button("Leeren", self._learn_clear), None)))
             self.base = QtWidgets.QCheckBox()
             self.base.toggled.connect(self._base)
             self.body.addWidget(self.base)
@@ -951,26 +947,6 @@ class MapPage(Page):
             self.ctl.cfg["vocabulary"] = terms
             self.ctl.apply_cfg()
 
-    def _learn_files(self):
-        paths, _ = QtWidgets.QFileDialog.getOpenFileNames(
-            self, "Eigene Texte auswählen (Briefe, Befunde, Textbausteine)", "",
-            "Texte (*.docx *.odt *.txt *.md *.rtf *.html *.pdf);;Alle Dateien (*)")
-        if not paths:
-            return
-        added, failed = wortschatz.learn_files(self.ctl.cfg, paths)
-        self.ctl.apply_cfg()
-        self.refresh()
-        note = f"{added} neue Fachwörter aus {len(paths) - len(failed)} Datei(en) gelernt."
-        if failed:
-            note += " Nicht lesbar: " + ", ".join(failed[:5]) + "."
-        self.learned.setText(note + " " + self.learned.text())
-
-    def _learn_clear(self):
-        if self.ctl.cfg.get("learned"):
-            self.ctl.cfg["learned"] = []
-            self.ctl.apply_cfg()
-            self.refresh()
-
     def _base(self, on):
         if not self.loading and on != bool(self.ctl.cfg.get("base_dictionary", True)):
             self.ctl.cfg["base_dictionary"] = on
@@ -980,13 +956,6 @@ class MapPage(Page):
         self.loading = True
         if hasattr(self, "base"):
             self.terms.setText(", ".join(self.ctl.cfg.get("vocabulary") or []))
-            n = len(self.ctl.cfg.get("learned") or [])
-            self.learned.setText(
-                f"{n:,} Fachwörter gelernt. ".replace(",", ".") +
-                "LocalScribe merkt sich, welche Fachwörter aus seinem Lexikon in deinen Diktaten vorkommen, und "
-                "bevorzugt sie beim Erkennen. Schneller geht es, wenn du eigene Briefe oder Befunde einliest: "
-                "Übernommen werden nur einzelne Fachwörter aus dem Lexikon, keine Sätze und keine Namen; die Dateien "
-                "bleiben unverändert auf diesem Rechner.")
             n, m = len(engine.base_dictionary()), len(fach.load()[0])
             self.base.setText(f"Medizinisches Basiswörterbuch anwenden: {m:,} Fachbegriffe werden am Klang erkannt, "
                               f"dazu {n:,} bekannte Fehlschreibungen".replace(",", "."))
@@ -1056,13 +1025,14 @@ class MapPage(Page):
 # ---------------------------------------------------------------- Stimmtraining
 class TrainPage(Page):
     """Sätze vorlesen; was die Erkennung dabei falsch schreibt, kommt ins persönliche Wörterbuch."""
+    sig_pairs = Signal(object, int, object, int)
 
     def __init__(self, ctl):
         super().__init__("Stimmtraining",
                          "Lies medizinische Sätze vor. LocalScribe vergleicht, was es verstanden hat, mit dem, was "
                          "dasteht, und merkt sich deine Aussprache der Fachbegriffe im Wörterbuch. Freiwillig, "
                          "jederzeit unterbrechbar – je mehr Sätze, desto besser passt die Erkennung zu deiner Stimme. "
-                         "Der Ton bleibt im Arbeitsspeicher und wird nur gespeichert, wenn du es unten einschaltest.")
+                         "Der Ton bleibt im Arbeitsspeicher und wird nie gespeichert.")
         self.ctl = ctl
         self.topic = QtWidgets.QComboBox()
         self.topic.addItem("Alle Themen", "")
@@ -1084,12 +1054,22 @@ class TrainPage(Page):
                                  self.result))
         self.learned = label("", "muted", wrap=True)
         self.body.addWidget(card(label("Gelernt", "h2"), self.learned))
-        self.keep = QtWidgets.QCheckBox("Aufnahmen aufheben: Ton und Satz bleiben auf diesem Rechner")
-        self.keep.setChecked(bool(self.ctl.cfg.get("training_keep")))
-        self.keep.toggled.connect(self._keep)
+        self.pairs = label("Hast du Diktate mit dem fertigen Text dazu? Wähle die Tondateien aus; das Transkript liegt als "
+                           "Textdatei mit gleichem Namen daneben (befund1.wav und befund1.txt oder .docx), oder du wählst es "
+                           "im zweiten Schritt. LocalScribe erkennt die Aufnahme, vergleicht mit dem Transkript und lernt "
+                           "deine Verhörer und Fachwörter. Der Ton wird nur gelesen und nirgends gespeichert.",
+                           "muted", wrap=True)
+        self.pair_btn = button("Aufnahmen mit Transkript wählen …", self._pairs)
+        self.body.addWidget(card(label("Aus Aufnahme mit Transkript lernen", "h2"), self.pairs, hbox(self.pair_btn, None)))
+        self.words = label("", "muted", wrap=True)
+        self.words_n = label("Gelernter Wortschatz", "h2")
+        self.body.addWidget(card(
+            hbox(self.words_n, None, button("Aus eigenen Texten lernen …", self._learn_files),
+                 button("Leeren", self._learn_clear)), self.words))
         self.kept = label("", "muted", wrap=True)
-        self.body.addWidget(card(label("Aufnahmen", "h2"), self.keep, self.kept,
-                                 hbox(button("Ordner öffnen", self._open), button("Alle löschen", self._clear), None)))
+        self.old = card(label("Alte Aufnahmen", "h2"), self.kept, hbox(button("Alle löschen", self._clear), None))
+        self.body.addWidget(self.old)
+        self.sig_pairs.connect(self._pairs_done)
         self.body.addStretch(1)
         self.items, self.pos, self.session = [], 0, []
         self.ctl.sig_heard.connect(self._heard)
@@ -1097,6 +1077,7 @@ class TrainPage(Page):
     def refresh(self):
         self.next(0)
         self._kept()
+        self._words()
 
     def _items(self):
         topic = self.topic.currentData()
@@ -1119,20 +1100,92 @@ class TrainPage(Page):
             self.learned.setText(f"Im Wörterbuch stehen {n} Einträge. Neue erscheinen hier und auf der Seite Wörterbuch; "
                                  "dort lassen sie sich ändern oder löschen.")
 
-    def _keep(self, on):
-        self.ctl.cfg["training_keep"] = bool(on)
+    def _learn_files(self):
+        paths, _ = QtWidgets.QFileDialog.getOpenFileNames(
+            self, "Eigene Texte auswählen (Briefe, Befunde, Textbausteine)", "",
+            "Texte (*.docx *.odt *.txt *.md *.rtf *.html);;Alle Dateien (*)")
+        if not paths:
+            return
+        added, failed = wortschatz.learn_files(self.ctl.cfg, paths)
         self.ctl.apply_cfg()
+        self._words()
+        note = f"{added} neue Fachwörter aus {len(paths) - len(failed)} Datei(en) gelernt."
+        if failed:
+            note += " Nicht lesbar: " + ", ".join(failed[:5]) + "."
+        self.words.setText(note)
+
+    def _learn_clear(self):
+        if self.ctl.cfg.get("learned"):
+            self.ctl.cfg["learned"] = []
+            self.ctl.apply_cfg()
+            self._words()
+
+    def _words(self):
+        n = len(self.ctl.cfg.get("learned") or [])
+        self.words_n.setText(f"Gelernter Wortschatz: {n:,} Fachwörter".replace(",", "."))
+        self.words.setText("Fachwörter aus deinen Diktaten, Transkripten und eingelesenen Briefen; beim Erkennen werden sie "
+                           "bevorzugt. Übernommen werden nur einzelne Wörter aus dem Lexikon, keine Sätze, keine Namen.")
 
     def _kept(self):
         n, sec = training.kept()
-        self.kept.setText(f"{n} Aufnahme{'n' if n != 1 else ''}, {sec / 60:.1f} Minuten. Sie verlassen diesen Rechner nicht. Für ein Nachtraining "
-                          "des Sprachmodells auf deine Stimme braucht es etwa eine Stunde." if n else
-                          "Noch keine Aufnahmen. Sie wären das Material für ein Nachtraining des Sprachmodells auf deine Stimme.")
+        self.old.setVisible(bool(n))
+        self.kept.setText(f"Aus einer früheren Version liegen noch {n} Aufnahme{'n' if n != 1 else ''} aus dem Stimmtraining "
+                          f"auf diesem Rechner ({sec / 60:.1f} Minuten). LocalScribe hebt keine Aufnahmen mehr auf.")
 
-    def _open(self):
-        folder = training.store()
-        folder.mkdir(parents=True, exist_ok=True)
-        QtGui.QDesktopServices.openUrl(QtCore.QUrl.fromLocalFile(str(folder)))
+    def _pairs(self):
+        if self.ctl.transcriber is None or not getattr(self.ctl, "ready", True):
+            return self.pairs.setText("Das Sprachmodell ist noch nicht bereit.")
+        paths, _ = QtWidgets.QFileDialog.getOpenFileNames(
+            self, "Aufnahmen wählen", "", "Ton (*.wav *.mp3 *.m4a *.ogg *.flac *.opus *.wma *.aac *.mp4);;Alle Dateien (*)")
+        if not paths:
+            return
+        jobs, missing = [], []
+        for path in paths:
+            text = training.partner(path)
+            (jobs if text else missing).append((path, text))
+        if len(missing) == 1:
+            text, _ = QtWidgets.QFileDialog.getOpenFileName(
+                self, "Transkript zu " + os.path.basename(missing[0][0]), os.path.dirname(missing[0][0]),
+                "Text (*.txt *.docx *.odt *.md *.rtf)")
+            if text:
+                jobs.append((missing[0][0], text))
+                missing = []
+        if not jobs:
+            return self.pairs.setText("Zu den gewählten Aufnahmen liegt kein Transkript mit gleichem Namen im selben Ordner.")
+        self.pair_btn.setEnabled(False)
+        self.pairs.setText(f"Lerne aus {len(jobs)} Aufnahme{'n' if len(jobs) != 1 else ''} …")
+        skipped = [os.path.basename(p) for p, _ in missing]
+
+        def work():
+            new, words, bad, good = [], 0, list(skipped), 0
+            for audio, text in jobs:
+                try:
+                    ok, pairs, n = training.from_recording(self.ctl.transcriber, self.ctl.cfg, audio, wortschatz.read(text))
+                    if ok:
+                        good += 1
+                        new += pairs
+                        words += n
+                    else:
+                        bad.append(os.path.basename(audio))
+                except Exception:
+                    log.exception("Lernen aus Aufnahme fehlgeschlagen")
+                    bad.append(os.path.basename(audio))
+            self.sig_pairs.emit(new, words, bad, good)
+        threading.Thread(target=work, daemon=True).start()
+
+    def _pairs_done(self, new, words, bad, good):
+        self.pair_btn.setEnabled(True)
+        self.ctl.apply_cfg()
+        self.session += new
+        note = (f"Aus {good} Aufnahme{'n' if good != 1 else ''} gelernt: "
+                f"{len(new)} Verhörer fürs Wörterbuch, {words} Fachwörter für den Wortschatz.")
+        if new:
+            note += " " + ", ".join(f"„{w}“ → „{r}“" for w, r in new[:12]) + ("." if len(new) <= 12 else " …")
+        if bad:
+            note += " Nicht verwendet (kein passendes Transkript oder nicht lesbar): " + ", ".join(bad[:6]) + "."
+        self.pairs.setText(note + " Der Ton wurde nicht gespeichert.")
+        self.next(0)
+        self._words()
 
     def _clear(self):
         n, _ = training.kept()
@@ -1177,13 +1230,6 @@ class TrainPage(Page):
         cfg["dictionary"] = data
         cfg["training_done"] = sorted(set(cfg.get("training_done") or []) | {expected})
         self.ctl.apply_cfg()
-        audio = getattr(self.ctl, "heard_audio", None)
-        if cfg.get("training_keep") and audio is not None and len(audio):
-            try:
-                training.keep(audio, expected)
-            except OSError:
-                log.exception("Aufnahme ließ sich nicht aufheben")
-            self._kept()
         self.session += new
         parts = []
         if new:

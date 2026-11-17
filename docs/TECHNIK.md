@@ -1,0 +1,214 @@
+# LocalScribe – Technische Dokumentation
+
+Stand: Version 0.13.0. Für Betrieb, IT und alle, die den Code lesen oder prüfen wollen. Die Bedienung steht im
+[Handbuch](LocalScribe-Handbuch.pdf), die Messwerte mit Methode in [`werkzeug/messen/ERGEBNIS.md`](../werkzeug/messen/ERGEBNIS.md).
+
+## 1. Was die App ist
+
+LocalScribe ist ein Diktierprogramm für Windows. Taste halten, sprechen, loslassen: Der Text steht dort, wo der
+Cursor ist. Die Spracherkennung läuft vollständig auf dem Prozessor des Rechners; Ton verlässt den Rechner nicht.
+Es gibt kein Installationsprogramm, keinen Dienst, keinen Treiber und keinen Bedarf an Adminrechten.
+
+LocalScribe ist ein Dokumentationswerkzeug und kein Medizinprodukt im Sinne der Verordnung (EU) 2017/745. Es
+stellt keine Diagnosen, gibt keine Therapieempfehlungen und trägt kein CE-Zeichen. Funktionen, die Modelle
+vergleichen oder Texte von einem Sprachmodell bearbeiten lassen, dienen Forschung, Lehre und Benchmarking. Jeder
+Text ist vor der Verwendung zu lesen.
+
+## 2. Systemvoraussetzungen
+
+| | |
+|---|---|
+| Betriebssystem | Windows 10 oder 11, 64 Bit |
+| Prozessor | x86-64 mit AVX2; getestet auf Intel Core i7-13700KF |
+| Arbeitsspeicher | rund 1,5 GB für die App mit geladenem Modell |
+| Platte | 300 MB entpackt, dazu 910 MB Sprachmodell |
+| Rechte | normale Benutzerrechte; geschrieben wird nur unter `%LOCALAPPDATA%\LocalScribe` |
+| Netz | nur für den einmaligen Download des Sprachmodells; danach läuft alles ohne Netz |
+
+## 3. Installation und Verteilung
+
+Einzelner Rechner:
+
+1. Auf <https://github.com/chunkyfire/LocalScribe/releases/latest> die Datei `LocalScribe-<Version>-windows.zip` laden.
+2. Entpacken (Rechtsklick, „Alle extrahieren“), zum Beispiel nach `Dokumente\LocalScribe`.
+3. `LocalScribe.exe` starten. Die Datei ist nicht signiert; Windows SmartScreen fragt beim ersten Mal nach:
+   „Weitere Informationen“, dann „Trotzdem ausführen“.
+4. Beim ersten Start lädt die App das Sprachmodell (910 MB) und zeigt dabei einen Fortschrittsbalken. Danach
+   erscheint das Symbol neben der Uhr; steht dort „Bereit“, kann diktiert werden.
+
+Rechner ohne Internet oder Verteilung an viele Rechner: Den Ordner
+`%LOCALAPPDATA%\LocalScribe\modelle` eines Rechners, auf dem die App einmal gestartet wurde, als Ordner `modelle`
+neben `LocalScribe.exe` legen. Die App sucht das Modell zuerst dort (`diktat/modelle.py`) und lädt dann nichts.
+Der so vorbereitete Programmordner lässt sich kopieren oder per Softwareverteilung ausrollen.
+
+Aktualisieren: neuen ZIP entpacken, alten Programmordner ersetzen. Einstellungen, Verlauf und Modell liegen
+getrennt davon und bleiben erhalten. Entfernen: Programmordner und `%LOCALAPPDATA%\LocalScribe` löschen.
+
+Prüfsumme: Beim Bau entsteht `dist\SHA256SUMS.txt` mit der SHA-256-Summe des ZIP.
+
+## 4. Aufbau
+
+Python 3.11, Oberfläche mit PySide6 (Qt), Spracherkennung mit ONNX Runtime auf der CPU über `onnx-asr`.
+Gepackt mit PyInstaller zu einem Ordner mit `LocalScribe.exe`.
+
+| Modul | Aufgabe |
+|---|---|
+| `run.pyw` | Start; ein Absturz beim Start landet in `absturz.log` |
+| `diktat/app.py` | Ablauf: Tastenkürzel, Aufnahme, Erkennung, Nachbearbeitung, Einfügen |
+| `diktat/engine.py` | Mikrofon, Pausenerkennung, Laden und Aufruf des Sprachmodells, regelbasierte Nachbearbeitung |
+| `diktat/beam.py` | Dekodieren mit mehreren Lesarten und Wortschatz-Bonus |
+| `diktat/wortschatz.py` | Wortschatz dafür: Kernliste, eigene Begriffe, gelernte Fachwörter |
+| `diktat/fach.py` | Fachbegriffe am Klang reparieren (Lexikon mit 39.600 Begriffen, Wirkstoffendungen) |
+| `diktat/training.py` | Lernen aus vorgelesenen Sätzen und aus Aufnahmen mit Transkript |
+| `diktat/sprecher.py` | Sprecher trennen (WeSpeaker ResNet34, ONNX, CPU) |
+| `diktat/vad.py` | Sprache oder Stille (Silero VAD) |
+| `diktat/longform.py` | lange Aufnahmen und Tondateien stückweise |
+| `diktat/modelle.py` | Sprachmodelle finden, einmal laden, Fortschritt melden |
+| `diktat/llm.py`, `korrektor.py` | optionale Nachbearbeitung und Fachkorrektur über eine OpenAI-kompatible Schnittstelle |
+| `diktat/schutz.py` | Namen, Daten, Orte, Nummern ersetzen, bevor Text an einen fremden Server geht |
+| `diktat/handy.py` | Handy als Mikrofon: HTTPS-Seite im eigenen Netz |
+| `diktat/winio.py` | Windows: globale Tasten, Einfügen, Zielfenster, Autostart |
+| `diktat/hub.py`, `ui.py` | Fenster, Statusleiste, Tray-Symbol, Verlauf |
+| `diktat/config.py` | Einstellungen und Ablageorte |
+
+## 5. Vom Ton zum Text
+
+1. **Aufnahme** mit 16 kHz mono (`sounddevice`). Der Ton liegt nur im Arbeitsspeicher.
+2. **Stücke**: Die Pausenerkennung teilt an Sprechpausen in Stücke von wenigen Sekunden.
+3. **Sprachmodell**: primeline-Parakeet (NVIDIA Parakeet TDT 0.6B, auf Deutsch nachtrainiert, CC BY 4.0) als ONNX.
+   Der Encoder ist auf 8 Bit gekürzt (je Kanal, 840 MB), Decoder und Joint 69 MB.
+4. **Dekodieren** (`beam.py`): Acht Lesarten laufen nebeneinander. Eine Lesart, deren entstehendes Wort der Anfang
+   eines Begriffs aus dem Wortschatz ist, bekommt je Wortstück einen Bonus; er wird abgezogen, wenn am Wortende
+   kein ganzer Begriff dasteht. Liefert die Suche deutlich weniger Wörter als das einfache Dekodieren, gilt das
+   einfache. Abschaltbar mit `"beam": 0`.
+5. **Nachbearbeitung** ohne Sprachmodell (`engine.postprocess`): persönliches Wörterbuch, Basiswörterbuch bekannter
+   Fehlschreibungen, Reparatur am Klang gegen das Fachlexikon (`fach.correct`), diktierte Satzzeichen, Leerzeichen.
+6. **Optional**: Fachkorrektur oder Umformulieren durch ein Sprachmodell (siehe 8). Ab Werk aus.
+7. **Einfügen** über die Zwischenablage in das aktive oder das gemerkte Zielfenster; die vorherige Zwischenablage
+   wird wiederhergestellt, der Eintrag ist vom Windows-Zwischenablageverlauf ausgenommen.
+
+Geschwindigkeit (i7-13700KF, 45 Sekunden Diktat): rund 2 Sekunden mit Wortschatz, 1,4 Sekunden ohne. Wichtig dafür
+ist `session.intra_op.allow_spinning = 0` für beide ONNX-Sitzungen; sonst bremsen sich die Rechen-Threads von
+Encoder und Decoder gegenseitig (vorher 6 Sekunden).
+
+## 6. Lernen
+
+Nichts davon verändert das Sprachmodell; gelernt wird in Wörterbuch und Wortschatz, beides in der Einstellungsdatei.
+
+| Weg | Was gelernt wird |
+|---|---|
+| Diktieren | Fachwörter aus dem Lexikon, die im fertigen Text stehen, kommen in den Wortschatz (`learn_terms`) |
+| Stimmtraining, Sätze vorlesen | Verhörer: „was die Erkennung schrieb“ → „was dastand“, wenn es ähnlich klingt und kein echtes Wort ist |
+| Stimmtraining, Aufnahme mit Transkript | beides: Verhörer aus dem Vergleich, Fachwörter aus dem Transkript |
+| Stimmtraining, eigene Texte | Fachwörter aus Briefen oder Befunden (docx, odt, txt, rtf, html) |
+| Wörterbuch, Wort einsprechen und Meine Begriffe | einzelne Begriffe von Hand |
+| Aus Korrektur lernen | Verhörer aus dem berichtigten letzten Diktat |
+
+In den Wortschatz kommen nur einzelne Wörter, die im mitgelieferten Lexikon stehen, höchstens 4.000. Sätze und
+Namen von Patienten können so nicht hineingeraten. Tondateien werden beim Lernen nur gelesen. Bis Version 0.12.1
+ließen sich Aufnahmen des Stimmtrainings auf Wunsch aufheben; das gibt es nicht mehr, vorhandene alte Aufnahmen
+zeigt die Seite Stimmtraining zum Löschen an.
+
+## 7. Daten auf dem Rechner
+
+Alles liegt unter `%LOCALAPPDATA%\LocalScribe` (nicht im Roaming-Profil, wandert also nicht durchs Firmennetz):
+
+| Datei oder Ordner | Inhalt |
+|---|---|
+| `config.json` | Einstellungen, Wörterbuch, Wortschatz, Textbausteine. Keine Schlüssel. |
+| `verlauf.sqlite` | Verlauf der Diktate als Text, mit einstellbarer Aufbewahrungsfrist; abschaltbar |
+| `modelle\` | Sprachmodell, Stimmmodell für die Sprechertrennung |
+| `diktat.log`, `absturz.log` | Betriebsmeldungen: Dauer, Zeichenzahl, Fehler. Kein diktierter Text. |
+| `aufnahmen\` | Sicherung einer laufenden langen Aufnahme; wird gelöscht, sobald der Text fertig ist |
+
+Der Schlüssel für ein Sprachmodell-Konto liegt in der Windows-Anmeldeinformationsverwaltung (`keyring`), nicht in
+einer Datei. Ton aus Diktaten per Taste wird nie auf die Platte geschrieben.
+
+## 8. Netzwerkverbindungen
+
+Ab Werk baut die App genau eine Art von Verbindung auf: den einmaligen Download der Modelle.
+
+| Ziel | Wann | Was geht hinaus |
+|---|---|---|
+| `github.com` (Release `modell-primeline-1`) | erster Start | nichts außer der Anfrage |
+| `huggingface.co` | Ausweichquelle für das Modell; Stimmmodell beim ersten Einschalten der Sprechertrennung | nichts außer der Anfrage |
+| selbst eingetragener Sprachmodell-Server | nur wenn KI-Nachbearbeitung oder Fachkorrektur eingeschaltet sind | der diktierte Text, nach dem Schutz aus `schutz.py` |
+| eigenes Netz, Port 8765 | nur wenn „Handy als Mikrofon“ eingeschaltet ist | nichts; das Telefon schickt Ton an den Rechner |
+
+Telemetrie, Lizenzabfragen oder automatische Updates gibt es nicht. Für eine Firewall genügt es, nach dem ersten
+Start alles zu sperren.
+
+Ist ein Sprachmodell-Server außerhalb des Rechners eingetragen, ersetzt `schutz.py` vor dem Versand Namen,
+Geburts- und andere Daten, Orte, Nummern und Kontaktangaben durch Platzhalter und setzt sie in der Antwort wieder
+ein. Das senkt das Risiko, ersetzt aber keine Vereinbarung zur Auftragsverarbeitung; ob klinischer Text an einen
+solchen Server gehen darf, entscheidet der Betreiber. Mit einem Server auf dem eigenen Rechner (Ollama, LM Studio)
+bleibt alles lokal.
+
+Handy als Mikrofon: Die App öffnet einen HTTPS-Server mit eigenem Zertifikat im lokalen Netz. Zugang nur mit einem
+zufälligen Schlüssel aus dem QR-Code. Ab Werk aus.
+
+## 9. Einstellungen
+
+`config.json`, die wichtigsten Schlüssel (alle über die Oberfläche erreichbar, außer den markierten):
+
+| Schlüssel | Bedeutung | ab Werk |
+|---|---|---|
+| `hotkey_hold`, `hotkey_lock`, `hotkey_paste_last`, `hotkey_target`, `hotkey_next_field` | Tasten | Strg+Win, Leertaste, Umschalt+F7, F9, F8 |
+| `model_choice` | `de` (primeline-Parakeet), `genau` (NVIDIA Canary 1B v2, genauer und langsamer; ohne Wortschatz-Bonus) oder `multi` (Parakeet v3, 25 Sprachen) | `de` |
+| `beam` (nur Datei) | Zahl der Lesarten beim Dekodieren; 0 schaltet den Wortschatz-Bonus ab | 8 |
+| `learn_terms`, `learned` | Wortschatz aus Diktaten mitlernen; die gelernten Wörter | an, leer |
+| `vocabulary`, `dictionary` | Meine Begriffe; Wörterbuch „falsch → richtig“ | leer |
+| `base_dictionary` | mitgeliefertes medizinisches Wörterbuch und Lexikon anwenden | an |
+| `speakers` | Sprecher trennen bei Aufnahme und Datei | aus |
+| `spoken_punctuation` | „Punkt“, „Komma“, „neue Zeile“ als Zeichen schreiben | aus |
+| `llm`, `llm_fix` | Sprachmodell-Server und Fachkorrektur | aus |
+| `phone` | Handy als Mikrofon | aus |
+| `threads` (nur Datei) | Zahl der Rechen-Threads; 0 überlässt es der Laufzeit | 0 |
+
+## 10. Bauen und Prüfen
+
+Bauen: `build.ps1` (braucht `uv`, keine Adminrechte) erzeugt `dist\LocalScribe\` und den ZIP samt Prüfsumme.
+Abhängigkeiten stehen in `requirements.txt`, Lizenzen in `THIRD_PARTY.md`.
+
+Prüfen:
+
+| | |
+|---|---|
+| `tests/test_neu.py` | Einheiten: Nachbearbeitung, Wörterbuch, Schutz, Wortschatz, Training, Handy-Server, Einstellungen |
+| `tests/test_woerterbuch.py` | Fachlexikon: was repariert wird und was unangetastet bleiben muss |
+| `tests/test_flow.py` | Ablauf mit Oberfläche: Diktat, Einfügen, Verlauf, Nachbearbeitung |
+| `tests/test_download.py`, `test_long.py`, `test_llm.py`, `test_hotkey.py` | Modell-Download, lange Aufnahmen, Sprachmodell-Anbindung, Tasten |
+| `LocalScribe.exe --selftest <wav>` | die gepackte App erkennt eine Datei und meldet Dauer und Text |
+
+Messwerkzeuge liegen in `werkzeug/messen` (Wortfehlerrate an eigenen Diktaten, Corti Med-Dictate, GraSCCo,
+MultiMed; Sprechertrennung; Geschwindigkeit), das Werkzeug zum Kürzen des Modells in `werkzeug/modell`, der Bau
+des Lexikons in `werkzeug/woerterbuch`, die Versuche zum Nachtraining in `werkzeug/training`.
+
+## 11. Messwerte in Kürze
+
+Wortfehlerrate nach der Nachbearbeitung, ohne Sprachmodell-Korrektur, Details und Einschränkungen in `ERGEBNIS.md`:
+
+| Material | Wert |
+|---|---|
+| fünf eigene ärztliche Diktate (412 Wörter, ein Sprecher) | 8,3 % |
+| Corti Med-Dictate, neun echte Diktate, 33 Minuten | 15,4 % mit Kernliste; 11,1 % mit dem Wortschatz aus den eigenen Texten |
+| Sprechertrennung | 88,6 % richtig zugeordnete Sprechzeit bei Interviews, 75,4 % am Telefon |
+
+Mit Fachkorrektur durch ein Sprachmodell (optional, Text verlässt dann je nach Server den Rechner) lagen die
+eigenen Diktate bei 7,5 % und Corti bei 13,7 %; die Kombination mit dem Wortschatz beim Dekodieren ist noch nicht
+gemessen.
+
+## 12. Bekannte Grenzen
+
+- Der Wortschatz-Bonus hilft nur für Wörter, die im Wortschatz stehen. Am ersten Tag ist das die Kernliste.
+- Die Programmdatei ist nicht signiert; SmartScreen warnt beim ersten Start.
+- Nur Windows. Keine Anbindung an ein Krankenhausinformationssystem; der Text wird wie getippt eingefügt.
+- Dialekt, laute Umgebung und mehrere gleichzeitig Sprechende sind nicht gemessen.
+- Ein Nachtraining des Sprachmodells auf die eigene Stimme gibt es nicht. Versuche mit künstlichen Stimmen
+  brachten an echten Stimmen keinen Gewinn (`ERGEBNIS.md`).
+- Die Seite für das Handy als Mikrofon ist bisher nur mit simuliertem Mikrofon geprüft.
+
+## 13. Lizenz
+
+GPL-3.0-or-later. Sprachmodell primeline-Parakeet (CC BY 4.0), Stimmmodell WeSpeaker (CC BY 4.0), Silero VAD (MIT);
+alle Bestandteile in `THIRD_PARTY.md`.
