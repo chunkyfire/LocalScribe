@@ -27,6 +27,13 @@ Benutzerkonto, nicht im Programmordner:
     %LOCALAPPDATA%\LocalScribe
 Öffnen: Windows-Taste + R, die Zeile oben einfügen, Enter.
 
+Aktualisieren und entfernen
+---------------------------
+Beides im Fenster unter Einstellungen, ganz unten. Für ein Update die ZIP-Datei
+der neuen Fassung herunterladen (das kleine Paket genügt) und dort auswählen.
+Von Hand: LocalScribe über das Symbol neben der Uhr beenden, dann den Ordner
+ersetzen oder löschen.
+
 Mehr
 ----
 Handbuch:                LocalScribe-Handbuch.pdf (in diesem Ordner)

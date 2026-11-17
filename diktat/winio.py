@@ -344,6 +344,14 @@ def create_shortcuts(icon: str):
         raise RuntimeError((done.stderr or "PowerShell meldet einen Fehler").strip()[:200])
 
 
+def remove_shortcuts():
+    """Verknüpfungen auf dem Desktop und im Startmenü wieder entfernen."""
+    script = ("foreach ($d in @([Environment]::GetFolderPath('Desktop'), [Environment]::GetFolderPath('Programs'))) "
+              "{ Remove-Item (Join-Path $d 'LocalScribe.lnk') -ErrorAction SilentlyContinue }")
+    subprocess.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script],
+                   capture_output=True, timeout=60, creationflags=subprocess.CREATE_NO_WINDOW)
+
+
 def autostart_enabled() -> bool:
     try:
         with winreg.OpenKey(winreg.HKEY_CURRENT_USER, RUN_KEY) as k:

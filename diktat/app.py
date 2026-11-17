@@ -91,6 +91,12 @@ class Diktat(QtCore.QObject):
         self.overlay.set_mode("message", "Modell lädt …")
         threading.Thread(target=self._load, daemon=True).start()
         threading.Thread(target=self._worker, daemon=True).start()
+        from . import pflege
+        if pflege.failed():
+            QTimer.singleShot(800, lambda: QtWidgets.QMessageBox.warning(
+                self.hub, "LocalScribe", "Das Update hat nicht geklappt: Der Programmordner ließ sich nicht ersetzen, "
+                "weil noch Dateien daraus geöffnet waren. Es läuft weiter die bisherige Fassung. Bitte alle Fenster "
+                "dieses Ordners schließen und es noch einmal versuchen."))
 
     # ---------- Schnittstelle für das App-Fenster ----------
     parse_keys = staticmethod(winio.parse_keys)
@@ -102,6 +108,21 @@ class Diktat(QtCore.QObject):
     @staticmethod
     def create_shortcuts():
         winio.create_shortcuts(str(config.ICON))
+
+    def uninstall(self, data: bool):
+        """Verknüpfungen, Autostart und Programmordner entfernen, auf Wunsch auch die eigenen Daten samt Schlüsseln."""
+        from . import pflege
+        winio.remove_shortcuts()
+        winio.set_autostart(False)
+        if data:
+            for name in [""] + [p.get("name", "") for p in self.cfg.get("llm_profiles", [])]:
+                try:
+                    llm.set_key("", name)
+                except Exception:
+                    pass
+            logging.shutdown()               # gibt diktat.log frei, sonst bleibt der Datenordner liegen
+        pflege.remove(pflege.program(), data)
+        self.quit()
 
     def cleanup(self):
         """Aufbewahrungsfrist durchsetzen: alte Verlaufseinträge und liegengebliebene Aufnahmen löschen."""

@@ -203,7 +203,7 @@ code { font: 600 14px ui-monospace, Consolas, monospace; background: #eef0ed; pa
     <div><svg class="p"><use href="#i-once"/></svg><span>einmal Internet, danach keins mehr</span></div>
     <div><svg class="p"><use href="#i-noadmin"/></svg><span>keine Admin&shy;rechte</span></div>
   </div>
-  <span class="no">Version 0.14.2</span>
+  <span class="no">Version 0.14.3</span>
 </section>
 
 <section class="sheet" id="installieren">
@@ -404,8 +404,13 @@ code { font: 600 14px ui-monospace, Consolas, monospace; background: #eef0ed; pa
 
 <section class="sheet end" id="entfernen">
   <div>
-    <h2>Entfernen</h2>
-    <p>Den entpackten Ordner löschen. Für eine saubere Entfernung dazu <code>%LOCALAPPDATA%\LocalScribe</code> (Einstellungen, Verlauf, Sprachmodelle). Wer schon eine ältere Fassung hatte, löscht auch <code>%USERPROFILE%\.cache\huggingface</code>.</p>
+    <h2>Aktualisieren</h2>
+    <p>Neue ZIP herunterladen, das kleine Paket genügt. In der App: Einstellungen, ganz unten <span class="hl">Aus ZIP-Datei aktualisieren</span>, die ZIP auswählen. LocalScribe ersetzt den Programmordner und startet neu. Einstellungen, Verlauf und Sprachmodell bleiben.</p>
+    <p>Von Hand geht es auch: LocalScribe über das Symbol neben der Uhr beenden, die neue ZIP in einen neuen Ordner entpacken, von dort starten.</p>
+    <h2 style="margin-top:34px">Entfernen</h2>
+    <p>Einstellungen, ganz unten <span class="hl">LocalScribe entfernen</span>: löscht Verknüpfungen, Autostart und Programmordner, auf Wunsch auch die eigenen Daten.</p>
+    <p>Von Hand: LocalScribe beenden, den Ordner löschen, dazu <code>%LOCALAPPDATA%\LocalScribe</code>.</p>
+    <p>Meldet Windows „Zugriff verweigert“: Das Programm läuft noch (Symbol neben der Uhr, Rechtsklick, Beenden) oder der Netzwerkordner erlaubt diesem Konto das Löschen nicht. Ab- und anmelden, sonst die IT fragen. Die neue Fassung läuft auch aus einem zweiten Ordner.</p>
   </div>
   <div>
     <h2>Mehr</h2>

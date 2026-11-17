@@ -26,7 +26,9 @@ In den Einstellungen stehen zwei weitere Modelle zur Wahl: ein genaueres, langsa
    Sperrt das Netz den Download, nennt das Fenster den Grund; dann das Komplettpaket nehmen.
 5. Verknüpfungen für Desktop und Startmenü: im Fenster unter **Einstellungen**.
 
-Deinstallieren: Ordner löschen, dazu `%LOCALAPPDATA%\LocalScribe` (Einstellungen, Verlauf, Sprachmodelle).
+Aktualisieren: neue ZIP laden (das kleine Paket genügt), in der App unter **Einstellungen → Aus ZIP-Datei
+aktualisieren** auswählen. Entfernen: **Einstellungen → LocalScribe entfernen**; von Hand: App beenden, Ordner
+löschen, dazu `%LOCALAPPDATA%\LocalScribe` (Einstellungen, Verlauf, Sprachmodelle).
 Wer eine Fassung vor 0.8 benutzt hat, findet das Modell zusätzlich unter `%USERPROFILE%\.cache\huggingface`;
 LocalScribe verwendet es von dort weiter und lädt nichts doppelt.
 

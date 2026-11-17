@@ -392,5 +392,43 @@ with tempfile.TemporaryDirectory() as tmp:
     _s.trash(_id)
     check("Visite: Papierkorb leeren", _s.purge() == 1 and _s.get(_id) is None)
     _s.db.close()
+if sys.platform == "win32":
+    # Aktualisieren und Entfernen: mit einem nachgebauten Programmordner, ohne die App zu starten
+    import time as _time
+    import zipfile as _zip
+    from diktat import pflege
+    _base = pathlib.Path(tempfile.mkdtemp())
+    _prog = _base / "LocalScribe"
+    (_prog / "modelle" / "m").mkdir(parents=True)
+    (_prog / "modelle" / "m" / "gewichte").write_text("alt")
+    (_prog / "LocalScribe.exe").write_text("alt")
+    _pack = _base / "neu.zip"
+    with _zip.ZipFile(_pack, "w") as _z:
+        _z.writestr("LocalScribe/LocalScribe.exe", "neu")
+        _z.writestr("LocalScribe/_internal/x.dll", "neu")
+    check("Pflege: Ordner ist änderbar", pflege.blocked(_prog) == "")
+    _new = pflege.unpack(_pack, _prog)
+    check("Pflege: entpackt neben den Programmordner", (_new / "LocalScribe.exe").read_text() == "neu")
+    _script = pflege.swap(_prog, _new, start=False)
+    for _ in range(100):
+        if not _script.exists():
+            break
+        _time.sleep(0.2)
+    check("Pflege: neue Fassung steht am alten Platz", (_prog / "LocalScribe.exe").read_text() == "neu"
+          and (_prog / "_internal" / "x.dll").exists())
+    check("Pflege: Sprachmodell wandert mit", (_prog / "modelle" / "m" / "gewichte").read_text() == "alt")
+    check("Pflege: nichts bleibt liegen", sorted(p.name for p in _base.iterdir()) == ["LocalScribe", "neu.zip"],
+          sorted(p.name for p in _base.iterdir()))
+    try:
+        pflege.unpack(pathlib.Path(__file__), _prog)
+        check("Pflege: falsche Datei wird abgelehnt", False)
+    except RuntimeError:
+        check("Pflege: falsche Datei wird abgelehnt", True)
+    _script = pflege.remove(_prog, False)
+    for _ in range(100):
+        if not _script.exists():
+            break
+        _time.sleep(0.2)
+    check("Pflege: Entfernen löscht den Programmordner", not _prog.exists())
 print("FEHLER:" if failed else "ALLES OK", failed or "")
 sys.exit(1 if failed else 0)

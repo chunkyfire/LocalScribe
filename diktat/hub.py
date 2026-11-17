@@ -13,7 +13,7 @@ from PySide6.QtCore import Qt, QTimer, Signal
 
 import secrets
 
-from . import config, engine, fach, handy, llm, schutz, training, visite, wortschatz
+from . import __version__, config, engine, fach, handy, llm, pflege, schutz, training, visite, wortschatz
 from . import sprecher
 from .longform import LongJob
 from .ui import make_icon, make_pixmap, private_mime
@@ -1972,7 +1972,81 @@ class SettingsPage(Page):
             self.prompt,
             hbox(button("Speichern", self._prompt_save, name="primary"),
                  button("Standard wiederherstellen", self._prompt_reset), None, self.prompt_note)))
+        self.care_note = label("", "muted", wrap=True)
+        self.body.addWidget(card(
+            label("Aktualisieren und entfernen", "h2"),
+            label(f"Installiert ist Fassung {__version__}. Für ein Update die ZIP-Datei der neuen Fassung herunterladen "
+                  "und hier auswählen; das kleine Paket genügt, das Sprachmodell bleibt erhalten. LocalScribe ersetzt "
+                  "den Programmordner und startet neu. Einstellungen, Verlauf und Wörterbuch bleiben, wie sie sind.",
+                  "muted", wrap=True),
+            hbox(button("Aus ZIP-Datei aktualisieren …", self._update, name="primary"),
+                 button("Neue Fassung suchen", lambda: QtGui.QDesktopServices.openUrl(
+                     QtCore.QUrl("https://github.com/chunkyfire/LocalScribe/releases/latest"))),
+                 button("LocalScribe entfernen …", self._remove), None),
+            self.care_note))
+        self.sig_unpacked.connect(self._unpacked)
         self.body.addStretch(1)
+
+    sig_unpacked = Signal(str, str)      # Ordner der neuen Fassung, Fehlertext
+
+    def _care_ready(self) -> bool:
+        if self.ctl.hub.busy():
+            self.saved(self.care_note, "Erst die laufende Aufnahme oder Transkription beenden.", ok=False)
+            return False
+        return True
+
+    def _update(self):
+        prog = pflege.program()
+        if not prog:
+            self.saved(self.care_note, "Diese Fassung läuft aus dem Quelltext; aktualisiert wird sie mit git.", ok=False)
+            return
+        if not self._care_ready():
+            return
+        path, _ = QtWidgets.QFileDialog.getOpenFileName(self, "ZIP-Datei der neuen Fassung", "", "LocalScribe-Paket (*.zip)")
+        if not path:
+            return
+        restyle(self.care_note, "muted")
+        self.care_note.setText("Die neue Fassung wird entpackt. Das dauert beim Komplettpaket ein bis zwei Minuten …")
+
+        def work():
+            try:
+                self.sig_unpacked.emit(str(pflege.unpack(path, prog)), "")
+            except Exception as e:
+                self.sig_unpacked.emit("", str(e))
+        threading.Thread(target=work, daemon=True).start()
+
+    def _unpacked(self, new, error):
+        if error:
+            self.saved(self.care_note, error, ok=False)
+            return
+        from pathlib import Path
+        pflege.swap(pflege.program(), Path(new))
+        self.ctl.quit()
+
+    def _remove(self):
+        if not self._care_ready():
+            return
+        prog = pflege.program()
+        reason = pflege.blocked(prog) if prog else ""
+        box = QtWidgets.QMessageBox(self)
+        box.setWindowTitle("LocalScribe entfernen")
+        text = "Entfernt werden die Verknüpfungen auf dem Desktop und im Startmenü und der automatische Start"
+        if prog and not reason:
+            text += f", dazu der Programmordner {prog}."
+        elif prog:
+            text += (f". Der Programmordner {prog} bleibt liegen: {reason} Löschen kann ihn, wer dort die Rechte "
+                     "hat, oder du selbst nach dem Ab- und Anmelden.")
+        else:
+            text += "."
+        box.setText(text)
+        data = QtWidgets.QCheckBox("Auch meine Einstellungen, den Verlauf, das Wörterbuch, gespeicherte Schlüssel und "
+                                   "die heruntergeladenen Sprachmodelle in diesem Benutzerkonto löschen")
+        box.setCheckBox(data)
+        yes = box.addButton("Entfernen", QtWidgets.QMessageBox.DestructiveRole)
+        box.addButton("Abbrechen", QtWidgets.QMessageBox.RejectRole)
+        box.exec()
+        if box.clickedButton() is yes:
+            self.ctl.uninstall(data.isChecked())
 
     def _prompt_save(self):
         text = self.prompt.toPlainText().strip()

@@ -175,7 +175,7 @@
 </header>
 <h1 id="localscribe--technische-dokumentation">LocalScribe – Technische
 Dokumentation</h1>
-<p>Stand: Version 0.14.2. Für Betrieb, IT und alle, die den Code lesen
+<p>Stand: Version 0.14.3. Für Betrieb, IT und alle, die den Code lesen
 oder prüfen wollen. Die Bedienung steht im <a
 href="https://chunkyfire.github.io/LocalScribe/">Handbuch</a>, die
 Messwerte mit Methode in <a
@@ -268,10 +268,28 @@ oder per Softwareverteilung ausrollen.</p>
 <p>Scheitert der Download des Modells (Proxy, Firewall), zeigt das
 Fenster den Grund im Klartext, dazu die Knöpfe „Erneut versuchen“,
 „Komplettpaket herunterladen“ und „Protokoll öffnen“.</p>
-<p>Aktualisieren: neuen ZIP entpacken, alten Programmordner ersetzen.
-Einstellungen, Verlauf und Modell liegen getrennt davon und bleiben
-erhalten. Entfernen: Programmordner und
-<code>%LOCALAPPDATA%\LocalScribe</code> löschen.</p>
+<p>Aktualisieren: Einstellungen, „Aus ZIP-Datei aktualisieren“. Die App
+entpackt das Paket neben den Programmordner
+(<code>&lt;Ordner&gt;.neu</code>), beendet sich, und ein Skript im
+Temp-Ordner tauscht die Ordner, sobald die Dateien frei sind, und
+startet neu (<code>diktat/pflege.py</code>). Bringt das Paket kein
+Sprachmodell mit, wandert der Ordner <code>modelle</code> der alten
+Fassung in die neue; für ein Update genügt deshalb das kleine Paket. Ob
+sich der Ordner überhaupt ersetzen lässt, prüft die App vorher:
+Netzwerkordner erlauben oft das Anlegen, aber nicht das Umbenennen oder
+Löschen. Dann sagt sie das und ändert nichts. Wird der alte Ordner
+binnen 60 Sekunden nicht frei, startet die bisherige Fassung wieder und
+meldet es. Einstellungen, Verlauf und Modell im Benutzerkonto bleiben
+bei jedem Update erhalten. Von Hand: App beenden, neues ZIP in einen
+neuen Ordner entpacken.</p>
+<p>Entfernen: Einstellungen, „LocalScribe entfernen“. Löscht die
+Verknüpfungen, den Autostart-Eintrag und den Programmordner, auf Wunsch
+auch <code>%LOCALAPPDATA%\LocalScribe</code> und die Schlüssel in der
+Anmeldeinformationsverwaltung. Von Hand: App beenden, Programmordner und
+<code>%LOCALAPPDATA%\LocalScribe</code> löschen. Meldet Windows dabei
+„Zugriff verweigert“, läuft das Programm noch (auch in einer anderen
+Sitzung), oder das Konto darf in diesem Netzwerkordner nicht
+löschen.</p>
 <p>Prüfsumme: Beim Bau entsteht <code>dist\SHA256SUMS.txt</code> mit den
 SHA-256-Summen beider ZIP-Dateien.</p>
 <h2 id="4-aufbau">4. Aufbau</h2>

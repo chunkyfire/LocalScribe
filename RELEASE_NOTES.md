@@ -1,3 +1,13 @@
+## LocalScribe 0.14.3
+
+- **Aktualisieren aus der App**: Einstellungen, ganz unten „Aus ZIP-Datei aktualisieren“. ZIP der neuen Fassung
+  auswählen, LocalScribe ersetzt den Programmordner und startet neu. Das kleine Paket genügt: Liegt das Sprachmodell
+  im Programmordner, wandert es mit. Einstellungen, Verlauf und Wörterbuch bleiben.
+- **Entfernen aus der App**: „LocalScribe entfernen“ löscht Verknüpfungen, Autostart und Programmordner, auf Wunsch
+  auch die eigenen Daten und gespeicherten Schlüssel.
+- Lässt ein Netzwerkordner das Ersetzen oder Löschen nicht zu, sagt die App das vorher, statt halb fertig zu werden.
+- Handbuch und technische Dokumentation beschreiben Aktualisieren und Entfernen, auch von Hand.
+
 ## LocalScribe 0.14.2
 
 - **Komplettpaket** `LocalScribe-…-windows-komplett.zip` (rund 1 GB): Das Sprachmodell liegt schon im Ordner, die
