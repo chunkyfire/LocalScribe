@@ -421,7 +421,12 @@ Verkleinert auf 8 Bit (ONNX): 133 statt 529 MB, 27 statt 94 ms je Kandidat, an d
 Satzumfeld nachgerechnet) praktisch dieselben Entscheidungen: ab Vorsprung 5 unverkleinert 13 richtig und 0 zerstört,
 verkleinert 14 richtig und 0 zerstört.
 
-Grenzen: neun Diktate, Schwellen an denselben Daten gewählt, nur Unterschiede in genau einem Wort. Eingebaut ist es
+Gegenprobe an den fünf eigenen Diktaten (ein Sprecher, 412 Wörter, App-Einstellung, verkleinertes Modell): ohne
+medBERT 8,3 %, mit Vorsprung ab 5 8,0 % (ein Fehler weniger: „Pann“ wird „kann“), mit Vorsprung ab 3 wieder 8,3 % (ein
+Treffer, ein Schaden: „Pectoris“ wird „pectorisk“). 54 Aufrufe für alle fünf Diktate, zusammen 0,4 Sekunden. Die strenge
+Schwelle schadet in beiden Messungen nicht, der Gewinn ist klein.
+
+Grenzen: neun und fünf Diktate, Schwellen an den neun gewählt, nur Unterschiede in genau einem Wort. Eingebaut ist es
 nicht: Offen sind Unterschiede über mehrere Wörter, die Messung an den eigenen Diktaten und der Einbau als abschaltbare
 Stufe mit einmaligem Download des Modells.
 
