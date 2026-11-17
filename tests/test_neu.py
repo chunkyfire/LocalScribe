@@ -609,6 +609,8 @@ try:
     check("Update: falsche Datei wird abgelehnt", False)
 except RuntimeError:
     check("Update: falsche Datei wird abgelehnt", True)
+check("Was ist neu: Zeilenenden von Windows stören nicht", _pf.sections("LocalScribe 9.1.0\r\n\r\n- a\r\n  b\r\n- c\r\n\r\nLocalScribe 9.0.0\r\n\r\n- alt\r\n", "9.0.0")
+      == [("9.1.0", "- a b\n- c")], _pf.sections("LocalScribe 9.1.0\r\n\r\n- a\r\n", "9.0.0"))
 _n = _pf.notes()
 check("Was ist neu: Änderungen der laufenden Fassung lesbar", _n and _n[0][0] == _own and "**" not in _n[0][1], [v for v, _ in _n[:1]])
 # Modellordner: der eingestellte Ordner wird gefunden, ohne Netz

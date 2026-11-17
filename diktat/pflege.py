@@ -377,6 +377,7 @@ def plain(markdown: str) -> str:
 
 def sections(text: str, since: str = "", upto: str = "") -> list:
     """[(Nummer, Text)] der Fassungen, die neuer sind als since und höchstens upto; neueste zuerst."""
+    text = text.replace("\r\n", "\n")      # unter Windows gebaute Pakete: Zeilenenden mit Wagenrücklauf
     parts = re.split(r"^LocalScribe (\d+\.\d+\.\d+)[ \t]*$", text, flags=re.M)
     out = []
     for version, body in zip(parts[1::2], parts[2::2]):

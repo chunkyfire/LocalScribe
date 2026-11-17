@@ -1,3 +1,10 @@
+## LocalScribe 1.2.1
+
+- **„Was ist neu“ vor dem Update zeigte nichts an.** Unter Windows gebaute Pakete haben andere Zeilenenden; daran
+  scheiterte das Lesen der Änderungen aus dem Paket. Behoben auf beiden Seiten: beim Lesen und beim Bauen.
+- Zugleich das erste Update auf dem neuen Weg: von 1.2.0 aus lädt LocalScribe nur die geänderten Dateien, richtet 1.2.1
+  neben der laufenden Fassung ein und startet sie beim nächsten Mal.
+
 ## LocalScribe 1.2.0
 
 - **Updates, während LocalScribe läuft, auch für viele Rechner an einem Ordner.** Ein Update ersetzt nichts mehr. Die
