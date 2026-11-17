@@ -132,6 +132,7 @@ SPECIALTIES = {
     "general_surgery": "Allgemein-/Viszeralchirurgie", "trauma_surgery": "Unfallchirurgie/Orthopädie",
     "urology": "Urologie", "gynecology": "Gynäkologie", "pediatrics": "Pädiatrie", "psychiatry": "Psychiatrie",
     "ent": "HNO", "ophthalmology": "Augenheilkunde", "dermatology": "Dermatologie", "other": "andere Fachabteilung"}
+SHORT = {"general_surgery": "Viszeralchirurgie", "trauma_surgery": "Unfallchirurgie", "other": "andere"}     # für schmale Kärtchen
 LABS = {"none": "kein Labor", "basis": "Basis", "basis2": "Basis 2", "thorax": "Thoraxlabor", "bauch": "Bauchlabor",
         "neuro_basis": "Neuro-Basis", "polytrauma": "Polytrauma-Labor", "vigilanz": "Vigilanz-Profil"}
 MEASURES = (("ecg", "12-Kanal-EKG"), ("iv_access", "i.v.-Zugang"), ("blood", "Labor"), ("monitoring", "Monitoring"))
@@ -190,6 +191,7 @@ def view(d: dict) -> dict:
     return {
         "place": PLACES.get(place.get("choice"), ""), "place_p": place.get("p"), "practice": practice,
         "specialty": "" if practice else SPECIALTIES.get(spec.get("choice"), ""), "specialty_p": spec.get("p"),
+        "ward": "" if practice else SHORT.get(spec.get("choice"), SPECIALTIES.get(spec.get("choice"), "")),
         "admission": admission, "bed": (not practice) and admission is not None and admission >= HIGH,
         "shock": shock, "sepsis": n.get("sepsis_screening", 0) >= HIGH, "measures": rows, "imaging": images,
     }

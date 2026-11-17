@@ -382,3 +382,46 @@ Diktate ohne Wortschatz beim Dekodieren: 10,0 % statt 9,0 % nach der Nachbearbei
 Corti: 17,37 % statt 16,59 % (Fachbegriffe 63,5 % statt 65,2 %). Rechenzeit für die fünf Diktate: 12,7 s statt 7,1 s.
 190 MB weniger Download wiegen das nicht auf. Die 654-MB-Fassung, die alles auf 8 Bit kürzt, war schon in 0.9 deutlich schlechter
 (Tabelle oben). Kleiner ginge es nur mit einem anderen, kleineren Modell.
+
+## medBERT als Schiedsrichter zwischen ähnlich klingenden Wörtern (17.11.2026)
+
+Anlass: Bei einem Sprecher schrieb das Sprachmodell „Disney“ für „Dyspnoe“. Idee aus einer Rückmeldung: Ein deutsches
+medizinisches Sprachmodell, das Lücken im Satz füllt (medBERT.de, `GerMedBERT/medbert-512-no-duplicates`, Apache 2.0,
+109 Mio. Parameter, 436 MB), entscheidet aus dem Satzumfeld, welches von mehreren ähnlich klingenden Wörtern passt.
+Bewertet wird die mittlere logarithmische Wahrscheinlichkeit der Teilstücke eines Worts, wenn alle seine Stellen
+gleichzeitig verdeckt sind. Rechenzeit: rund 60 ms je Kandidat auf vier Kernen, unverkleinert.
+
+Einzelfall: „… stellt sich vor mit [Disney|Dyspnoe] mit dem Rettungsdienst“: Dyspnoe −7,9 gegen Disney −13,2.
+„Die Kinder schauen [Disney|Dyspnoe] Plus“: Disney −12,4 gegen Dyspnoe −14,7. Beide Richtungen richtig.
+
+Messung an den neun Corti-Diktaten (echte Sprecher, 32,6 Minuten, 3451 Wörter), zwei Wege:
+
+| Weg | Ergebnis |
+|---|---|
+| Nachlauf über jedes Wort, Kandidaten aus dem Fachlexikon nach Klang | mehr Schaden als Nutzen: bei Schwelle 5 werden 8 Wörter richtig korrigiert, 6 richtige zerstört, 5 falsche durch andere falsche ersetzt. Fehlt das richtige Wort unter den Kandidaten, wählt das Modell ein plausibles falsches. |
+| Kandidaten aus der Strahlsuche der Spracherkennung (8 Lesarten, Unterschied in genau einem Wort, Abstand der Lesarten höchstens 2) | bei Vorsprung ab 5: 19 Wörter getauscht, 16 richtig korrigiert, 0 richtige zerstört. Bei Vorsprung ab 3: 31 getauscht, 21 richtig, 1 zerstört. |
+
+Wortfehlerrate mit Nachbearbeitung der App, zweiter Weg:
+
+| Schwelle | WER | Fachbegriffe |
+|---|---|---|
+| ohne medBERT | 15,67 % | 327/488 |
+| ab 5 | 15,35 % | 327/488 |
+| ab 4 | 15,28 % | 328/488 |
+| ab 3 | 15,22 % | 328/488 |
+| ab 2 | 15,22 % | 329/488 |
+
+Was es bringt: Wortendungen und Fälle (Fall/falls, Keiner/Keine, Korrelationen/Korrelation), echte Wörter an falscher
+Stelle (Befehl/Befall, Dora/Dura), einzelne Verschreiber (Diurrese/Diurese, epithuralen/epiduralen). Einen Teil davon
+behebt die Nachbearbeitung der App schon selbst, deshalb ist der Gewinn kleiner als die Zahl der Treffer. Was es nicht
+bringt: mehr erkannte Fachbegriffe (327 gegen 328 von 488); fehlt der Begriff in allen Lesarten, kann der
+Schiedsrichter ihn nicht wählen.
+
+Verkleinert auf 8 Bit (ONNX): 133 statt 529 MB, 27 statt 94 ms je Kandidat, an denselben Stellen (mit kürzerem
+Satzumfeld nachgerechnet) praktisch dieselben Entscheidungen: ab Vorsprung 5 unverkleinert 13 richtig und 0 zerstört,
+verkleinert 14 richtig und 0 zerstört.
+
+Grenzen: neun Diktate, Schwellen an denselben Daten gewählt, nur Unterschiede in genau einem Wort. Eingebaut ist es
+nicht: Offen sind Unterschiede über mehrere Wörter, die Messung an den eigenen Diktaten und der Einbau als abschaltbare
+Stufe mit einmaligem Download des Modells.
+

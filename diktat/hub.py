@@ -106,7 +106,7 @@ QFrame#drop[over="true"] { border-color: #C6FF3D; background: #141810; }
 QFrame#drop QWidget { background: transparent; }
 QFrame#box { background: #121212; border: 1px solid #232323; border-radius: 14px; }
 QFrame#box QWidget { background: transparent; }
-QFrame#box QLabel#boxTitle { color: #C6FF3D; font-size: 11pt; font-weight: 700; }
+QFrame#box QLabel#boxTitle { color: #C6FF3D; font-size: 10pt; font-weight: 700; }
 QFrame#box QLabel#kicker { color: #6F6F6F; font-size: 8pt; font-weight: 700; padding-top: 4px; }
 QFrame#box QLabel#strong { font-weight: 600; }
 QFrame#box QLabel#pct { font-weight: 700; }
@@ -125,12 +125,12 @@ QFrame#box QPushButton#fold:hover { color: #C6FF3D; }
 QFrame#box QProgressBar { background: #1D1D1D; max-height: 4px; min-height: 4px; border-radius: 2px; }
 QFrame#box QProgressBar#on::chunk { background: #C6FF3D; border-radius: 2px; }
 QFrame#box QProgressBar#dim::chunk { background: #3A3A3A; border-radius: 2px; }
-QPushButton#recSmall, QFrame#card QPushButton#recSmall { background: #C6FF3D; color: #0B0B0B; border: none;
-    border-radius: 32px; font-weight: 700; }
-QPushButton#recSmallOn, QFrame#card QPushButton#recSmallOn { background: #FF5A4D; color: #0B0B0B; border: none;
-    border-radius: 32px; font-weight: 700; }
-QPushButton#recSmall:disabled { background: #2A2A2A; color: #6A6A6A; }
-QLabel#clockSmall { font-size: 15pt; font-weight: 600; }
+QFrame#box QLabel { font-size: 9pt; }
+QFrame#box QLabel#chipLine { background: transparent; color: #C6FF3D; border: 1px solid #3C5412; border-radius: 9px;
+    padding: 2px 8px; font-weight: 600; }
+QPushButton#recPill { background: #C6FF3D; color: #0B0B0B; border: none; border-radius: 15px; padding: 7px 16px; font-weight: 700; }
+QPushButton#recPillOn { background: #FF5A4D; color: #0B0B0B; border: none; border-radius: 15px; padding: 7px 16px; font-weight: 700; }
+QPushButton#recPill:disabled { background: #2A2A2A; color: #6A6A6A; }
 QScrollBar:vertical { background: transparent; width: 10px; margin: 2px; }
 QScrollBar::handle:vertical { background: #2C2C2C; border-radius: 4px; min-height: 30px; }
 QScrollBar::handle:vertical:hover { background: #454545; }
@@ -1205,6 +1205,7 @@ class Box(QtWidgets.QFrame):
         self.rows.setContentsMargins(0, 0, 0, 0)
         self.rows.setSpacing(8)
         lay.addWidget(self.inner)
+        lay.addStretch(1)
         if copy:
             self.head.addWidget(copy_button(copy))
         if folded is not None:
@@ -1250,27 +1251,6 @@ class Fold(QtWidgets.QWidget):
         self.toggle.setText(("▾  " if self.opened else "▸  ") + self.title)
 
 
-def meter(name, value, extra=""):
-    """Eine Maßnahme mit Wahrscheinlichkeit: Name, Prozent, Balken. Unter der Schwelle tritt sie zurück."""
-    strong = value is not None and value >= jev.HIGH
-    w = QtWidgets.QWidget()
-    lay = QtWidgets.QVBoxLayout(w)
-    lay.setContentsMargins(0, 0, 0, 0)
-    lay.setSpacing(4)
-    top = hbox(label(name, None if strong else "muted"), spacing=6)
-    if extra:
-        top.addWidget(chip(extra, "chipSmall"))
-    top.addStretch(1)
-    top.addWidget(label(jev.pct(value), "pct" if strong else "muted"))
-    lay.addLayout(top)
-    bar = QtWidgets.QProgressBar(textVisible=False, objectName="on" if strong else "dim")
-    bar.setRange(0, 100)
-    bar.setValue(round((value or 0) * 100))
-    lay.addWidget(bar)
-    w.setFixedWidth(160)
-    return w
-
-
 class VisitPage(Page):
     """Fall aufnehmen oder tippen, korrigieren, auswerten: Jev-Ersteinschätzung, Arztbrief-Entwurf, Sicherheitsnetz,
     Rückfragen. Jeder Teil steht in einem eigenen Block."""
@@ -1301,44 +1281,35 @@ class VisitPage(Page):
         self.stack = QtWidgets.QStackedWidget()
         self.body.addWidget(self.stack, 1)
 
-        # Neuer Patient: links aufnehmen und korrigieren, rechts das Ergebnis in Blöcken
+        # Neuer Patient: oben eine schmale Leiste und der Text, darunter das Ergebnis über die ganze Breite
         self.name = QtWidgets.QLineEdit(placeholderText="Fallbezeichnung, z. B. Zimmer 4 oder Kürzel (kein Klarname nötig)")
-        self.rec = button("Start", self._record, "recSmall")
-        self.rec.setFixedSize(64, 64)
-        self.clock = label("00:00", "clockSmall")
-        self.state = label("Aufnehmen oder unten tippen.", "muted", wrap=True)
+        self.rec = button("●  Aufnahme", self._record, "recPill")
         self.split = QtWidgets.QCheckBox("Sprecher trennen")
         self.split.setToolTip("Für Gespräche mit mehreren Personen: „Sprecher 1: …“, „Sprecher 2: …“. Läuft auf diesem Rechner.")
         self.split.toggled.connect(lambda on: LongPage._split(self, on))
         self.sig_voice.connect(self.info)
-        col = QtWidgets.QVBoxLayout()
-        col.setSpacing(0)
-        col.addLayout(hbox(self.clock, None, self.split))
-        col.addWidget(self.state)
+        self.state = label("Aufnehmen oder in das Feld tippen.", "muted", wrap=True)
         self.text = QtWidgets.QPlainTextEdit(placeholderText="Hier steht nach der Aufnahme der Text zum Korrigieren. "
                                              "Tippen geht auch: Anamnese, Befund, Verlauf, Vormedikation, geplantes Vorgehen.")
         self.go = button("Auswerten", self._analyse, name="primary")
-        self.note = label("", "muted", wrap=True)
+        self.note = label("", "muted")
         new = QtWidgets.QWidget()
-        left = QtWidgets.QVBoxLayout()
-        left.setSpacing(10)
-        left.addWidget(self.name)
-        left.addWidget(card(hbox(self.rec, (col, 1), spacing=16)))
-        left.addWidget(self.text, 1)
-        left.addLayout(hbox(self.go, button("Neuer Fall", self._new), None))
-        left.addWidget(self.note)
+        top = QtWidgets.QVBoxLayout(new)
+        top.setContentsMargins(0, 0, 0, 0)
+        top.setSpacing(8)
+        top.addLayout(hbox((self.name, 1), self.rec, self.split, self.go, button("Neuer Fall", self._new)))
+        top.addLayout(hbox((self.state, 1), self.note))
+        top.addWidget(self.text, 1)
         inner = QtWidgets.QWidget()
-        self.cards = QtWidgets.QVBoxLayout(inner)
+        self.cards = QtWidgets.QGridLayout(inner)
         self.cards.setContentsMargins(0, 0, 8, 0)
         self.cards.setSpacing(12)
         self.area = QtWidgets.QScrollArea(widgetResizable=True)
         self.area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.area.setWidget(inner)
-        split = QtWidgets.QHBoxLayout(new)
-        split.setContentsMargins(0, 0, 0, 0)
-        split.setSpacing(16)
-        split.addLayout(left, 2)
-        split.addWidget(self.area, 3)
+        self.area.hide()
+        top.addWidget(self.area, 4)
+        self.boxes, self.columns = {}, 0
         self.stack.addWidget(new)
         self.saver = QTimer(self, singleShot=True, interval=700)       # nichts geht verloren: jede Eingabe wird gesichert
         self.saver.timeout.connect(self._save)
@@ -1351,7 +1322,7 @@ class VisitPage(Page):
         self.job.glimpse.connect(lambda g: self._live(self.heard, g))
         self.job.finished.connect(self._recorded)
         self.recording, self.before, self.heard, self.started = False, "", "", 0.0
-        self.tick = QTimer(self, interval=250, timeout=lambda: self.clock.setText(clock(time.time() - self.started)))
+        self.tick = QTimer(self, interval=250, timeout=lambda: self.rec.setText("■  Stopp  " + clock(time.time() - self.started)))
 
         # Fallliste und Papierkorb
         self.lists = []
@@ -1457,8 +1428,7 @@ class VisitPage(Page):
             w.clear()
             w.blockSignals(False)
         self.note.setText("")
-        self.clock.setText("00:00")
-        self.info("Aufnehmen oder unten tippen.")
+        self.info("Aufnehmen oder in das Feld tippen.")
         self._show(None)
         self._tab(0)
 
@@ -1482,8 +1452,8 @@ class VisitPage(Page):
             self.ctl.keep_awake(False)
             self.job.stop_recording()
             self.rec.setEnabled(False)
-            restyle(self.rec, "recSmall")
-            self.rec.setText("Start")
+            restyle(self.rec, "recPill")
+            self.rec.setText("●  Aufnahme")
             return self.info("Schreibe den Rest fertig …")
         if self.job.running or self.window().busy():
             return self.info("Es läuft schon eine Aufnahme oder Transkription.", bad=True)
@@ -1500,9 +1470,9 @@ class VisitPage(Page):
         self.before = self.text.toPlainText().rstrip()        # schon Getipptes bleibt, die Aufnahme kommt dahinter
         self.text.setReadOnly(True)
         self.go.setEnabled(False)
-        restyle(self.rec, "recSmallOn")
-        self.rec.setText("Stopp")
-        self.info("Nimmt auf … Der Text läuft unten mit.")
+        restyle(self.rec, "recPillOn")
+        self.rec.setText("■  Stopp  00:00")
+        self.info("Nimmt auf … Der Text läuft mit.")
         self.tick.start()
 
     def _whole(self, text):
@@ -1532,8 +1502,8 @@ class VisitPage(Page):
             self.tick.stop()
             self.ctl.keep_awake(False)
             self.job.stop_recording()
-            restyle(self.rec, "recSmall")
-            self.rec.setText("Start")
+            restyle(self.rec, "recPill")
+            self.rec.setText("●  Aufnahme")
         self.heard = text
         self._live(text)
         self.text.setReadOnly(False)
@@ -1619,73 +1589,97 @@ class VisitPage(Page):
         self._arrived("brief", result, error, case)
 
     # ----- Ergebnis in Blöcken
-    def _show(self, result):
-        self.result = result
-        while self.cards.count():
-            item = self.cards.takeAt(0)
-            old = item.widget()
-            if old:
-                old.setParent(None)
-                old.deleteLater()
-        if result is None:
-            hint = label("Nach „Auswerten“ stehen hier die Blöcke:\n\nErsteinschätzung (Jev): Notaufnahme oder Notdienstpraxis, "
-                         "Schockraum, fallführende Abteilung, Bett, EKG, Zugang, Labor, Bildgebung\n\nArztbrief: Anamnese zum "
-                         "Kopieren, der Rest zum Aufklappen\n\nSicherheitsnetz\n\nGezielte Rückfragen\n\nKodierung und "
-                         "Patienteninfo", "muted", wrap=True)
-            hint.setContentsMargins(6, 8, 6, 8)
-            self.cards.addWidget(hint)
-            return self.cards.addStretch(1)
-        waiting = self.waiting if result is self.result else set()
-        if result.get("jev"):
-            self.cards.addWidget(self._jev_box(result["jev"]))
-        elif "jev" in waiting:
-            self.cards.addWidget(self._wait_box("Ersteinschätzung", "Jev bewertet den Fall …"))
-        elif result.get("jev_error"):
-            self.cards.addWidget(self._wait_box("Ersteinschätzung", f"Jev hat nicht geantwortet: {result['jev_error']}", bad=True))
-        if result.get("error"):
-            self.cards.addWidget(self._wait_box("Arztbrief", f"Das hat nicht geklappt: {result['error']}", bad=True))
-        elif "brief" in waiting:
-            self.cards.addWidget(self._wait_box("Arztbrief, Sicherheitsnetz, Rückfragen", "Das Sprachmodell schreibt … "
-                                                "Das dauert je nach Modell eine halbe Minute."))
-        for box in self._letter_boxes(result):
-            self.cards.addWidget(box)
-        self.cards.addStretch(1)
+    ORDER = ("jev", "netz", "fragen", "brief", "codes", "info")
+    TITLES = {"jev": "Ersteinschätzung", "netz": "Sicherheitsnetz", "fragen": "Gezielte Rückfragen", "brief": "Arztbrief",
+              "codes": "Kodierung", "info": "Patienteninfo"}
 
-    @staticmethod
-    def _wait_box(title, text, bad=False):
-        box = Box(title)
-        box.add(label(text, "bad" if bad else "muted", wrap=True))
-        return box
+    def _show(self, result):
+        """Sechs Blöcke, immer an derselben Stelle: oben Ersteinschätzung, Sicherheitsnetz und Rückfragen nebeneinander,
+        darunter der Arztbrief, daneben Kodierung und Patienteninfo. Was noch läuft oder fehlt, sagt der Block selbst."""
+        self.result = result
+        for box in self.boxes.values():
+            box.setParent(None)
+            box.deleteLater()
+        self.boxes, self.columns = {}, 0
+        self.area.setVisible(result is not None)
+        self.text.setMaximumHeight(16777215 if result is None else 118)     # mit Ergebnis tritt der Text zurück
+        if result is None:
+            return
+        made = {"jev": self._jev_box(result["jev"]) if result.get("jev") else None, **self._letter_boxes(result)}
+        for key in self.ORDER:
+            box = made.get(key)
+            if box is None:
+                part = "jev" if key == "jev" else "brief"
+                error = result.get("jev_error" if key == "jev" else "error")
+                text = (f"Nicht geklappt: {error}" if error else
+                        ("Jev bewertet den Fall …" if key == "jev" else "Das Sprachmodell schreibt …") if part in self.waiting else
+                        "Nur über OpenRouter (Einstellungen, LLM)." if key == "jev" else "Keine Angabe.")
+                box = Box(self.TITLES[key])
+                box.add(label(text, "bad" if error else "muted", wrap=True))
+            box.setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Preferred)   # Spalten gleich breit
+            self.boxes[key] = box
+        self._place()
+
+    def resizeEvent(self, e):
+        super().resizeEvent(e)
+        self._place()
+
+    def _place(self):
+        """Blöcke ins Raster legen: drei Spalten im breiten Fenster, zwei im schmalen, eine im sehr schmalen."""
+        if not self.boxes:
+            return
+        width = self.area.viewport().width() or self.width()
+        columns = 3 if width >= 840 else 2 if width >= 560 else 1
+        if columns == self.columns:
+            return
+        self.columns = columns
+        spots = {3: {"jev": (0, 0, 1, 1), "netz": (0, 1, 1, 1), "fragen": (0, 2, 1, 1), "brief": (1, 0, 2, 2),
+                     "codes": (1, 2, 1, 1), "info": (2, 2, 1, 1)},
+                 2: {"jev": (0, 0, 1, 1), "netz": (0, 1, 1, 1), "fragen": (1, 0, 1, 2), "brief": (2, 0, 1, 2),
+                     "codes": (3, 0, 1, 1), "info": (3, 1, 1, 1)},
+                 1: {key: (i, 0, 1, 1) for i, key in enumerate(self.ORDER)}}[columns]
+        for key, box in self.boxes.items():
+            self.cards.removeWidget(box)
+        for c in range(3):
+            self.cards.setColumnStretch(c, 1 if c < columns else 0)
+        for key, box in self.boxes.items():
+            self.cards.addWidget(box, *spots[key])
+        self.cards.setRowStretch(4, 1)
 
     @staticmethod
     def _jev_box(d):
         v = jev.view(d)
         box = Box("Ersteinschätzung", "Jev", copy=lambda: jev.export(d))
-        chips = Flow()
+        chips = Flow(gap=6)
         if v["shock"]:
             chips.addWidget(chip(f"Schockraum {v['shock'][0]} · {jev.pct(v['shock'][1])}",
                                  "chipRed" if v["shock"][0] == "ROT" else "chipWarn"))
         if v["place"]:
             chips.addWidget(chip(f"{v['place']} · {jev.pct(v['place_p'])}"))
         if v["specialty"]:
-            chips.addWidget(chip(f"Fallführung: {v['specialty']}"))
+            chips.addWidget(chip(f"Fallführung: {v['ward']}"))
         if not v["practice"] and v["admission"] is not None:
-            chips.addWidget(chip(f"Bett suchen: {v['specialty'] or 'Abteilung offen'} · {jev.pct(v['admission'])}", "chipWarn")
-                            if v["bed"] else chip(f"kein Bett nötig · Aufnahme {jev.pct(v['admission'])}", "chipOff"))
+            chips.addWidget(chip(f"Bett suchen: {v['ward'] or 'offen'} · {jev.pct(v['admission'])}", "chipWarn")
+                            if v["bed"] else chip(f"kein Bett · Aufnahme {jev.pct(v['admission'])}", "chipOff"))
         if v["sepsis"]:
-            chips.addWidget(chip("Sepsis-Screening, Blutkulturen vor Antibiose", "chipWarn"))
+            chips.addWidget(chip("Sepsis-Screening, Blutkulturen", "chipWarn"))
         box.add(chips)
-        for title, rows in (("SOFORT", v["measures"]), ("BILDGEBUNG", v["imaging"])):
-            box.add(label(title, "kicker"))
-            row = Flow(gap=12)                       # bricht um: zwei Spalten im schmalen Fenster, mehr im breiten
-            for name, value, extra in rows:
-                row.addWidget(meter(name, value, extra))
-            box.add(row)
-        box.add(label("Wahrscheinlichkeiten eines Modells, keine Anordnung. Hell: ab 70 %.", "muted", wrap=True))
+        rows = v["measures"] + v["imaging"]
+        short = {"12-Kanal-EKG": "EKG", "i.v.-Zugang": "Zugang", "Sonografie": "Sono"}      # die Spalte ist schmal
+        yes = [(n, p, x) for n, p, x in rows if p is not None and p >= jev.HIGH]
+        no = [(n, p) for n, p, x in rows if p is not None and p < jev.HIGH]
+        if yes:
+            box.add(label("VORGESCHLAGEN", "kicker"))
+            line = Flow(gap=6)
+            for name, p, extra in yes:
+                line.addWidget(chip(f"{short.get(name, name)}{' ' + extra if extra else ''} {jev.pct(p)}", "chipLine"))
+            box.add(line)
+        if no:
+            box.add(label("Unter 70 %: " + ", ".join(f"{short.get(n, n)} {jev.pct(p).replace(' ', '')}" for n, p in no), "muted", wrap=True))
         return box
 
     def _letter_boxes(self, result):
-        boxes = []
+        boxes = {}
         doc = result.get("documentation") or {}
         parts = [(title, str(doc[key]).strip()) for key, title in visite.SECTIONS if str(doc.get(key) or "").strip()]
         if parts:
@@ -1694,41 +1688,45 @@ class VisitPage(Page):
             more = button("Alle öffnen", name="ghost")
             more.clicked.connect(lambda: [f.flip(to=True) for f in folds])
             box.head.insertWidget(box.head.count() - 1, more)
-            boxes.append(box)
+            boxes["brief"] = box
+        if "documentation" not in result:
+            return boxes
         alerts = [a for a in result.get("safetyAlerts") or [] if isinstance(a, dict)]
-        if alerts:
-            box = Box("Sicherheitsnetz", copy=lambda: "\n".join(f"{a.get('context', '')}: {a.get('suggestion', '')}" for a in alerts))
-            for a in alerts:
-                row = QtWidgets.QFrame(objectName="alert")
-                lay = QtWidgets.QVBoxLayout(row)
-                lay.setContentsMargins(12, 8, 12, 9)
-                lay.setSpacing(2)
-                lay.addWidget(label(str(a.get("context") or ""), "warn", wrap=True))
-                lay.addWidget(label(str(a.get("suggestion") or ""), wrap=True))
-                box.add(row)
-            boxes.append(box)
+        box = Box("Sicherheitsnetz", copy=(lambda: "\n".join(f"{a.get('context', '')}: {a.get('suggestion', '')}" for a in alerts)) if alerts else None)
+        for a in alerts:
+            row = QtWidgets.QFrame(objectName="alert")
+            lay = QtWidgets.QVBoxLayout(row)
+            lay.setContentsMargins(11, 7, 10, 8)
+            lay.setSpacing(2)
+            lay.addWidget(label(str(a.get("context") or ""), "warn", wrap=True))
+            lay.addWidget(label(str(a.get("suggestion") or ""), wrap=True))
+            box.add(row)
+        if not alerts:
+            box.add(label("Keine Hinweise.", "muted"))
+        boxes["netz"] = box
         asks = [q for q in result.get("followUpQuestions") or [] if isinstance(q, dict)]
-        if asks:
-            box = Box("Gezielte Rückfragen", copy=lambda: "\n".join(f"{i}. {q.get('question', '')}" for i, q in enumerate(asks, 1)))
-            for i, q in enumerate(asks, 1):
-                word, kind = self.PRIORITY.get(q.get("priority"), self.PRIORITY["medium"])
-                row = QtWidgets.QFrame(objectName="ask")
-                lay = QtWidgets.QVBoxLayout(row)
-                lay.setContentsMargins(12, 9, 12, 10)
-                lay.setSpacing(3)
-                lay.addLayout(hbox((label(f"{i}.  {q.get('question') or ''}", "strong", wrap=True), 1), chip(word, kind)))
-                if q.get("rationale"):
-                    lay.addWidget(label(str(q["rationale"]), "muted", wrap=True))
-                box.add(row)
-            boxes.append(box)
+        box = Box("Gezielte Rückfragen", copy=(lambda: "\n".join(f"{i}. {q.get('question', '')}" for i, q in enumerate(asks, 1))) if asks else None)
+        for i, q in enumerate(asks, 1):
+            word, kind = self.PRIORITY.get(q.get("priority"), self.PRIORITY["medium"])
+            row = QtWidgets.QFrame(objectName="ask")
+            lay = QtWidgets.QVBoxLayout(row)
+            lay.setContentsMargins(11, 8, 10, 9)
+            lay.setSpacing(4)
+            lay.addWidget(label(f"{i}.  {q.get('question') or ''}", "strong", wrap=True))
+            if q.get("rationale"):
+                lay.addWidget(label(str(q["rationale"]), "muted", wrap=True))
+            lay.addLayout(hbox(chip(word, kind), None))
+            box.add(row)
+        if not asks:
+            box.add(label("Keine Rückfragen.", "muted"))
+        boxes["fragen"] = box
         codes = [c for c in result.get("codes") or [] if isinstance(c, dict)]
         if codes:
-            box = Box("Kodierung", "Vorschlag", folded=True,
-                      copy=lambda: "\n".join(f"{c.get('code', '')} {c.get('description', '')}" for c in codes))
+            box = Box("Kodierung", copy=lambda: "\n".join(f"{c.get('code', '')} {c.get('description', '')}" for c in codes))
             for c in codes:
                 box.add(hbox(chip(str(c.get("code") or ""), "chip" if c.get("revenueRelevant") else "chipOff"),
                              (label(str(c.get("description") or ""), wrap=True), 1)))
-            boxes.append(box)
+            boxes["codes"] = box
         info = result.get("patientHandout") or {}
         if str(info.get("content") or "").strip():
             box = Box("Patienteninfo", folded=True,
@@ -1737,7 +1735,7 @@ class VisitPage(Page):
             text = label(str(info.get("content") or ""), wrap=True)
             text.setTextInteractionFlags(Qt.TextSelectableByMouse)
             box.add(text)
-            boxes.append(box)
+            boxes["info"] = box
         return boxes
 
 
@@ -2059,6 +2057,26 @@ class LlmPage(Page):
             hbox(left, (self._wrap(right), 1), spacing=16),
             form(("Bei jedem Diktat", self.auto))))
 
+        # Visite & Übergabe
+        self.v_prompt = QtWidgets.QPlainTextEdit()
+        self.v_prompt.setMinimumHeight(170)
+        self.v_note = label("", "muted")
+        self.v_writer = QtWidgets.QLineEdit(placeholderText=f"leer: {visite.WRITER} bei OpenRouter, sonst das Modell von oben")
+        self.v_rules = QtWidgets.QPlainTextEdit(placeholderText="Optional: Hausregeln für die Ersteinschätzung, zum Beispiel "
+                                                "Schockraum-Kriterien, Laborprofile, Zuständigkeiten. Jev entscheidet danach, wo sie eine Regel enthalten.")
+        self.v_rules.setFixedHeight(84)
+        self.body.addWidget(card(
+            label("Visite & Übergabe", "h2"),
+            label("Die Ersteinschätzung kommt von Jev (TypeSafe, nur über OpenRouter), den Arztbrief schreibt ein "
+                  "Sprachmodell über den Server von oben.", "muted", wrap=True),
+            form(("Modell für den Arztbrief", self.v_writer), ("Hausregeln für Jev", self.v_rules)),
+            label("Prompt für den Arztbrief: bestimmt, was aus einem Fall erzeugt wird (Arztbrief-Entwurf, "
+                  "Sicherheitsnetz, Rückfragen, Kodierung, Patienteninfo). Die Namen der Felder im JSON-Schema am Ende "
+                  "müssen bleiben, sonst kann LocalScribe das Ergebnis nicht anzeigen.", "muted", wrap=True),
+            self.v_prompt,
+            hbox(button("Speichern", self._visit_save, name="primary"),
+                 button("Standard wiederherstellen", self._visit_reset), None, self.v_note)))
+
         # Ausprobieren
         self.sample = QtWidgets.QPlainTextEdit(
             "Ähm, also ich wollte nur kurz sagen, dass wir uns morgen, also am Dienstag, "
@@ -2076,6 +2094,18 @@ class LlmPage(Page):
         self.sig_models.connect(self._models)
         self.sig_test.connect(self._tested)
         self.sig_shield.connect(self._shield_progress)
+
+    def _visit_save(self):
+        text = self.v_prompt.toPlainText().strip()
+        self.ctl.cfg["visite_prompt"] = "" if text == visite.PROMPT.strip() else text
+        self.ctl.cfg["visite_model"] = self.v_writer.text().strip()
+        self.ctl.cfg["visite_rules"] = self.v_rules.toPlainText().strip()
+        self.ctl.apply_cfg()
+        self.saved(self.v_note)
+
+    def _visit_reset(self):
+        self.v_prompt.setPlainText(visite.PROMPT)
+        self._visit_save()
 
     # ----- gespeicherte Anbieter
     def _profiles(self):
@@ -2198,6 +2228,9 @@ class LlmPage(Page):
     def refresh(self):
         self._migrate()
         cfg = self.ctl.cfg
+        self.v_prompt.setPlainText(visite.prompt(cfg))
+        self.v_writer.setText(cfg.get("visite_model") or "")
+        self.v_rules.setPlainText(cfg.get("visite_rules") or "")
         l = cfg["llm"]
         self.active = l.get("profile") or ""
         self._fill_profiles()
@@ -2463,24 +2496,6 @@ class SettingsPage(Page):
                                  self.auto,
                                  hbox(button("Verknüpfungen auf Desktop und im Startmenü anlegen", self.shortcuts),
                                       None)))
-        self.prompt = QtWidgets.QPlainTextEdit()
-        self.prompt.setMinimumHeight(170)
-        self.prompt_note = label("", "muted")
-        self.writer = QtWidgets.QLineEdit(placeholderText=f"leer: {visite.WRITER} bei OpenRouter, sonst das Modell aus dem Reiter LLM")
-        self.rules = QtWidgets.QPlainTextEdit(placeholderText="Optional: Hausregeln für die Ersteinschätzung, zum Beispiel "
-                                              "Schockraum-Kriterien, Laborprofile, Zuständigkeiten. Jev entscheidet danach, wo sie eine Regel enthalten.")
-        self.rules.setFixedHeight(84)
-        self.body.addWidget(card(
-            label("Visite & Übergabe", "h2"),
-            label("Die Ersteinschätzung kommt von Jev (TypeSafe, nur über OpenRouter), den Arztbrief schreibt ein "
-                  "Sprachmodell. Server und Schlüssel stehen im Reiter LLM.", "muted", wrap=True),
-            form(("Modell für den Arztbrief", self.writer), ("Hausregeln", self.rules)),
-            label("Anweisung für den Arztbrief: bestimmt, was aus einem Fall erzeugt wird (Arztbrief-Entwurf, "
-                  "Sicherheitsnetz, Rückfragen, Kodierung, Patienteninfo). Die Namen der Felder im JSON-Schema am Ende "
-                  "müssen bleiben, sonst kann LocalScribe das Ergebnis nicht anzeigen.", "muted", wrap=True),
-            self.prompt,
-            hbox(button("Speichern", self._prompt_save, name="primary"),
-                 button("Standard wiederherstellen", self._prompt_reset), None, self.prompt_note)))
         self.own_note = label("", "muted", wrap=True)
         self.body.addWidget(card(
             label("Eigene Daten", "h2"),
@@ -2656,23 +2671,8 @@ class SettingsPage(Page):
         if box.clickedButton() is yes:
             self.ctl.uninstall(data.isChecked())
 
-    def _prompt_save(self):
-        text = self.prompt.toPlainText().strip()
-        self.ctl.cfg["visite_prompt"] = "" if text == visite.PROMPT.strip() else text
-        self.ctl.cfg["visite_model"] = self.writer.text().strip()
-        self.ctl.cfg["visite_rules"] = self.rules.toPlainText().strip()
-        self.ctl.apply_cfg()
-        self.saved(self.prompt_note)
-
-    def _prompt_reset(self):
-        self.prompt.setPlainText(visite.PROMPT)
-        self._prompt_save()
-
     def refresh(self):
-        self.prompt.setPlainText(visite.prompt(self.ctl.cfg))
         cfg = self.ctl.cfg
-        self.writer.setText(cfg.get("visite_model") or "")
-        self.rules.setPlainText(cfg.get("visite_rules") or "")
         self.hold.setText(keys_text(cfg["hotkey_hold"]))
         self.model.setCurrentIndex(max(0, self.model.findData(cfg.get("model_choice", "de"))))
         self.model_dir.setText(cfg.get("model_dir") or "")

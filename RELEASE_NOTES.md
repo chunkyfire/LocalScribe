@@ -1,3 +1,18 @@
+## LocalScribe 1.1.1
+
+- **Visite & Übergabe aufgeräumt.** Die große Aufnahmekarte ist weg: oben eine schmale Leiste mit Fallbezeichnung,
+  Aufnahmeknopf (zeigt beim Aufnehmen die Zeit), „Sprecher trennen“ und „Auswerten“. Der Text nimmt die ganze Breite ein
+  und tritt zurück, sobald ein Ergebnis da ist. Darunter stehen Ersteinschätzung, Sicherheitsnetz und gezielte
+  Rückfragen gleich breit nebeneinander, darunter der Arztbrief, daneben Kodierung und Patienteninfo. Die
+  Ersteinschätzung ist kompakter: Kärtchen für Versorgungspfad, Fallführung und Bett, darunter nur, was ab 70 %
+  vorgeschlagen wird; der Rest in einer Zeile. Im schmalen Fenster werden aus drei Spalten zwei.
+- **Prompt für Visite & Übergabe im Reiter LLM.** Modell für den Arztbrief, Hausregeln für Jev und der Prompt stehen
+  jetzt in den Einstellungen unter LLM, unter den übrigen Prompts.
+- **Gemessen, noch nicht eingebaut: medBERT als Schiedsrichter.** Ein deutsches medizinisches Sprachmodell
+  (medBERT.de, 109 Mio. Parameter) bewertet die Alternativen, die die Spracherkennung selbst für ein Wort hatte. An
+  neun echten Diktaten (33 Minuten) sinkt die Wortfehlerrate damit von 15,7 % auf 15,2 %; Einzelheiten in
+  `werkzeug/messen/ERGEBNIS.md`.
+
 ## LocalScribe 1.1.0
 
 - **Visite & Übergabe neu gebaut.** Links ein Aufnahmeknopf wie auf der Seite Aufnahme, auf Wunsch mit „Sprecher
