@@ -18,6 +18,9 @@ log = logging.getLogger("diktat")
 LIMIT = 4000        # mehr gelernte Wörter bringen nichts mehr und kosten Genauigkeit
 MIN = 5
 WORDS = re.compile(r"[A-Za-zÄÖÜäöüßéèáàç]{%d,}" % MIN)
+# diktierte Satzzeichen: als ganze Wörter bevorzugt, sonst kleben sie am Vorwort („Exanthempunkt“)
+SPOKEN = ["Punkt", "Komma", "Doppelpunkt", "Absatz", "Zeile", "Semikolon", "Fragezeichen", "Ausrufezeichen", "Klammer",
+          "Bindestrich", "Schrägstrich", "Anführungszeichen"]
 _lex = None
 
 
@@ -99,4 +102,4 @@ def learn_files(cfg: dict, paths) -> tuple:
 def terms(cfg: dict) -> list:
     """Alles, was beim Dekodieren einen Bonus bekommt."""
     fach.load()
-    return sorted(fach._kern) + list(cfg.get("vocabulary") or []) + list(cfg.get("learned") or [])
+    return sorted(fach._kern) + SPOKEN + list(cfg.get("vocabulary") or []) + list(cfg.get("learned") or [])

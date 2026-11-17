@@ -319,3 +319,13 @@ Eigene fünf Diktate (412 Wörter, `tests/_cem/ws_eigene.py`): roh 19,7 → 15,0
 den Solltexten gelernten Wortschatz (99 Wörter); nach der Nachbearbeitung 9,0 → 8,3 % bzw. 8,5 %. Hier fängt die
 Nachbearbeitung das meiste schon ab. Rechenzeit auf dem i7-13700KF: 28,3 s statt 19,1 s für alle fünf zusammen
 (rund 45 % mehr).
+
+### Fachgebiets-Pakete: gemessen, nicht eingebaut
+
+`werkzeug/woerterbuch/pakete.py` lässt ein Sprachmodell für 26 Fachgebiete je rund 650 Wörter nennen, die in
+Arztbriefen des Fachs häufig sind (9.800 verschiedene). Als Wortschatz an den Corti-Diktaten, ohne deren Texte zu
+kennen: alle Pakete zusammen 17,04 % (schlechter als ohne), die drei passendsten Pakete je Diktat 15,84 %, das eine
+passendste 15,44 %, gegenüber 15,77 % mit der Kernliste allein. Allgemeine Listen eines Fachs treffen die Wörter und
+Wortformen eines einzelnen Arztes zu selten; der Gewinn (11,1 %) kommt erst mit den Wörtern aus den eigenen Texten.
+Deshalb gibt es keine Pakete, sondern „Aus eigenen Texten lernen“. Die diktierten Satzzeichen-Wörter (Punkt, Komma,
+Doppelpunkt …) im Wortschatz bringen 15,77 → 15,35 % und sind seitdem immer dabei.
