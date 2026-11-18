@@ -79,14 +79,17 @@ beendet sie nicht; sie bleibt im Infobereich (Rechtsklick → Beenden).
   ein Stimmmodell geladen (26 MB). Siehe „Sprecher trennen“ unten.
 - **Wortschatz beim Erkennen** – die Erkennung verfolgt acht Lesarten gleichzeitig und bevorzugt die, die auf ein
   Fachwort aus deinem Wortschatz hinausläuft (Kernliste, **Meine Begriffe**, gelernte Wörter). LocalScribe lernt die
-  Fachwörter aus deinen Diktaten mit; über **Aus eigenen Texten lernen** (Seite Stimmtraining) liest es sie aus eigenen
+  Fachwörter aus deinen Diktaten mit; über **Aus eigenen Texten lernen** (Wortschatz, Reiter Stimmtraining) liest es sie aus eigenen
   Briefen und Befunden, nur einzelne Lexikonwörter, keine Sätze, keine Namen. An echten Arztdiktaten mit passendem
   Wortschatz: 16,6 → 11,1 % Wortfehler.
-- **Visite & Übergabe** – Gespräch oder Diktat aufnehmen (auf Wunsch mit Sprechertrennung), Text korrigieren, auswerten.
+- **Aufnahme mit Aufträgen** – aufnehmen, eine Datei laden oder tippen, dann unter dem Text auf einen Auftrag klicken:
+  Arztbrief, Zusammenfassung, Meeting-Protokoll, Stichpunkte, E-Mail oder ein eigener Prompt. Das Ergebnis steht
+  darunter und lässt sich kopieren. Die Erkennung läuft lokal; Aufträge gehen an das eingestellte Sprachmodell.
+- **Visite & Übergabe** – ein besonderer Auftrag auf der Seite Aufnahme.
   Jev (TypeSafe, über OpenRouter) gibt in etwa einer Sekunde eine Ersteinschätzung als Wahrscheinlichkeiten:
   Notaufnahme oder Notdienstpraxis, Schockraum, fallführende Abteilung, Bett, EKG, Zugang, Labor, Bildgebung. Ein
   Sprachmodell schreibt Arztbrief-Entwurf, Sicherheitsnetz, gezielte Rückfragen, Kodiervorschlag und Patienteninfo,
-  jeweils als eigener Block zum Auf- und Zuklappen und Kopieren; mit Fallliste (umbenennen) und Papierkorb.
+  jeweils als eigener Block zum Auf- und Zuklappen und Kopieren; alles liegt unter „Gespeichert“ (umbenennen, Papierkorb).
   Nur für Forschung, Lehre und den Vergleich von Modellen, kein Medizinprodukt. Die Anweisung ist unter Einstellungen
   änderbar.
 - **Wörterbuch** – falsch Erkanntes automatisch ersetzen. Unter **Meine Begriffe** reicht die richtige Schreibweise

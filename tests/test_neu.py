@@ -621,5 +621,52 @@ modelle.extra = str(_shared)
 check("Modellordner aus den Einstellungen wird durchsucht",
       modelle.find("fremd/modell", "abcdefabcdef0000", ["x.onnx"]) == str(_shared / "fremd--modell--abcdefabcdef"))
 modelle.extra = ""
+# ---- 1.3.0: Einstellungen sichern und zurückholen, neue Aufträge (in einem eigenen Ordner, nie im echten) ----
+_real = (config.DIR, config.FILE)
+config.DIR = pathlib.Path(tempfile.mkdtemp(prefix="diktat_sich_"))
+config.FILE = config.DIR / "config.json"
+try:
+    config.FILE.write_text(json.dumps({"config_version": 3, "hotkey_hold": ["ctrl", "win"], "vocabulary": ["RIVA"],
+                                       "llm": {"model": "mein-modell"},
+                                       "prompts": [{"name": "Arztbrief", "hotkey": [], "text": "mein eigener"}]}), encoding="utf-8")
+    _c = config.load()
+    _names = [p["name"] for p in _c["prompts"]]
+    check("Aufträge: neue kommen einmal dazu, der eigene bleibt", _names == ["Arztbrief", "Zusammenfassung", "Meeting-Protokoll"]
+          and _c["prompts"][0]["text"] == "mein eigener" and _c["config_version"] == 4, _names)
+    _c["prompts"] = _c["prompts"][:1]
+    config.save(_c)
+    check("Aufträge: gelöschte kommen nicht wieder", [p["name"] for p in config.load()["prompts"]] == ["Arztbrief"])
+    check("Aufträge: neue Installation hat alle sechs", len(config.DEFAULTS["prompts"]) == 6)
+    _b = config.backup("vor-9.9.9")
+    check("Sicherung: Kopie mit Inhalt im Datenordner", _b is not None and _b.parent == config.DIR / config.BACKUPS
+          and json.loads(_b.read_text(encoding="utf-8"))["vocabulary"] == ["RIVA"])
+    _out = config.DIR / "weg.json"
+    config.export(_out)
+    _c["vocabulary"] = []
+    _c["llm"]["model"] = ""
+    config.save(_c)
+    _back = config.restore(_out)
+    check("Zurückholen: Wortschatz und Server sind wieder da", _back["vocabulary"] == ["RIVA"] and _back["llm"]["model"] == "mein-modell"
+          and json.loads(config.FILE.read_text(encoding="utf-8"))["vocabulary"] == ["RIVA"])
+    check("Zurückholen: der Stand davor wurde gesichert",
+          any(json.loads(f.read_text(encoding="utf-8"))["vocabulary"] == [] for f in (config.DIR / config.BACKUPS).glob("*.json")))
+    for _bad in (pathlib.Path(__file__), _b.parent / "fehlt.json"):
+        try:
+            config.restore(_bad)
+            check("Zurückholen: fremde Datei wird abgelehnt", False)
+        except ValueError:
+            check("Zurückholen: fremde Datei wird abgelehnt", json.loads(config.FILE.read_text(encoding="utf-8"))["vocabulary"] == ["RIVA"])
+    (config.DIR / "kein.json").write_text('{"irgendwas": 1}', encoding="utf-8")
+    try:
+        config.restore(config.DIR / "kein.json")
+        check("Zurückholen: JSON ohne Einstellungen wird abgelehnt", False)
+    except ValueError:
+        check("Zurückholen: JSON ohne Einstellungen wird abgelehnt", True)
+    for _i in range(13):
+        (config.DIR / config.BACKUPS / f"einstellungen-2000-01-{_i + 1:02d}-000000.json").write_text("{}", encoding="utf-8")
+    config.backup("x")
+    check("Sicherung: es bleiben zehn", len(list((config.DIR / config.BACKUPS).glob("*.json"))) == 10)
+finally:
+    config.DIR, config.FILE = _real
 print("FEHLER:" if failed else "ALLES OK", failed or "")
 sys.exit(1 if failed else 0)

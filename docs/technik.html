@@ -172,7 +172,7 @@
 <body>
 <h1 id="localscribe--technische-dokumentation">LocalScribe – Technische
 Dokumentation</h1>
-<p>Stand: Version 1.2.1. Für Betrieb, IT und alle, die den Code lesen
+<p>Stand: Version 1.3.0. Für Betrieb, IT und alle, die den Code lesen
 oder prüfen wollen. Die Bedienung steht im <a
 href="https://chunkyfire.github.io/LocalScribe/">Handbuch</a>, die Messwerte mit Methode
 in <a
@@ -610,30 +610,37 @@ App auf <code>%APPDATA%</code>, das Benutzerverzeichnis und zuletzt
 Schlüssel.</td>
 </tr>
 <tr class="even">
+<td><code>sicherung\einstellungen-….json</code></td>
+<td>Kopien von <code>config.json</code>: vor jedem Wechsel der Fassung
+und vor dem Zurückholen, die letzten zehn (<code>config.backup</code>).
+Zurückholen und in eine Datei sichern: Einstellungen, „Einstellungen
+sichern“.</td>
+</tr>
+<tr class="odd">
 <td><code>verlauf.sqlite</code></td>
 <td>Verlauf der Diktate als Text, mit einstellbarer Aufbewahrungsfrist;
 abschaltbar</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>modelle\</code></td>
 <td>Sprachmodell, Stimmmodell für die Sprechertrennung</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>diktat.log</code>, <code>absturz.log</code></td>
 <td>Betriebsmeldungen: Dauer, Zeichenzahl, Fehler. Kein diktierter
 Text.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>aufnahmen\</code></td>
 <td>Sicherung einer laufenden langen Aufnahme; wird gelöscht, sobald der
 Text fertig ist</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>visite.sqlite</code></td>
 <td>Fälle aus „Visite &amp; Übergabe“: Eingabe und Ergebnis als Text,
 mit Papierkorb</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>training\</code></td>
 <td>nur wenn eingeschaltet: vorgelesene Sätze des Stimmtrainings als
 Ton</td>

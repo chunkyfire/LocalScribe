@@ -100,7 +100,7 @@ DEFAULTS = {
     "visite_rules": "",           # Hausregeln (Schockraum, Labor, Zuständigkeiten), die Jev mitbekommt; leer = keine
     "training_done": [],          # Stimmtraining: schon gelesene Sätze
     "phone": {"enabled": False, "port": 8765, "token": ""},   # Handy als Mikrofon (Webseite im eigenen Netz)
-    "config_version": 3,
+    "config_version": 4,
     "quantization": "int8",
     "provider": "CPUExecutionProvider",
     "threads": 0,
@@ -147,8 +147,19 @@ DEFAULTS = {
                  "Erfinde keine Inhalte."},
         {"name": "Stichpunkte", "hotkey": [],
          "text": "Fasse den Inhalt in knappen Stichpunkten zusammen, ein Gedanke pro Zeile."},
-    ],
+    ] + [dict(p) for p in (
+        {"name": "Arztbrief", "hotkey": [],
+         "text": "Schreibe aus dem Text einen Arztbrief-Entwurf mit den Abschnitten Diagnosen, Anamnese, Befund, "
+                 "Verlauf und Procedere. Übernimm nur, was im Text steht, und erfinde nichts. Wozu nichts gesagt "
+                 "wurde, den Abschnitt weglassen."},
+        {"name": "Zusammenfassung", "hotkey": [],
+         "text": "Fasse den Text in fünf bis acht Sätzen zusammen, das Wichtigste zuerst. Erfinde nichts."},
+        {"name": "Meeting-Protokoll", "hotkey": [],
+         "text": "Schreibe ein Protokoll mit den Abschnitten Teilnehmende, Besprochenes, Entscheidungen und Aufgaben "
+                 "(wer, was, bis wann). Übernimm nur, was gesagt wurde; was nicht genannt wurde, weglassen."},
+    )],
 }
+ADDED_V4 = ("Arztbrief", "Zusammenfassung", "Meeting-Protokoll")     # kamen mit 1.3.0 dazu
 
 
 def migrate() -> None:
@@ -202,6 +213,12 @@ def load() -> dict:
                 if stored.get("hotkey_hold") in (["f7"], ["ctrl"]):
                     cfg["hotkey_hold"] = ["ctrl", "win"]
                 cfg["config_version"] = 3
+            if int(stored.get("config_version") or 1) < 4:
+                # Die drei neuen Aufträge einmal nachtragen; wer einen gleichnamigen hat, behält seinen.
+                names = {p.get("name") for p in cfg.get("prompts") or []}
+                cfg["prompts"] = list(cfg.get("prompts") or []) + [
+                    copy.deepcopy(p) for p in DEFAULTS["prompts"] if p["name"] in ADDED_V4 and p["name"] not in names]
+                cfg["config_version"] = 4
             cfg.pop("model", None)
             cfg.pop("model_revision", None)
         except Exception:
@@ -215,6 +232,49 @@ def save(cfg: dict) -> None:
     tmp = FILE.with_suffix(".tmp")
     tmp.write_text(json.dumps(cfg, indent=2, ensure_ascii=False), encoding="utf-8")
     os.replace(tmp, FILE)
+
+
+BACKUPS = "sicherung"
+
+
+def backup(tag: str = "") -> Path | None:
+    """Kopie der Einstellungen (mit Wörterbuch, Textbausteinen, Aufträgen, Servern) im Datenordner ablegen.
+
+    Geschieht vor jedem Versionswechsel und vor dem Zurückholen; die letzten zehn bleiben liegen. API-Schlüssel
+    stehen nicht in der Datei, die liegen im Schlüsselspeicher von Windows."""
+    if not FILE.exists():
+        return None
+    try:
+        folder = DIR / BACKUPS
+        folder.mkdir(parents=True, exist_ok=True)
+        target = folder / f"einstellungen-{time.strftime('%Y-%m-%d-%H%M%S')}{'-' + tag if tag else ''}.json"
+        shutil.copyfile(FILE, target)
+        for old in sorted(folder.glob("einstellungen-*.json"))[:-10]:
+            old.unlink()
+        return target
+    except OSError:
+        logging.exception("Sicherung der Einstellungen fehlgeschlagen")
+        return None
+
+
+def export(path) -> None:
+    """Die Einstellungen als Datei an einen frei gewählten Ort schreiben."""
+    shutil.copyfile(FILE, path)
+
+
+def restore(path) -> dict:
+    """Einstellungen aus einer gesicherten Datei zurückholen. Die bisherigen werden vorher gesichert."""
+    try:
+        stored = json.loads(Path(path).read_text(encoding="utf-8-sig"))
+    except (OSError, ValueError) as e:
+        raise ValueError(f"Die Datei lässt sich nicht lesen ({e}).") from e
+    if not isinstance(stored, dict) or not ({"hotkey_hold", "dictionary", "llm"} & set(stored)):
+        raise ValueError("Das ist keine Einstellungsdatei von LocalScribe.")
+    backup("vor-zurueckholen")
+    tmp = FILE.with_suffix(".tmp")
+    tmp.write_text(json.dumps(stored, indent=2, ensure_ascii=False), encoding="utf-8")
+    os.replace(tmp, FILE)
+    return load()
 
 
 def prompt_by_name(cfg: dict, name: str):

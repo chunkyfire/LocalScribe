@@ -37,63 +37,72 @@ NORMAL = {
 }
 
 STYLE = """
-QWidget { background: #0B0B0B; color: #EDEDED; font-family: "Segoe UI"; font-size: 10pt; }
+QWidget { background: transparent; color: #F1F3F2; font-family: "Segoe UI Variable Text", "Segoe UI"; font-size: 10pt; }
+QDialog, QMessageBox, QToolTip { background: #121416; }
+QToolTip { color: #F1F3F2; border: 1px solid #2A2E33; padding: 5px 8px; }
 QLabel, QCheckBox { background: transparent; }
-QLabel#h1 { font-size: 17pt; font-weight: 600; }
+QLabel#h1 { font-size: 19pt; font-weight: 600; }
 QLabel#h2 { font-size: 11pt; font-weight: 600; }
 QLabel#brand { font-size: 13pt; font-weight: 700; }
-QLabel#muted, QLabel#time { color: #8C8C8C; }
+QLabel#muted, QLabel#time { color: #9AA0A6; }
 QLabel#day { color: #8C8C8C; font-size: 8pt; font-weight: 700; padding: 14px 4px 6px 4px; }
 QLabel#num { font-size: 16pt; font-weight: 600; }
 QLabel#tag { color: #0B0B0B; background: #C6FF3D; border-radius: 7px; padding: 1px 7px;
              font-size: 8pt; font-weight: 600; }
 QLabel#ok { color: #C6FF3D; }
 QLabel#bad { color: #FF7A6B; }
-QFrame#side { background: #0B0B0B; border: none; border-right: 1px solid #1E1E1E; }
-QFrame#side QPushButton { text-align: left; padding: 9px 14px; border: none; border-radius: 8px;
-                          color: #B4B4B4; background: transparent; }
-QFrame#side QPushButton:hover { background: #161616; }
-QFrame#side QPushButton:checked { background: #1B1B1B; color: #C6FF3D; font-weight: 600; }
-QFrame#card { background: #131313; border: 1px solid #222222; border-radius: 12px; }
+QFrame#side { background: rgba(255, 255, 255, 0.028); border: none; border-right: 1px solid rgba(255, 255, 255, 0.07); }
+QFrame#side QPushButton { text-align: left; padding: 11px 16px; border: 1px solid transparent; border-radius: 12px;
+                          color: #B9BEC4; background: transparent; font-size: 10.5pt; }
+QFrame#side QPushButton:hover { background: rgba(255, 255, 255, 0.05); }
+QFrame#side QPushButton:checked { background: rgba(198, 255, 61, 0.10); border: 1px solid rgba(198, 255, 61, 0.28);
+                                  color: #C6FF3D; font-weight: 600; }
+QFrame#card { background: rgba(255, 255, 255, 0.045); border: 1px solid rgba(255, 255, 255, 0.10); border-radius: 18px; }
 QFrame#card QWidget { background: transparent; }
-QFrame#row { background: transparent; border: none; border-bottom: 1px solid #1D1D1D; }
-QFrame#row:hover { background: #191919; }
+QFrame#row { background: transparent; border: none; border-bottom: 1px solid rgba(255, 255, 255, 0.06); }
+QFrame#row:hover { background: rgba(255, 255, 255, 0.04); }
 QLineEdit, QPlainTextEdit, QComboBox, QSpinBox, QFrame#card QLineEdit, QFrame#card QPlainTextEdit,
 QFrame#card QComboBox, QFrame#card QSpinBox {
-    background: #0B0B0B; border: 1px solid #2A2A2A; border-radius: 8px; padding: 6px 10px;
+    background: rgba(0, 0, 0, 0.30); border: 1px solid rgba(255, 255, 255, 0.11); border-radius: 12px; padding: 7px 12px;
     selection-background-color: #C6FF3D; selection-color: #0B0B0B; }
 QLineEdit:focus, QPlainTextEdit:focus, QComboBox:focus, QSpinBox:focus { border-color: #C6FF3D; }
 QComboBox::drop-down { border: none; width: 22px; }
 QComboBox QAbstractItemView { background: #151515; border: 1px solid #2A2A2A;
                               selection-background-color: #C6FF3D; selection-color: #0B0B0B; }
-QPushButton, QFrame#card QPushButton { background: #1B1B1B; border: 1px solid #2C2C2C;
-                                       border-radius: 8px; padding: 7px 14px; }
-QPushButton:hover { border-color: #555555; }
+QPushButton, QFrame#card QPushButton { background: rgba(255, 255, 255, 0.065); border: 1px solid rgba(255, 255, 255, 0.12);
+                                       border-radius: 11px; padding: 7px 15px; }
+QPushButton:hover { border-color: rgba(255, 255, 255, 0.34); background: rgba(255, 255, 255, 0.10); }
+QPushButton#tab, QFrame#card QPushButton#tab { border-radius: 12px; padding: 6px 16px; color: #B9BEC4; }
+QPushButton#tab:checked, QFrame#card QPushButton#tab:checked { color: #C6FF3D; background: rgba(198, 255, 61, 0.10);
+                                                              border-color: rgba(198, 255, 61, 0.45); }
 QPushButton:disabled { color: #5A5A5A; }
 QPushButton#primary, QFrame#card QPushButton#primary { background: #C6FF3D; color: #0B0B0B;
                                                        border: none; font-weight: 600; }
-QPushButton#primary:disabled, QFrame#card QPushButton#primary:disabled { background: #2A2A2A; color: #6A6A6A; }
+QPushButton#primary:hover, QFrame#card QPushButton#primary:hover { background: #D4FF6A; }
+QPushButton#primary:disabled, QFrame#card QPushButton#primary:disabled { background: rgba(255, 255, 255, 0.08); color: #6A6F75; }
 QPushButton#ghost, QFrame#card QPushButton#ghost, QFrame#row QPushButton {
     background: transparent; border: none; color: #8C8C8C; padding: 4px 8px; }
 QPushButton#ghost:hover, QFrame#row QPushButton:hover { color: #C6FF3D; }
 QPushButton::menu-indicator { image: none; width: 0; }
-QMenu { background: #151515; border: 1px solid #2A2A2A; padding: 4px; }
+QMenu { background: #15181B; border: 1px solid #2A2E33; border-radius: 10px; padding: 5px; }
 QMenu::item { padding: 6px 18px; border-radius: 6px; }
 QMenu::item:selected { background: #C6FF3D; color: #0B0B0B; }
-QCheckBox::indicator { width: 16px; height: 16px; border: 1px solid #3A3A3A; border-radius: 4px;
-                       background: #0B0B0B; }
+QCheckBox::indicator { width: 16px; height: 16px; border: 1px solid rgba(255, 255, 255, 0.22); border-radius: 5px;
+                       background: rgba(0, 0, 0, 0.30); }
 QCheckBox::indicator:checked { background: #C6FF3D; border-color: #C6FF3D; }
-QListWidget, QTableWidget { background: #0B0B0B; border: 1px solid #2A2A2A; border-radius: 8px;
-                            outline: none; gridline-color: #1D1D1D; }
+QListWidget, QTableWidget { background: rgba(0, 0, 0, 0.24); border: 1px solid rgba(255, 255, 255, 0.10); border-radius: 14px;
+                            outline: none; gridline-color: rgba(255, 255, 255, 0.06); }
 QListWidget::item { padding: 7px 10px; }
-QListWidget::item:selected, QTableWidget::item:selected { background: #1F1F1F; color: #C6FF3D; }
-QHeaderView::section { background: #131313; color: #8C8C8C; border: none;
-                       border-bottom: 1px solid #222222; padding: 7px 10px; font-weight: 600; }
+QListWidget::item:selected, QTableWidget::item:selected { background: rgba(198, 255, 61, 0.10); color: #C6FF3D; }
+QHeaderView { background: transparent; }
+QHeaderView::section { background: rgba(255, 255, 255, 0.04); color: #9AA0A6; border: none;
+                       border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding: 8px 10px; font-weight: 600; }
+QTableCornerButton::section { background: transparent; border: none; }
 QTableWidget::item { padding: 0 10px; }
-QTableWidget QLineEdit { border-radius: 0; padding: 0 9px; }
+QTableWidget QLineEdit { background: #15181B; border-radius: 0; padding: 0 9px; }
 QSpinBox::up-button, QSpinBox::down-button { width: 0; border: none; }
 QScrollArea { border: none; }
-QProgressBar { background: #1B1B1B; border: none; border-radius: 3px; max-height: 6px; min-height: 6px; }
+QProgressBar { background: rgba(255, 255, 255, 0.08); border: none; border-radius: 3px; max-height: 6px; min-height: 6px; }
 QProgressBar::chunk { background: #C6FF3D; border-radius: 3px; }
 QPushButton#rec, QFrame#card QPushButton#rec { background: #C6FF3D; color: #0B0B0B; border: none;
     border-radius: 48px; font-size: 11pt; font-weight: 700; }
@@ -101,10 +110,10 @@ QPushButton#recOn, QFrame#card QPushButton#recOn { background: #FF5A4D; color: #
     border-radius: 48px; font-size: 11pt; font-weight: 700; }
 QPushButton#rec:disabled { background: #2A2A2A; color: #6A6A6A; }
 QLabel#clock { font-size: 22pt; font-weight: 600; }
-QFrame#drop { background: #101010; border: 1px dashed #3A3A3A; border-radius: 12px; }
+QFrame#drop { background: rgba(255, 255, 255, 0.03); border: 1px dashed rgba(255, 255, 255, 0.22); border-radius: 18px; }
 QFrame#drop[over="true"] { border-color: #C6FF3D; background: #141810; }
 QFrame#drop QWidget { background: transparent; }
-QFrame#box { background: #121212; border: 1px solid #232323; border-radius: 14px; }
+QFrame#box { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.11); border-radius: 18px; }
 QFrame#box QWidget { background: transparent; }
 QFrame#box QLabel#boxTitle { color: #C6FF3D; font-size: 10pt; font-weight: 700; }
 QFrame#box QLabel#kicker { color: #6F6F6F; font-size: 8pt; font-weight: 700; padding-top: 4px; }
@@ -114,12 +123,12 @@ QFrame#box QLabel#warn { color: #FFB454; font-weight: 600; }
 QFrame#box QLabel#chip, QFrame#box QLabel#chipOff, QFrame#box QLabel#chipWarn, QFrame#box QLabel#chipRed {
     border-radius: 10px; padding: 4px 10px; font-weight: 600; }
 QFrame#box QLabel#chip { background: #1D2A0B; color: #C6FF3D; border: 1px solid #3C5412; }
-QFrame#box QLabel#chipOff { background: #181818; color: #8C8C8C; border: 1px solid #272727; font-weight: 400; }
+QFrame#box QLabel#chipOff { background: rgba(255, 255, 255, 0.05); color: #9AA0A6; border: 1px solid rgba(255, 255, 255, 0.09); font-weight: 400; }
 QFrame#box QLabel#chipWarn { background: #2A1D09; color: #FFB454; border: 1px solid #5C4012; }
 QFrame#box QLabel#chipRed { background: #2F1210; color: #FF7A6B; border: 1px solid #6E2A24; }
 QFrame#box QLabel#chipSmall { background: #1D2A0B; color: #C6FF3D; border-radius: 6px; padding: 0 6px; font-size: 8pt; }
 QFrame#box QFrame#alert { background: #18130A; border: none; border-left: 3px solid #FFB454; border-radius: 6px; }
-QFrame#box QFrame#ask { background: #0E0E0E; border: 1px solid #202020; border-radius: 10px; }
+QFrame#box QFrame#ask { background: rgba(0, 0, 0, 0.24); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; }
 QFrame#box QPushButton#fold { background: transparent; border: none; text-align: left; padding: 5px 0; font-weight: 600; }
 QFrame#box QPushButton#fold:hover { color: #C6FF3D; }
 QFrame#box QProgressBar { background: #1D1D1D; max-height: 4px; min-height: 4px; border-radius: 2px; }
@@ -128,12 +137,13 @@ QFrame#box QProgressBar#dim::chunk { background: #3A3A3A; border-radius: 2px; }
 QFrame#box QLabel { font-size: 9pt; }
 QFrame#box QLabel#chipLine { background: transparent; color: #C6FF3D; border: 1px solid #3C5412; border-radius: 9px;
     padding: 2px 8px; font-weight: 600; }
-QPushButton#recPill { background: #C6FF3D; color: #0B0B0B; border: none; border-radius: 15px; padding: 7px 16px; font-weight: 700; }
-QPushButton#recPillOn { background: #FF5A4D; color: #0B0B0B; border: none; border-radius: 15px; padding: 7px 16px; font-weight: 700; }
+QPushButton#recPill { background: #C6FF3D; color: #0B0B0B; border: none; border-radius: 14px; padding: 9px 20px; font-weight: 700; }
+QPushButton#recPill:hover { background: #D4FF6A; }
+QPushButton#recPillOn { background: #FF5A4D; color: #0B0B0B; border: none; border-radius: 14px; padding: 9px 20px; font-weight: 700; }
 QPushButton#recPill:disabled { background: #2A2A2A; color: #6A6A6A; }
 QScrollBar:vertical { background: transparent; width: 10px; margin: 2px; }
-QScrollBar::handle:vertical { background: #2C2C2C; border-radius: 4px; min-height: 30px; }
-QScrollBar::handle:vertical:hover { background: #454545; }
+QScrollBar::handle:vertical { background: rgba(255, 255, 255, 0.14); border-radius: 4px; min-height: 30px; }
+QScrollBar::handle:vertical:hover { background: rgba(255, 255, 255, 0.28); }
 QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }
 QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical { background: transparent; }
 """
@@ -674,266 +684,6 @@ class LongPage(Page):
         return " ".join(notes)
 
 
-class RecordPage(LongPage):
-    def __init__(self, ctl):
-        super().__init__(ctl, "Aufnahme",
-                         "Einmal drücken startet, noch einmal drücken beendet – auch nach einer Stunde. "
-                         "Der Text läuft live mit: Schon beim Sprechen steht er grau als Vorschau da, nach jeder Sprechpause "
-                         "wird daraus der gültige Text. "
-                         "Der Ton wird nebenbei gesichert und gelöscht, sobald der Text vollständig ist.",
-                         "Aufnahme")
-        self.btn = button("Start", self.toggle, "rec")
-        self.btn.setFixedSize(96, 96)
-        self.clock = label("00:00", "clock")
-        self.state = label("Bereit", "muted", wrap=True)
-        col = QtWidgets.QVBoxLayout()
-        col.setSpacing(2)
-        col.addStretch(1)
-        col.addWidget(self.clock)
-        col.addWidget(self.state)
-        col.addStretch(1)
-        self.body.addWidget(card(hbox(self.btn, (self._wrap(col), 1), spacing=22), self.split))
-
-        # Aufnahme, die beim letzten Mal nicht fertig wurde (Absturz, Stromausfall, Fehler)
-        self.left_text = label("", wrap=True)
-        self.left_card = card(hbox((self.left_text, 1), button("Jetzt transkribieren", self.recover, "primary"),
-                                   button("Löschen", self.discard)))
-        self.left_card.hide()
-        self.body.addWidget(self.left_card)
-        self.body.addWidget(self.out, 1)
-        self.recording = self.warned = False
-        self.done = 0.0
-        self.leftover = None
-        self.tick = QTimer(self, interval=250, timeout=self._tick)
-
-    @staticmethod
-    def _wrap(layout):
-        w = QtWidgets.QWidget()
-        layout.setContentsMargins(0, 0, 0, 0)
-        w.setLayout(layout)
-        return w
-
-    def info(self, text, bad=False):
-        restyle(self.state, "bad" if bad else "muted")
-        self.state.setText(text)
-
-    def refresh(self):
-        super().refresh()
-        current = self.job.wav_path if self.job.running else None
-        rest = [p for p in config.leftover_recordings() if p != current]
-        self.leftover = rest[0] if rest else None
-        if self.leftover and not self.job.running:
-            minutes = max(0, self.leftover.stat().st_size - 44) / 2 / 16000 / 60
-            when = time.strftime("%d.%m. um %H:%M", time.localtime(self.leftover.stat().st_mtime))
-            more = f" ({len(rest)} Aufnahmen warten.)" if len(rest) > 1 else ""
-            self.left_text.setText(f"Eine Aufnahme vom {when} ({minutes:.0f} Minuten) wurde nicht fertig "
-                                   f"transkribiert. Der Ton ist noch da.{more}")
-            self.left_card.show()
-        else:
-            self.left_card.hide()
-
-    def recover(self):
-        if self.job.running or not self.leftover or not self.model_ready():
-            return
-        self.left_card.hide()
-        self.started = time.time()
-        self.out.set_text("")
-        self.out.set_busy(True)
-        self.btn.setEnabled(False)
-        self.info("Hole die Aufnahme nach …")
-        self.job.start_recovery(self.leftover)
-
-    def discard(self):
-        if self.leftover:
-            try:
-                self.leftover.unlink()
-            except OSError as e:
-                return self.info(f"Nicht löschbar: {e}", bad=True)
-        self.refresh()
-
-    def toggle(self):
-        if self.recording:
-            self.recording = False
-            self.tick.stop()
-            self.ctl.keep_awake(False)
-            self.job.stop_recording()
-            self.btn.setEnabled(False)
-            restyle(self.btn, "rec")
-            self.btn.setText("Start")
-            self.info("Schreibe den Rest fertig …")
-            return
-        if self.job.running or not self.model_ready():
-            return
-        try:
-            self.job.start_recording()
-        except Exception as e:
-            return self.info(f"Mikrofon nicht verfügbar: {e}", bad=True)
-        self.ctl.keep_awake(True)   # kein Ruhezustand mitten in der Aufnahme
-        self.recording, self.warned, self.started, self.done = True, False, time.time(), 0.0
-        self.left_card.hide()
-        self.out.set_text("")
-        self.out.set_busy(True)
-        restyle(self.btn, "recOn")
-        self.btn.setText("Stopp")
-        self.info("Nimmt auf …")
-        self.tick.start()
-
-    def _tick(self):
-        self.clock.setText(clock(time.time() - self.started))
-        if not self.job.mic_alive():
-            if not self.warned:
-                self.warned = True
-                QtWidgets.QApplication.beep()
-            return self.info("Das Mikrofon liefert keinen Ton mehr! Aufnahme beenden und Mikrofon prüfen – "
-                             "alles bisher Gesprochene bleibt erhalten.", bad=True)
-        self.warned = False
-        behind = time.time() - self.started - self.done
-        if behind > 30:
-            # eine Äußerung dauert höchstens 12 s; mehr Rückstand heißt, der Rechner kommt nicht nach
-            return self.info(f"Nimmt auf – die Erkennung hängt {behind:.0f} s hinterher. Es geht nichts verloren, "
-                             "der Text kommt nach.", bad=True)
-        self.info(f"Live – Text bis {clock(self.done)} erkannt. Er erscheint nach jeder Sprechpause.")
-
-    def on_part(self, text, done, total):
-        super().on_part(text, done, total)
-        self.done = done
-        if not self.recording and total > 0:   # Nachholen einer alten Aufnahme
-            self.clock.setText(clock(done))
-            self.info(f"Hole die Aufnahme nach … {clock(done)} von {clock(total)}")
-
-    def on_finished(self, text, seconds, error):
-        super().on_finished(text, seconds, error)
-        if self.recording:                      # Abbruch durch einen Fehler mitten in der Aufnahme
-            self.recording = False
-            self.tick.stop()
-            self.ctl.keep_awake(False)
-            self.job.stop_recording()
-            restyle(self.btn, "rec")
-            self.btn.setText("Start")
-        self.btn.setEnabled(True)
-        notes = self.problems()
-        if error:
-            self.info(f"Fehler: {error}. {notes}", bad=True)
-        elif notes:
-            self.info(notes, bad=True)
-        elif text.strip():
-            where = " Der Text steht auch im Verlauf." if self.ctl.cfg.get("history_enabled", True) else ""
-            self.info(f"Fertig – {clock(seconds)} aufgenommen, {len(text.split())} Wörter."
-                      f"{self.speakers_note()} Die Tonaufnahme ist gelöscht.{where}")
-        else:
-            self.info("Kein Text erkannt. Die Tonaufnahme ist gelöscht.")
-        self.refresh()
-
-
-class DropZone(QtWidgets.QFrame):
-    dropped = Signal(str)
-
-    def __init__(self):
-        super().__init__(objectName="drop")
-        self.setAcceptDrops(True)
-        self.setMinimumHeight(120)
-
-    def _over(self, on):
-        self.setProperty("over", "true" if on else "false")
-        self.style().unpolish(self)
-        self.style().polish(self)
-
-    def dragEnterEvent(self, e):
-        if e.mimeData().hasUrls() and e.mimeData().urls()[0].isLocalFile():
-            e.acceptProposedAction()
-            self._over(True)
-
-    def dragLeaveEvent(self, e):
-        self._over(False)
-
-    def dropEvent(self, e):
-        self._over(False)
-        self.dropped.emit(e.mimeData().urls()[0].toLocalFile())
-
-
-class FilePage(LongPage):
-    def __init__(self, ctl):
-        super().__init__(ctl, "Datei",
-                         "Audio- oder Videodatei hineinziehen. Sie wird auf diesem Rechner transkribiert "
-                         "und verlässt ihn nicht.", "Datei")
-        self.zone = DropZone()
-        self.zone.dropped.connect(self.start)
-        self.title = label("Datei hierher ziehen", "h2")
-        self.state = label("MP3, M4A, WAV, FLAC, OGG, MP4 und die meisten anderen Formate", "muted", wrap=True)
-        self.pick = button("Datei auswählen …", self.choose)
-        self.stop = button("Abbrechen", self.cancel)
-        self.stop.hide()
-        self.bar = QtWidgets.QProgressBar(textVisible=False)
-        self.bar.hide()
-        lay = QtWidgets.QVBoxLayout(self.zone)
-        lay.setContentsMargins(22, 18, 22, 18)
-        lay.setSpacing(8)
-        lay.addLayout(hbox(self.title, None, self.pick, self.stop))
-        lay.addWidget(self.state)
-        lay.addWidget(self.bar)
-        lay.addWidget(self.split)
-        self.body.addWidget(self.zone)
-        self.body.addWidget(self.out, 1)
-
-    def info(self, text):
-        self.state.setText(text)
-
-    def choose(self):
-        path, _ = QtWidgets.QFileDialog.getOpenFileName(
-            self, "Audiodatei auswählen", "",
-            "Audio und Video (*.mp3 *.m4a *.wav *.flac *.ogg *.opus *.aac *.wma *.mp4 *.mkv *.mov *.webm);;Alle Dateien (*)")
-        if path:
-            self.start(path)
-
-    def start(self, path):
-        if self.job.running:
-            return self.info("Es läuft schon eine Transkription.")
-        if not self.model_ready():
-            return
-        self.source = os.path.basename(path)
-        self.started = time.time()
-        self.title.setText(self.source)
-        self.state.setText("Lese die Datei …")
-        self.out.set_text("")
-        self.out.set_busy(True)
-        self.bar.setRange(0, 0)
-        self.bar.show()
-        self.pick.hide()
-        self.stop.show()
-        self.job.start_file(path)
-
-    def cancel(self):
-        self.state.setText("Breche ab …")
-        self.job.cancel()
-
-    def on_part(self, text, done, total):
-        super().on_part(text, done, total)
-        if total > 0:
-            self.bar.setRange(0, 1000)
-            self.bar.setValue(min(1000, int(done / total * 1000)))
-            self.state.setText(f"{clock(done)} von {clock(total)}")
-        else:
-            self.state.setText(f"{clock(done)} transkribiert")
-
-    def on_finished(self, text, seconds, error):
-        super().on_finished(text, seconds, error)
-        self.bar.hide()
-        self.stop.hide()
-        self.pick.show()
-        took = time.time() - self.started
-        notes = self.problems()
-        if error:
-            self.state.setText(f"Das hat nicht geklappt: {error}")
-        elif notes:
-            self.state.setText(notes)
-        elif text.strip():
-            where = " Der Text steht auch im Verlauf." if self.ctl.cfg.get("history_enabled", True) else ""
-            self.state.setText(f"Fertig – {clock(seconds)} Audio in {clock(took)}, {len(text.split())} Wörter."
-                               f"{self.speakers_note()}{where}")
-        else:
-            self.state.setText("Kein Text erkannt.")
-
-
 # ---------------------------------------------------------------- Wörterbuch / Textbausteine
 def learn_verdict(target: str, heard: str, error: str = ""):
     """Entscheidet, ob eine eingesprochene Fehlerkennung ins Wörterbuch darf.
@@ -1289,23 +1039,24 @@ class VisitPage(Page):
     sig_done = Signal(object, str, int)
     sig_jev = Signal(object, str, int)
     sig_voice = Signal(str)
+    sig_text = Signal(str, str, str, int)        # Name des Auftrags, Ergebnis, Fehler, Fall
     PRIORITY = {"critical": ("entscheidend", "chipRed"), "high": ("wichtig", "chipWarn"), "medium": ("ergänzend", "chipOff")}
 
     def __init__(self, ctl):
-        super().__init__("Visite & Übergabe",
-                         "Experimenteller Modus für Benchmarking, Forschung und Lehre. Kein Medizinprodukt: Die Ausgaben "
-                         "sind Entwürfe und Wahrscheinlichkeiten von Modellen, keine Diagnose, keine Anordnung, und vor "
-                         "jeder Verwendung zu prüfen. Server und Schlüssel: Einstellungen, LLM.", scroll=False)
+        super().__init__("Aufnahme",
+                         "Aufnehmen, eine Datei laden oder tippen. Danach auf einen Auftrag klicken: Das Ergebnis steht "
+                         "darunter und lässt sich kopieren. Die Erkennung läuft auf diesem Rechner; Aufträge gehen an das "
+                         "eingestellte Sprachmodell. Ergebnisse sind Entwürfe und vor jeder Verwendung zu prüfen.",
+                         scroll=False)
         self.ctl = ctl
         self.store = visite.Store()
         self.case, self.result, self.waiting, self.errors = None, None, set(), {}
         self.tabs = QtWidgets.QButtonGroup(self)
         row = QtWidgets.QHBoxLayout()
         row.setSpacing(6)
-        for i, name in enumerate(("Neuer Patient", "Fallliste", "Papierkorb")):
-            b = QtWidgets.QPushButton(name, checkable=True)
+        for i, name in enumerate(("Aufnahme", "Gespeichert", "Papierkorb")):
+            b = QtWidgets.QPushButton(name, checkable=True, objectName="tab")
             b.setCursor(Qt.PointingHandCursor)
-            b.setStyleSheet("QPushButton:checked { color: #C6FF3D; border-color: #C6FF3D; }")
             self.tabs.addButton(b, i)
             row.addWidget(b)
         row.addStretch(1)
@@ -1323,19 +1074,42 @@ class VisitPage(Page):
         self.state = label("Aufnehmen oder in das Feld tippen.", "muted", wrap=True)
         self.text = QtWidgets.QPlainTextEdit(placeholderText="Hier steht nach der Aufnahme der Text zum Korrigieren. "
                                              "Tippen geht auch: Anamnese, Befund, Verlauf, Vormedikation, geplantes Vorgehen.")
-        self.go = button("Auswerten", self._analyse, name="primary")
+        self.go = button("Visite && Übergabe", self._analyse)
+        self.go.setToolTip("Ersteinschätzung, Arztbrief-Entwurf, Sicherheitsnetz und Rückfragen. Experimentell, für "
+                           "Benchmarking, Forschung und Lehre; kein Medizinprodukt.")
         self.note = label("", "muted")
+        self.load = button("Datei …", self._file)
+        self.load.setToolTip("Audio- oder Videodatei transkribieren. Sie verlässt diesen Rechner nicht.")
+        self.tasks = QtWidgets.QWidget()                 # Zeile der Aufträge, wird aus den Einstellungen gefüllt
+        self.task_row = Flow(gap=8)
+        self.tasks.setLayout(self.task_row)
+        # Aufnahme, die beim letzten Mal nicht fertig wurde (Absturz, Stromausfall, Fehler)
+        self.left_text = label("", wrap=True)
+        self.left_card = card(hbox((self.left_text, 1), button("Jetzt transkribieren", self.recover, "primary"),
+                                   button("Löschen", self.discard)))
+        self.left_card.hide()
+        self.leftover = None
         new = QtWidgets.QWidget()
         top = QtWidgets.QVBoxLayout(new)
         top.setContentsMargins(0, 0, 0, 0)
         top.setSpacing(8)
-        top.addLayout(hbox((self.name, 1), self.rec, self.split, self.go, button("Neuer Fall", self._new)))
+        top.addLayout(hbox(self.rec, self.load, self.split, (self.name, 1), button("Neu", self._new)))
+        top.addWidget(self.left_card)
         top.addLayout(hbox((self.state, 1), self.note))
         top.addWidget(self.text, 1)
+        top.addWidget(self.tasks)
         inner = QtWidgets.QWidget()
-        self.cards = QtWidgets.QGridLayout(inner)
-        self.cards.setContentsMargins(0, 0, 8, 0)
+        col = QtWidgets.QVBoxLayout(inner)
+        col.setContentsMargins(0, 0, 8, 0)
+        col.setSpacing(12)
+        self.texts = QtWidgets.QVBoxLayout()             # Ergebnisse der Aufträge, je ein Block über die ganze Breite
+        self.texts.setSpacing(12)
+        self.cards = QtWidgets.QGridLayout()
         self.cards.setSpacing(12)
+        col.addLayout(self.texts)
+        col.addLayout(self.cards)
+        col.addStretch(1)
+        self.text_boxes = []
         self.area = QtWidgets.QScrollArea(widgetResizable=True)
         self.area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.area.setWidget(inner)
@@ -1381,6 +1155,7 @@ class VisitPage(Page):
         self.tabs.idClicked.connect(self._tab)
         self.sig_done.connect(self._done)
         self.sig_jev.connect(self._jev)
+        self.sig_text.connect(self._text_done)
         self._tab(0)
         self._show(None)
 
@@ -1389,6 +1164,124 @@ class VisitPage(Page):
         self.split.blockSignals(True)
         self.split.setChecked(bool(self.ctl.cfg.get("speakers")))
         self.split.blockSignals(False)
+        self._tasks()
+        current = self.job.wav_path if self.job.running else None
+        rest = [p for p in config.leftover_recordings() if p != current]
+        self.leftover = rest[0] if rest else None
+        if self.leftover and not self.job.running:
+            minutes = max(0, self.leftover.stat().st_size - 44) / 2 / 16000 / 60
+            when = time.strftime("%d.%m. um %H:%M", time.localtime(self.leftover.stat().st_mtime))
+            more = f" ({len(rest)} Aufnahmen warten.)" if len(rest) > 1 else ""
+            self.left_text.setText(f"Eine Aufnahme vom {when} ({minutes:.0f} Minuten) wurde nicht fertig "
+                                   f"transkribiert. Der Ton ist noch da.{more}")
+        self.left_card.setVisible(bool(self.leftover) and not self.job.running)
+
+    def _tasks(self):
+        """Die Aufträge als Knöpfe: zuerst Visite & Übergabe, dann alle Aufträge aus den Einstellungen (LLM)."""
+        names = [p.get("name", "") for p in self.ctl.cfg.get("prompts") or [] if (p.get("text") or "").strip()]
+        if getattr(self, "task_names", None) == names:
+            return
+        self.task_names = names
+        while self.task_row.count():
+            w = self.task_row.takeAt(0).widget()
+            if w is not self.go:
+                w.deleteLater()
+        hint = label("Daraus machen:", "muted")
+        self.task_row.addWidget(hint)
+        for name in names:
+            b = button(name.replace("&", "&&"), lambda _=False, n=name: self._task(n))
+            self.task_row.addWidget(b)
+        self.task_row.addWidget(self.go)
+        self.go.show()
+
+    def _file(self):
+        if self.recording or self.job.running or self.window().busy():
+            return self.info("Es läuft schon eine Aufnahme oder Transkription.", bad=True)
+        if not self.ctl.ready:
+            return self.info("Das Sprachmodell lädt noch – gleich noch einmal versuchen.", bad=True)
+        path, _ = QtWidgets.QFileDialog.getOpenFileName(
+            self, "Audiodatei auswählen", "",
+            "Audio und Video (*.mp3 *.m4a *.wav *.flac *.ogg *.opus *.aac *.wma *.mp4 *.mkv *.mov *.webm);;Alle Dateien (*)")
+        if path:
+            self._long(lambda: self.job.start_file(path), f"Transkribiere {os.path.basename(path)} …")
+
+    def recover(self):
+        if self.job.running or not self.leftover or not self.ctl.ready:
+            return
+        self.left_card.hide()
+        path = self.leftover
+        self._long(lambda: self.job.start_recovery(path), "Hole die Aufnahme nach …")
+
+    def discard(self):
+        if self.leftover:
+            try:
+                self.leftover.unlink()
+            except OSError as e:
+                return self.info(f"Nicht löschbar: {e}", bad=True)
+        self.refresh()
+
+    def _long(self, start, text):
+        """Datei oder liegengebliebene Aufnahme: läuft wie eine Aufnahme, nur ohne Mikrofon."""
+        self.saver.stop()
+        self._save()
+        self.heard = ""
+        self.before = self.text.toPlainText().rstrip()
+        self.text.setReadOnly(True)
+        self.tasks.setEnabled(False)
+        self.rec.setEnabled(False)
+        self.info(text)
+        try:
+            start()
+        except Exception as e:
+            self._recorded("", 0.0, str(e))
+
+    def _task(self, name):
+        """Einen Auftrag aus den Einstellungen auf den Text anwenden; das Ergebnis kommt als eigener Block."""
+        text = self.text.toPlainText().strip()
+        prompt = config.prompt_by_name(self.ctl.cfg, name)
+        restyle(self.note, "bad")
+        if not text:
+            return self.note.setText("Erst aufnehmen, eine Datei laden oder tippen.")
+        server = copy.deepcopy(self.ctl.cfg.get("llm") or {})
+        if not prompt or not (server.get("base_url") or "").strip() or not (server.get("model") or "").strip():
+            return self.note.setText("Kein Sprachmodell eingestellt. Unter Einstellungen, LLM, Server und Modell wählen.")
+        if name in self.waiting:
+            return
+        self.saver.stop()
+        self._save()
+        restyle(self.note, "muted")
+        self.note.setText("Läuft …")
+        case, instruction = self.case, prompt["text"]
+        self.waiting.add(name)
+        self._show({**(self.result or {}), **self.errors})
+
+        def run():
+            try:
+                self.sig_text.emit(name, llm.run(server, instruction, text), "", case)
+            except Exception as e:
+                log.warning("Auftrag fehlgeschlagen: %s", type(e).__name__)
+                self.sig_text.emit(name, "", str(e) or type(e).__name__, case)
+        threading.Thread(target=run, daemon=True).start()
+
+    def _text_done(self, name, text, error, case):
+        row = self.store.get(case)
+        if row and not error:
+            merged = dict(row[2] or {})
+            merged["texts"] = {**(merged.get("texts") or {}), name: text}
+            self.store.save(case, row[0], row[1], merged)
+        if case != self.case:
+            return self._fill()
+        self.waiting.discard(name)
+        fails = dict(self.errors.get("text_errors") or {})
+        fails.pop(name, None)
+        if error:
+            fails[name] = error
+        self.errors["text_errors"] = fails
+        if not self.waiting:
+            restyle(self.note, "bad" if error else "ok")
+            self.note.setText("Nicht geklappt, siehe unten." if error else "Fertig. Bitte prüfen, bevor du etwas übernimmst.")
+        self._show({**((self.store.get(case) or (0, 0, {}))[2] or {}), **self.errors})
+        self._fill()
 
     def info(self, text, bad=False):
         restyle(self.state, "bad" if bad else "muted")
@@ -1409,7 +1302,7 @@ class VisitPage(Page):
                                                  f"{time.strftime('%d.%m.%Y %H:%M', time.localtime(created))}   ·   {first}")
                 item.setData(Qt.UserRole, case_id)
                 items.addItem(item)
-            self.tabs.button(1 + trash).setText(("Fallliste", "Papierkorb")[trash] + (f" ({len(rows)})" if rows else ""))
+            self.tabs.button(1 + trash).setText(("Gespeichert", "Papierkorb")[trash] + (f" ({len(rows)})" if rows else ""))
 
     def _each(self, which, action):
         for item in self.lists[which][1].selectedItems() or ([self.lists[which][1].currentItem()] if self.lists[which][1].currentItem() else []):
@@ -1501,7 +1394,7 @@ class VisitPage(Page):
         self.recording, self.started, self.heard = True, time.time(), ""
         self.before = self.text.toPlainText().rstrip()        # schon Getipptes bleibt, die Aufnahme kommt dahinter
         self.text.setReadOnly(True)
-        self.go.setEnabled(False)
+        self.tasks.setEnabled(False)
         restyle(self.rec, "recPillOn")
         self.rec.setText("■  Stopp  00:00")
         self.info("Nimmt auf … Der Text läuft mit.")
@@ -1540,7 +1433,8 @@ class VisitPage(Page):
         self._live(text)
         self.text.setReadOnly(False)
         self.rec.setEnabled(True)
-        self.go.setEnabled(not self.waiting)
+        self.tasks.setEnabled(True)
+        self.refresh()
         if text.strip() or self.before:
             self.case = self.store.save(self.case, self.name.text().strip(), self._whole(text))
         notes = []
@@ -1572,12 +1466,15 @@ class VisitPage(Page):
             return self.note.setText("Kein Sprachmodell eingestellt. Unter Einstellungen, LLM, Server und Modell wählen.")
         self.saver.stop()
         self._save()
-        self.go.setEnabled(False)
+        if self.waiting & {"brief", "jev"}:
+            return
         restyle(self.note, "muted")
         self.note.setText("Läuft …")
         case = self.case
-        self.result, self.errors = {}, {}
-        self.waiting = {"brief"} | ({"jev"} if jev.available(server) else set())
+        keep = {"texts": (self.result or {}).get("texts")} if (self.result or {}).get("texts") else {}
+        self.result = {**keep, "visit": True}
+        self.errors = {k: v for k, v in self.errors.items() if k == "text_errors"}
+        self.waiting |= {"brief"} | ({"jev"} if jev.available(server) else set())
         self._show(self.result)
 
         def run(call, signal):
@@ -1598,7 +1495,8 @@ class VisitPage(Page):
             if part == "jev":
                 merged["jev"] = result
             else:
-                merged = {**result, **({"jev": merged["jev"]} if merged.get("jev") else {})}
+                merged = {**result, **{k: merged[k] for k in ("jev", "texts") if merged.get(k)}}
+            merged["visit"] = True
             self.store.save(case, row[0], row[1], merged)
         if case != self.case:
             return self._fill()
@@ -1606,10 +1504,9 @@ class VisitPage(Page):
         if result is None:
             self.errors["jev_error" if part == "jev" else "error"] = error
         if not self.waiting:
-            self.go.setEnabled(not self.recording)
             failed = self.errors.get("error")
             restyle(self.note, "bad" if failed else "ok")
-            self.note.setText("Der Arztbrief ließ sich nicht erzeugen, siehe rechts." if failed
+            self.note.setText("Der Arztbrief ließ sich nicht erzeugen, siehe unten." if failed
                               else "Fertig. Bitte prüfen, bevor du etwas übernimmst.")
         self._show({**((row[2] if row and result is None else self.store.get(case)[2]) or {}), **self.errors})
         self._fill()
@@ -1632,10 +1529,33 @@ class VisitPage(Page):
         for box in self.boxes.values():
             box.setParent(None)
             box.deleteLater()
-        self.boxes, self.columns = {}, 0
+        for box in self.text_boxes:
+            box.setParent(None)
+            box.deleteLater()
+        self.boxes, self.columns, self.text_boxes = {}, 0, []
         self.area.setVisible(result is not None)
         self.text.setMaximumHeight(16777215 if result is None else 118)     # mit Ergebnis tritt der Text zurück
         if result is None:
+            return
+        done, fails = result.get("texts") or {}, result.get("text_errors") or {}
+        running = [n for n in self.waiting if n not in ("brief", "jev")]
+        for name in list(dict.fromkeys(running + list(fails) + list(reversed(list(done))))):
+            if name in running or name in fails:
+                box = Box(name)
+                box.add(label(f"Nicht geklappt: {fails[name]}" if name in fails and name not in running
+                              else "Das Sprachmodell schreibt …", "bad" if name in fails and name not in running else "muted",
+                              wrap=True))
+            else:
+                body = done[name]
+                box = Box(name, copy=lambda b=body: b)
+                out = label(body, wrap=True)
+                out.setTextFormat(Qt.PlainText)
+                out.setTextInteractionFlags(Qt.TextSelectableByMouse)
+                box.add(out)
+            self.texts.addWidget(box)
+            self.text_boxes.append(box)
+        if not (result.get("visit") or self.waiting & {"brief", "jev"}
+                or any(k in result for k in ("documentation", "jev", "error", "jev_error"))):
             return
         made = {"jev": self._jev_box(result["jev"]) if result.get("jev") else None, **self._letter_boxes(result)}
         for key in self.ORDER:
@@ -2085,7 +2005,9 @@ class LlmPage(Page):
         left.addLayout(hbox(button("Neu", self.new_prompt), button("Löschen", self.del_prompt), None, spacing=6))
         right = form(("Name", self.name), ("Halte-Taste", self.hotkey), ("Anweisung", self.text))
         self.body.addWidget(card(
-            label("Prompts", "h2"),
+            label("Aufträge (Prompts)", "h2"),
+            label("Jeder Auftrag erscheint auf der Seite Aufnahme als Knopf unter dem Text und im Verlauf unter „KI“. "
+                  "Mit einer Halte-Taste wendet er sich gleich beim Diktieren an.", "muted", wrap=True),
             hbox(left, (self._wrap(right), 1), spacing=16),
             form(("Bei jedem Diktat", self.auto))))
 
@@ -2538,6 +2460,16 @@ class SettingsPage(Page):
                   "liegen dann auch Verlauf und Fälle.", "muted", wrap=True),
             hbox(button("Daten in diesem Programmordner ablegen", self._own), None),
             self.own_note))
+        self.keep_note = label("", "muted", wrap=True)
+        self.body.addWidget(card(
+            label("Einstellungen sichern", "h2"),
+            label("Wörterbuch, Textbausteine, Aufträge, Tasten und Server in eine Datei schreiben und daraus zurückholen, "
+                  "etwa für einen anderen Rechner. Vor jedem Wechsel der Fassung legt LocalScribe von selbst eine Kopie "
+                  "im Datenordner ab (Ordner „sicherung“, die letzten zehn). API-Schlüssel stehen nicht in der Datei: "
+                  "Die liegen im Schlüsselspeicher von Windows und bleiben bei Updates erhalten.", "muted", wrap=True),
+            hbox(button("In Datei sichern …", self._keep), button("Aus Datei zurückholen …", self._bring),
+                 button("Ordner mit den Sicherungen öffnen", self._kept_open), None),
+            self.keep_note))
         self.care_note = label("", "muted", wrap=True)
         self.check_button = button("Nach Updates suchen", self._check, name="primary")
         self.found = None                    # neuere Fassung bei GitHub, sobald gefunden
@@ -2618,6 +2550,38 @@ class SettingsPage(Page):
             except Exception as e:
                 self.sig_latest.emit(None, str(e))
         threading.Thread(target=work, daemon=True).start()
+
+    def _keep(self):
+        path, _ = QtWidgets.QFileDialog.getSaveFileName(
+            self, "Einstellungen sichern", f"LocalScribe-Einstellungen-{time.strftime('%Y-%m-%d')}.json", "Einstellungen (*.json)")
+        if not path:
+            return
+        try:
+            config.save(self.ctl.cfg)
+            config.export(path)
+        except OSError as e:
+            return self.saved(self.keep_note, f"Nicht gesichert: {e}", ok=False)
+        self.saved(self.keep_note, f"Gesichert in {path}")
+
+    def _bring(self):
+        path, _ = QtWidgets.QFileDialog.getOpenFileName(self, "Einstellungen zurückholen", "", "Einstellungen (*.json)")
+        if not path:
+            return
+        try:
+            cfg = config.restore(path)
+        except (ValueError, OSError) as e:
+            return self.saved(self.keep_note, str(e), ok=False)
+        self.ctl.cfg.clear()
+        self.ctl.cfg.update(cfg)
+        self.ctl.apply_settings()
+        self.window().refresh()
+        self.refresh()
+        self.saved(self.keep_note, "Zurückgeholt. Die bisherigen Einstellungen liegen als Kopie im Ordner „sicherung“.")
+
+    def _kept_open(self):
+        folder = config.DIR / config.BACKUPS
+        folder.mkdir(parents=True, exist_ok=True)
+        QtGui.QDesktopServices.openUrl(QtCore.QUrl.fromLocalFile(str(folder)))
 
     def _notes(self):
         """Vor dem Update: was die neue Fassung bringt. Sonst: was die letzten Fassungen gebracht haben."""
@@ -2811,21 +2775,20 @@ class SettingsPage(Page):
         self.saved(self.note)
 
 
-class SettingsTabs(QtWidgets.QWidget):
-    """Einstellungen mit zwei Reitern: Allgemein und LLM."""
+class Tabs(QtWidgets.QWidget):
+    """Mehrere Seiten unter einem Menüpunkt, oben als Reiter: [(Name, Seite), …]."""
 
-    def __init__(self, ctl):
+    def __init__(self, entries):
         super().__init__()
-        self.pages = [SettingsPage(ctl), LlmPage(ctl)]
+        self.pages = [page for _, page in entries]
         self.tabs = QtWidgets.QButtonGroup(self)
         row = QtWidgets.QHBoxLayout()
         row.setContentsMargins(30, 18, 30, 0)
         row.setSpacing(6)
         self.stack = QtWidgets.QStackedWidget()
-        for i, name in enumerate(("Allgemein", "LLM")):
-            b = QtWidgets.QPushButton(name, checkable=True)
+        for i, (name, _) in enumerate(entries):
+            b = QtWidgets.QPushButton(name, checkable=True, objectName="tab")
             b.setCursor(Qt.PointingHandCursor)
-            b.setStyleSheet("QPushButton:checked { color: #C6FF3D; border-color: #C6FF3D; }")
             self.tabs.addButton(b, i)
             row.addWidget(b)
             self.stack.addWidget(self.pages[i])
@@ -2874,20 +2837,18 @@ class Hub(QtWidgets.QWidget):
         self.stack = QtWidgets.QStackedWidget()
         self.pages = [
             ("Verlauf", HistoryPage(ctl)),
-            ("Aufnahme", RecordPage(ctl)),
-            ("Datei", FilePage(ctl)),
-            ("Wörterbuch", MapPage(ctl, "Wörterbuch",
+            ("Aufnahme", VisitPage(ctl)),
+            ("Wortschatz", Tabs([("Wörterbuch", MapPage(ctl, "Wörterbuch",
                                    "Wörter, die falsch erkannt werden, automatisch ersetzen. "
                                    "Groß- und Kleinschreibung spielt beim Erkennen keine Rolle.",
                                    "dictionary", ["Erkannt wird", "Ersetzen durch"], learn=True)),
-            ("Stimmtraining", TrainPage(ctl)),
-            ("Textbausteine", MapPage(ctl, "Textbausteine",
+                                  ("Stimmtraining", TrainPage(ctl)),
+                                  ("Textbausteine", MapPage(ctl, "Textbausteine",
                                       "Ein gesprochenes Stichwort wird durch den hinterlegten Text ersetzt. "
                                       "Für einen Zeilenumbruch \\n schreiben.",
                                       "snippets", ["Stichwort", "Text"],
-                                      starter=("Normalbefunde hinzufügen", NORMAL))),
-            ("Visite & Übergabe", VisitPage(ctl)),
-            ("Einstellungen", SettingsTabs(ctl)),
+                                      starter=("Normalbefunde hinzufügen", NORMAL)))])),
+            ("Einstellungen", Tabs([("Allgemein", SettingsPage(ctl)), ("LLM", LlmPage(ctl))])),
         ]
         self.buttons = QtWidgets.QButtonGroup(self)
         for i, (name, page) in enumerate(self.pages):
@@ -2967,6 +2928,24 @@ class Hub(QtWidgets.QWidget):
         lay.addLayout(right, 1)
         self.show_page(0)
 
+    def paintEvent(self, _):
+        """Hintergrund: fast schwarz mit drei weichen Lichtflecken. Die halb durchsichtigen Karten davor wirken dadurch
+        wie Milchglas, ohne dass das Fenster selbst durchsichtig sein muss (das ginge nicht auf jedem Windows)."""
+        p = QtGui.QPainter(self)
+        w, h = self.width(), self.height()
+        base = QtGui.QLinearGradient(0, 0, w, h)
+        base.setColorAt(0, QtGui.QColor("#0B0D0F"))
+        base.setColorAt(1, QtGui.QColor("#08090B"))
+        p.fillRect(self.rect(), base)
+        for cx, cy, radius, color in ((0.10, 0.02, 0.55, QtGui.QColor(198, 255, 61, 34)),
+                                      (0.98, 0.10, 0.50, QtGui.QColor(70, 150, 255, 30)),
+                                      (0.62, 1.05, 0.60, QtGui.QColor(40, 210, 170, 24))):
+            glow = QtGui.QRadialGradient(cx * w, cy * h, radius * max(w, h))
+            glow.setColorAt(0, color)
+            glow.setColorAt(1, QtGui.QColor(color.red(), color.green(), color.blue(), 0))
+            p.fillRect(self.rect(), glow)
+        p.end()
+
     def offer_restart(self, version):
         """Eine neuere Fassung ist eingerichtet (hier oder von einem anderen Rechner am selben Ordner)."""
         self.news_since, self.news_version = __version__, version
@@ -3035,7 +3014,8 @@ class Hub(QtWidgets.QWidget):
 
     def busy(self) -> bool:
         """Läuft gerade eine lange Aufnahme oder Transkription?"""
-        return any(getattr(page, "job", None) is not None and page.job.running for _, page in self.pages)
+        every = [q for _, page in self.pages for q in ([page] + list(getattr(page, "pages", [])))]
+        return any(getattr(page, "job", None) is not None and page.job.running for page in every)
 
     def open(self):
         self.pages[self.stack.currentIndex()][1].refresh()

@@ -112,6 +112,8 @@ class Diktat(QtCore.QObject):
         """Nach einem Update einmal zeigen, was neu ist; alte Fassungen wegräumen; nach einer neueren sehen."""
         from . import pflege
         seen = self.cfg.get("seen_version", "")
+        if seen and pflege.number(seen) != pflege.number(__version__):
+            config.backup(f"vor-{__version__}")      # Stand der Einstellungen vor dem Wechsel der Fassung
         if seen and pflege.number(seen) < pflege.number(__version__):
             self.hub.announce(seen)
         elif seen != __version__:

@@ -1,3 +1,21 @@
+## LocalScribe 1.3.0
+
+- **Vier Menüpunkte statt acht.** Verlauf, Aufnahme, Wortschatz, Einstellungen. Wörterbuch, Stimmtraining und
+  Textbausteine sind Reiter unter „Wortschatz“. „Aufnahme“ und „Datei“ sind eine Seite: aufnehmen oder über „Datei …“
+  eine Audio- oder Videodatei laden. „Visite & Übergabe“ ist keine eigene Seite mehr, sondern ein Auftrag.
+- **Aufträge unter dem Text.** Nach der Aufnahme stehen unter dem Text die Aufträge als Knöpfe: Arztbrief,
+  Zusammenfassung, Meeting-Protokoll, Stichpunkte, E-Mail, Glätten, Visite & Übergabe und alle eigenen Prompts aus den
+  Einstellungen. Ein Klick, das Ergebnis erscheint darunter als Block mit „Kopieren“. Mehrere Aufträge nacheinander
+  gehen; alles wird mit dem Text unter „Gespeichert“ abgelegt. Drei Aufträge sind neu (Arztbrief, Zusammenfassung,
+  Meeting-Protokoll) und werden bei vorhandenen Einstellungen einmal ergänzt.
+- **Einstellungen gehen nicht mehr verloren.** Vor jedem Wechsel der Fassung legt LocalScribe eine Kopie der
+  Einstellungen im Datenordner ab (Ordner `sicherung`, die letzten zehn). Unter Einstellungen gibt es „In Datei
+  sichern“ und „Aus Datei zurückholen“, etwa für einen anderen Rechner. API-Schlüssel stehen nicht in der Datei; sie
+  liegen im Schlüsselspeicher von Windows.
+- **Neues Erscheinungsbild.** Halb durchsichtige Karten vor einem dunklen Grund mit weichen Lichtflecken, rundere
+  Formen, Reiter als Pillen. Das Fenster selbst bleibt undurchsichtig, damit es auf jedem Windows gleich aussieht.
+- Nicht fertig transkribierte Aufnahmen bietet jetzt die Seite Aufnahme zum Nachholen an.
+
 ## LocalScribe 1.2.1
 
 - **„Was ist neu“ vor dem Update zeigte nichts an.** Unter Windows gebaute Pakete haben andere Zeilenenden; daran

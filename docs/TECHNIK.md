@@ -1,6 +1,6 @@
 # LocalScribe – Technische Dokumentation
 
-Stand: Version 1.2.1. Für Betrieb, IT und alle, die den Code lesen oder prüfen wollen. Die Bedienung steht im
+Stand: Version 1.3.0. Für Betrieb, IT und alle, die den Code lesen oder prüfen wollen. Die Bedienung steht im
 [Handbuch](LocalScribe-Handbuch.pdf), die Messwerte mit Methode in [`werkzeug/messen/ERGEBNIS.md`](../werkzeug/messen/ERGEBNIS.md).
 
 ## 1. Was die App ist
@@ -225,6 +225,7 @@ zuletzt `%TEMP%` aus (`config._dir`).
 | Datei oder Ordner | Inhalt |
 |---|---|
 | `config.json` | Einstellungen, Wörterbuch, Wortschatz, Textbausteine. Keine Schlüssel. |
+| `sicherung\einstellungen-….json` | Kopien von `config.json`: vor jedem Wechsel der Fassung und vor dem Zurückholen, die letzten zehn (`config.backup`). Zurückholen und in eine Datei sichern: Einstellungen, „Einstellungen sichern“. |
 | `verlauf.sqlite` | Verlauf der Diktate als Text, mit einstellbarer Aufbewahrungsfrist; abschaltbar |
 | `modelle\` | Sprachmodell, Stimmmodell für die Sprechertrennung |
 | `diktat.log`, `absturz.log` | Betriebsmeldungen: Dauer, Zeichenzahl, Fehler. Kein diktierter Text. |
