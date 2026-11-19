@@ -1,3 +1,28 @@
+## LocalScribe 1.6.0
+
+- **Stimmtraining mit neuen Sätzen und Fachrichtung.** Die Übungssätze sind neu geschrieben. Zuerst kommt ein
+  **Grundstock** für alle (etwa 9 Minuten: Zahlen, Einheiten, Dosierungen, Vitalwerte, häufige Arzneimittel und
+  Wendungen), danach die gewählte **Fachrichtung** mit jeweils gut 30 Minuten: **Notfallmedizin** und **Innere Medizin
+  und Nephrologie**; weitere Fächer folgen. Jede Fachrichtung enthält Sätze, wie Ärztinnen und Ärzte sie diktieren
+  oder übergeben, Sätze aus dem Gespräch mit Patientinnen und Patienten und Sätze aus der Organisation. Die
+  Reihenfolge ist so gewählt, dass jeder nächste Satz möglichst viele neue Laute und Fachwörter bringt: Auch fünf
+  Minuten lohnen sich. Die Fachrichtung merkt sich die App.
+- **Warum neu:** Ein Teil der bisherigen Sätze deckte sich mit den Diktaten, an denen die Erkennung gemessen wird.
+  Die neuen Sätze sind von allen Messungen getrennt. Die früheren Themen bleiben für Fächer ohne neue Sätze
+  wählbar, ohne die zwölf Sätze, die sich überschnitten.
+- **Messen, was das Vorlesen bringt.** „Messen …“ liest 40 Prüfsätze vor, die im Training nie vorkommen, und zeigt
+  deine Wortfehlerquote. Einmal vor dem Training, später wieder: Die Zeile „Messungen“ zeigt den Verlauf.
+- **Der Ton der Übungssätze wird ohne Haken aufgehoben** (nur diese erfundenen Sätze, nie Diktate), damit das
+  Sprachmodell später auf die eigene Stimme nachtrainiert werden kann. „Alle löschen“ entfernt sie.
+- **Profil sichern.** Unter Einstellungen schreibt „Profil sichern …“ Wörterbuch, gelernten Wortschatz,
+  Textbausteine, Aufträge, Tasten, Server und die Stimmaufnahmen in eine Datei (`.lsprofil`); „Profil zurückholen …“
+  liest sie an diesem oder einem anderen Rechner wieder ein. Nur die Einstellungen als JSON gehen weiter. Updates
+  fassen das Profil nicht an.
+- Behoben: „Aus Datei zurückholen“ übernahm die Einstellungen seit 1.3.0 erst nach einem Neustart und zeigte keine
+  Bestätigung.
+- Behoben: Übungssätze mit vielen Zahlen wurden manchmal als „passt nicht zum Satz“ abgelehnt, weil die Erkennung
+  Ziffern schreibt und der Satz Zahlwörter enthält.
+
 ## LocalScribe 1.5.0
 
 - **Übergabe in drei Rahmen: Notaufnahme, Station, Intensiv.** Oben rechts wählbar; Notaufnahme ist die Vorgabe, die

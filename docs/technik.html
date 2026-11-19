@@ -172,9 +172,9 @@
 <body>
 <h1 id="localscribe--technische-dokumentation">LocalScribe – Technische
 Dokumentation</h1>
-<p>Stand: Version 1.5.0. Für Betrieb, IT und alle, die den Code lesen
+<p>Stand: Version 1.6.0. Für Betrieb, IT und alle, die den Code lesen
 oder prüfen wollen. Die Bedienung steht im <a
-href="https://chunkyfire.github.io/LocalScribe/">Handbuch</a>, die Messwerte mit Methode
+href="https://chunkyfire.github.io/LocalScribe/LocalScribe-Handbuch.pdf">Handbuch</a>, die Messwerte mit Methode
 in <a
 href="https://github.com/chunkyfire/LocalScribe/blob/main/werkzeug/messen/ERGEBNIS.md"><code>werkzeug/messen/ERGEBNIS.md</code></a>.</p>
 <h2 id="1-was-die-app-ist">1. Was die App ist</h2>
@@ -409,60 +409,68 @@ Wirkstoffendungen)</td>
 </tr>
 <tr class="odd">
 <td><code>diktat/training.py</code></td>
-<td>Lernen aus vorgelesenen Sätzen und aus Aufnahmen mit Transkript</td>
+<td>Stimmtraining: Übungs- und Prüfsätze je Fachrichtung, Lernen aus
+vorgelesenen Sätzen und aus Aufnahmen mit Transkript, Wortfehler einer
+Messung</td>
 </tr>
 <tr class="even">
+<td><code>werkzeug/lesetexte/</code></td>
+<td>Quelltexte der Übungssätze je Fachrichtung und
+<code>bauen.py</code>, das sie prüft, ordnet und
+<code>diktat/lesetexte.json</code> schreibt</td>
+</tr>
+<tr class="odd">
 <td><code>diktat/visite.py</code></td>
 <td>Visite &amp; Übergabe: Fall auswerten lassen (Arztbrief-Entwurf,
 Sicherheitsnetz, Rückfragen), Fallablage mit Papierkorb</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>diktat/jev.py</code></td>
 <td>Jev (TypeSafe): je Rahmen ein fester Fragesatz in einer Anfrage,
 Antworten als Wahrscheinlichkeiten. Notaufnahme: 17 Fragen aus WacheNG
 (Ersteinschätzung). Station: 17, Intensiv: 19 Fragen (Tages-Check: Lage
 und „heute prüfen“)</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>diktat/sprecher.py</code></td>
 <td>Sprecher trennen: pyannote-Segmentierung und WeSpeaker-Stimmabdrücke
 (ONNX, CPU)</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>diktat/vad.py</code></td>
 <td>Sprache oder Stille (Silero VAD)</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>diktat/longform.py</code></td>
 <td>lange Aufnahmen und Tondateien stückweise</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>diktat/modelle.py</code></td>
 <td>Sprachmodelle finden, einmal laden, Fortschritt melden</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>diktat/llm.py</code>, <code>korrektor.py</code></td>
 <td>optionale Nachbearbeitung und Fachkorrektur über eine
 OpenAI-kompatible Schnittstelle</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>diktat/schutz.py</code></td>
 <td>Namen, Daten, Orte, Nummern ersetzen, bevor Text an einen fremden
 Server geht</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>diktat/handy.py</code></td>
 <td>Handy als Mikrofon: HTTPS-Seite im eigenen Netz</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>diktat/winio.py</code></td>
 <td>Windows: globale Tasten, Einfügen, Zielfenster, Autostart</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>diktat/hub.py</code>, <code>ui.py</code></td>
 <td>Fenster, Statusleiste, Tray-Symbol, Verlauf</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>diktat/config.py</code></td>
 <td>Einstellungen und Ablageorte</td>
 </tr>
@@ -570,15 +578,51 @@ html)</td>
 <p>In den Wortschatz kommen nur einzelne Wörter, die im mitgelieferten
 Lexikon stehen, höchstens 4.000. Sätze und Namen von Patienten können so
 nicht hineingeraten. Tondateien werden beim Lernen nur gelesen.</p>
-<p>Material für ein Nachtraining: Auf Wunsch
-(<code>training_keep</code>, ab Werk aus) hebt das Stimmtraining die
-vorgelesenen, erfundenen Sätze als WAV mit Text in
-<code>training\</code> auf, nie Diktate oder eingelesene Aufnahmen. Ob
-ein Nachtraining des Sprachmodells auf die eigene Stimme die Erkennung
-verbessert, ist nicht gemessen; mit künstlichen Stimmen brachte es
-nichts (<code>ERGEBNIS.md</code>). Das Training selbst läuft außerhalb
-der App (<code>werkzeug/training</code>, braucht eine Grafikkarte) und
-würde nur den kleinen Schreibteil des Modells (69 MB) ersetzen.</p>
+<p><strong>Übungssätze (seit 1.6.0).</strong>
+<code>diktat/lesetexte.json</code> entsteht aus
+<code>werkzeug/lesetexte/*.txt</code>: je Fachrichtung eine Datei, jede
+Zeile ein Satz in Sprechform (Zahlen als Wörter) mit einer Art davor:
+<code>A|</code> Ärztin oder Arzt diktiert oder übergibt, <code>P|</code>
+Gespräch mit Patientin oder Patient, <code>O|</code> Organisation,
+<code>T|</code> Prüfsatz. <code>bauen.py</code> prüft Länge (6 bis 30
+Wörter), Satzende, Dubletten und dass kein Prüfsatz einem Übungssatz
+gleicht, und ordnet die Übungssätze gierig: Der nächste Satz ist der,
+der die meisten neuen Lautfolgen und Fachwörter bringt, die Arten
+gemischt. Wer nach zehn Minuten aufhört, hat deshalb das meiste schon
+abgedeckt. Enthalten sind der Grundstock (90 Sätze, etwa 9 Minuten),
+Notfallmedizin (284 Sätze, 32 Minuten) und Innere Medizin und
+Nephrologie (284 Sätze, 31 Minuten); eine Fachrichtung wird immer nach
+dem Grundstock gelesen. Die 19 früheren Themen bleiben wählbar. Eine
+weitere Fachrichtung ist eine weitere Textdatei.</p>
+<p><strong>Messung.</strong> Je Fachrichtung liegen 24 Prüfsätze bei,
+zum Grundstock 16; das Training zeigt sie nie. „Messen …“ lässt sie
+vorlesen und rechnet die Wortfehlerquote (<code>training.score</code>):
+Beide Seiten werden vorher gleich geschrieben
+(<code>training.plain</code>: Zahlwörter zu Ziffern, Einheiten kurz,
+Satzzeichen weg), damit „zwölf Milligramm“ und „12 mg“ nicht als Fehler
+zählen. Das Ergebnis steht mit Datum und den bis dahin gelesenen Minuten
+in <code>training_scores</code>. Die Messung lernt nichts ins
+Wörterbuch.</p>
+<p><strong>Material für ein Nachtraining.</strong> Das Stimmtraining
+hebt die vorgelesenen, erfundenen Sätze als WAV mit Text in
+<code>training\</code> auf (Prüfsätze in <code>training\pruef\</code>),
+nie Diktate oder eingelesene Aufnahmen; seit 1.6.0 ohne Schalter im
+Fenster (<code>training_keep</code>, ab Werk an). Ob ein Nachtraining
+des Sprachmodells auf die eigene Stimme die Erkennung verbessert, ist
+nicht gemessen; mit künstlichen Stimmen brachte es nichts
+(<code>ERGEBNIS.md</code>). Das Training selbst läuft außerhalb der App
+(<code>werkzeug/training</code>, braucht eine Grafikkarte) und würde nur
+den kleinen Schreibteil des Modells (69 MB) ersetzen.</p>
+<p><strong>Profil sichern (seit 1.6.0).</strong> „Profil sichern …“
+unter Einstellungen schreibt eine Datei <code>.lsprofil</code>: ein
+ZIP-Archiv mit <code>einstellungen.json</code> (wie die bisherige
+Sicherung, ohne Schlüssel und ohne Verlauf) und dem Ordner
+<code>training\</code>. „Profil zurückholen …“ liest
+<code>.lsprofil</code> oder eine frühere <code>.json</code>;
+Stimmaufnahmen werden ergänzt, vorhandene nicht überschrieben
+(<code>config.export</code>, <code>config.restore</code>). Diktate,
+Fälle und der Schlüssel für ein Sprachmodell-Konto sind nicht
+enthalten.</p>
 <h2 id="7-daten-auf-dem-rechner">7. Daten auf dem Rechner</h2>
 <p>Alles Eigene, auch der gelernte Wortschatz, liegt unter
 <code>%LOCALAPPDATA%\LocalScribe</code>, also je Windows-Konto (nicht im
@@ -644,8 +688,9 @@ mit Papierkorb</td>
 </tr>
 <tr class="even">
 <td><code>training\</code></td>
-<td>nur wenn eingeschaltet: vorgelesene Sätze des Stimmtrainings als
-Ton</td>
+<td>vorgelesene Übungssätze des Stimmtrainings als Ton mit Text
+(<code>index.jsonl</code>), Prüfsätze in <code>pruef\</code>; nie
+Diktate</td>
 </tr>
 </tbody>
 </table>
@@ -830,26 +875,33 @@ Jev</td>
 </tr>
 <tr class="odd">
 <td><code>training_keep</code></td>
-<td>vorgelesene Sätze als Ton aufheben</td>
-<td>aus</td>
+<td>vorgelesene Übungs- und Prüfsätze als Ton aufheben (kein Schalter im
+Fenster; für eine zentrale Vorgabe)</td>
+<td>an (seit 1.6.0)</td>
 </tr>
 <tr class="even">
+<td><code>field</code>, <code>training_scores</code></td>
+<td>Fachrichtung im Stimmtraining; Messungen mit Prüfsätzen (Zeitpunkt,
+Wortfehler, Trainingsminuten)</td>
+<td>leer</td>
+</tr>
+<tr class="odd">
 <td><code>phone</code></td>
 <td>Handy als Mikrofon</td>
 <td>aus</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>model_dir</code></td>
 <td>eigener Ordner mit den Sprachmodellen, zum Beispiel ein
 Netzlaufwerk</td>
 <td>leer</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>live_preview</code> (nur Datei)</td>
 <td>Vorschau auf die laufende Äußerung in der Aufnahme</td>
 <td>an</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>threads</code> (nur Datei)</td>
 <td>Zahl der Rechen-Threads; 0 überlässt es der Laufzeit</td>
 <td>0</td>

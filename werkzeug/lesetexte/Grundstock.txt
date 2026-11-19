@@ -1,0 +1,109 @@
+# Grundstock: für alle Fachrichtungen, etwa zehn Minuten. Zahlen, Einheiten, Dosierungen, Vitalwerte, häufige
+# Arzneimittel, Abkürzungen, Verneinungen und Wendungen aus Brief und Gespräch.
+# A = Ärztin oder Arzt diktiert oder übergibt, P = Gespräch mit Patientin oder Patient, O = Organisation, T = Prüfsatz (nie im Training)
+A|Blutdruck einhundertfünfunddreißig zu fünfundachtzig, Herzfrequenz zweiundsiebzig pro Minute, Temperatur sechsunddreißig Komma acht Grad Celsius.
+A|Sauerstoffsättigung vierundneunzig Prozent unter Raumluft, Atemfrequenz achtzehn pro Minute.
+A|Körpergröße einhundertachtundsiebzig Zentimeter, Körpergewicht dreiundneunzig Kilogramm, Body-Mass-Index neunundzwanzig Komma vier.
+A|Hämoglobin elf Komma zwei Gramm pro Deziliter, Leukozyten neuntausendsechshundert pro Mikroliter, Thrombozyten zweihundertvierzigtausend.
+A|Natrium einhundertachtunddreißig, Kalium vier Komma drei, Kreatinin null Komma neun Milligramm pro Deziliter.
+A|C-reaktives Protein achtundvierzig Milligramm pro Liter, Procalcitonin null Komma sieben Nanogramm pro Milliliter.
+A|Glukose einhundertzweiundsechzig Milligramm pro Deziliter, HbA1c sieben Komma neun Prozent.
+A|Die glomeruläre Filtrationsrate liegt bei siebenundfünfzig Milliliter pro Minute.
+A|INR zwei Komma sechs, partielle Thromboplastinzeit einunddreißig Sekunden, Fibrinogen im Normbereich.
+A|Bilirubin eins Komma vier, GOT dreiundsechzig, GPT einundsiebzig, Gamma-GT einhundertzwölf Einheiten pro Liter.
+A|TSH zwei Komma eins, freies Thyroxin und freies Trijodthyronin im Referenzbereich.
+A|Pantoprazol vierzig Milligramm eins null null, Bisoprolol zwei Komma fünf Milligramm eins null eins.
+A|Ramipril fünf Milligramm morgens, Amlodipin fünf Milligramm abends, Atorvastatin zwanzig Milligramm zur Nacht.
+A|Metamizol fünfhundert Milligramm bis zu viermal täglich bei Bedarf, maximal vier Gramm pro Tag.
+A|Enoxaparin vierzig Milligramm subkutan einmal täglich zur Thromboseprophylaxe.
+A|Ibuprofen sechshundert Milligramm dreimal täglich unter Magenschutz für längstens fünf Tage.
+A|Levothyroxin fünfundsiebzig Mikrogramm nüchtern, dreißig Minuten vor dem Frühstück.
+A|Insulin glargin sechzehn Einheiten zur Nacht, Korrektur mit kurzwirksamem Insulin nach Schema.
+A|Prednisolon fünfzig Milligramm für fünf Tage, danach ohne Ausschleichen beenden.
+A|Amoxicillin und Clavulansäure achthundertfünfundsiebzig Milligramm zweimal täglich für sieben Tage.
+A|Vollelektrolytlösung eintausend Milliliter über acht Stunden intravenös.
+A|Die Dauermedikation wurde unverändert fortgeführt, neu angesetzt wurde lediglich ein Protonenpumpenhemmer.
+A|Keine Allergien bekannt, insbesondere keine Unverträglichkeit gegen Penicillin oder Kontrastmittel.
+A|Kein Fieber, kein Schüttelfrost, kein Nachtschweiß, kein ungewollter Gewichtsverlust.
+A|Keine Dyspnoe, keine Orthopnoe, keine peripheren Ödeme, kein thorakales Druckgefühl.
+A|Übelkeit und Erbrechen werden verneint, Stuhlgang und Miktion sind unauffällig.
+A|Der Patient ist wach, kooperativ und zu Person, Ort, Zeit und Situation orientiert.
+A|Guter Allgemeinzustand, normaler Ernährungszustand, Haut warm und trocken, Schleimhäute feucht.
+A|Herztöne rein und rhythmisch, keine pathologischen Geräusche, Lunge beidseits vesikulär belüftet.
+A|Abdomen weich, kein Druckschmerz, keine Abwehrspannung, Darmgeräusche regelrecht, Nierenlager frei.
+A|Pupillen isokor und prompt lichtreagibel, kein Meningismus, grobe Kraft seitengleich erhalten.
+A|Periphere Pulse allseits tastbar, Wadendruckschmerz beidseits negativ, keine Umfangsdifferenz der Beine.
+A|Elektrokardiogramm: Sinusrhythmus, Frequenz achtundsechzig, Indifferenztyp, keine Erregungsrückbildungsstörungen.
+A|Röntgen Thorax in zwei Ebenen: keine Infiltrate, kein Erguss, kein Pneumothorax, Herz normal groß.
+A|Sonografie des Abdomens: Leber homogen, Gallenblase steinfrei, Nieren beidseits ohne Harnstau.
+A|Computertomografie des Schädels ohne Kontrastmittel: keine Blutung, keine frische Ischämie, keine Raumforderung.
+A|Diagnose: arterielle Hypertonie, Diabetes mellitus Typ zwei, Hypercholesterinämie, Adipositas Grad eins.
+A|Zustand nach Appendektomie, Cholezystektomie und Hüfttotalendoprothese rechts.
+A|Die Symptomatik besteht seit etwa drei Wochen und hat in den letzten Tagen zugenommen.
+A|Unter der eingeleiteten Therapie kam es zu einer raschen Besserung der Beschwerden.
+A|Wir empfehlen eine Kontrolle der Nierenwerte und der Elektrolyte in einer Woche beim Hausarzt.
+A|Eine Wiedervorstellung ist bei Fieber, zunehmenden Schmerzen oder Atemnot jederzeit möglich.
+A|Wir bitten um Fortführung der Medikation und um ambulante Verlaufskontrolle in vier bis sechs Wochen.
+A|Wir bedanken uns für die freundliche Zuweisung und berichten über den stationären Aufenthalt.
+A|Die Entlassung erfolgte in gebessertem Allgemeinzustand in die hausärztliche Weiterbehandlung.
+A|Der Befund wurde ausführlich besprochen, die Patientin ist mit dem Vorgehen einverstanden.
+A|Differenzialdiagnostisch kommen eine Infektion, eine Medikamentennebenwirkung oder eine Autoimmunerkrankung in Betracht.
+A|Die Indikation zur Antikoagulation wurde geprüft und bei erhöhtem Blutungsrisiko vorerst zurückgestellt.
+A|Nebenbefundlich zeigte sich eine Hypokaliämie, die oral ausgeglichen wurde.
+A|Die Schmerzen werden auf der numerischen Skala mit sechs von zehn angegeben.
+A|Nikotin zwanzig Zigaretten täglich seit dreißig Jahren, Alkohol gelegentlich, keine Drogen.
+A|Familienanamnese: Vater mit Myokardinfarkt im Alter von fünfundfünfzig Jahren, Mutter mit Mammakarzinom.
+A|Die Patientin lebt allein, versorgt sich selbst und ist mit dem Rollator mobil.
+A|Pflegegrad drei, Versorgung durch den ambulanten Pflegedienst zweimal täglich.
+A|Eine Patientenverfügung und eine Vorsorgevollmacht liegen vor, Bevollmächtigte ist die Tochter.
+A|Aufklärung über Nutzen, Risiken und Alternativen erfolgt, schriftliche Einwilligung liegt vor.
+P|Guten Tag, ich bin die zuständige Ärztin, was führt Sie heute zu uns?
+P|Seit wann haben Sie die Beschwerden, und sind sie plötzlich oder langsam gekommen?
+P|Können Sie mir zeigen, wo genau es wehtut, und strahlt der Schmerz irgendwohin aus?
+P|Wie stark sind die Schmerzen auf einer Skala von null bis zehn?
+P|Nehmen Sie regelmäßig Medikamente ein, auch Blutverdünner oder Schmerzmittel?
+P|Haben Sie Allergien, zum Beispiel gegen Antibiotika, Pflaster oder Kontrastmittel?
+P|Sind bei Ihnen Vorerkrankungen bekannt, etwa am Herzen, an der Lunge oder an den Nieren?
+P|Wurden Sie schon einmal operiert, und gab es dabei Probleme mit der Narkose?
+P|Rauchen Sie, und wie viel Alkohol trinken Sie in einer gewöhnlichen Woche?
+P|Ich möchte Sie jetzt untersuchen, bitte machen Sie den Oberkörper frei.
+P|Atmen Sie bitte tief ein und aus, und husten Sie einmal kräftig.
+P|Wir nehmen Ihnen jetzt Blut ab und schreiben ein EKG, das dauert nur wenige Minuten.
+P|Die Blutwerte sind bis auf einen leicht erhöhten Entzündungswert unauffällig.
+P|Ich erkläre Ihnen jetzt, was wir gefunden haben und wie es weitergeht.
+P|Bitte nehmen Sie die Tablette morgens nüchtern mit einem Glas Wasser.
+P|Wenn die Beschwerden zunehmen oder Fieber dazukommt, kommen Sie bitte sofort wieder.
+P|Haben Sie dazu noch Fragen, oder ist etwas unklar geblieben?
+P|Bitte bringen Sie beim nächsten Mal Ihren Medikamentenplan und die Vorbefunde mit.
+P|Sie dürfen bis zur Untersuchung nichts essen und nur klares Wasser trinken.
+P|Ich schreibe Sie für eine Woche arbeitsunfähig und gebe Ihnen ein Rezept mit.
+O|Bitte melden Sie den Patienten für morgen früh zur Sonografie und zum Röntgen an.
+O|Können Sie mir die Vorbefunde aus dem Archiv und den letzten Arztbrief heraussuchen?
+O|Ich bin gleich in der Besprechung und ab vierzehn Uhr wieder telefonisch erreichbar.
+O|Die Angehörigen möchten heute Nachmittag ein Gespräch, bitte tragen Sie sechzehn Uhr ein.
+O|Der Entlassbrief ist diktiert, bitte legen Sie ihn mir zur Unterschrift vor.
+O|Bitte rufen Sie in der Radiologie an und fragen nach dem schriftlichen Befund.
+O|Die Laborwerte von heute Morgen fehlen noch, können Sie bitte nachfragen?
+O|Wir brauchen für Zimmer zwölf noch einen Termin beim Sozialdienst und bei der Physiotherapie.
+O|Die Fortbildung beginnt am Mittwoch um fünfzehn Uhr dreißig im großen Besprechungsraum.
+O|Vielen Dank für die Rückmeldung, ich kümmere mich darum und melde mich morgen.
+A|Anamnestisch besteht eine chronische Niereninsuffizienz im Stadium drei sowie eine koronare Herzkrankheit.
+A|Apixaban fünf Milligramm eins null eins wurde perioperativ für achtundvierzig Stunden pausiert.
+A|Im Verlauf Abfall des Hämoglobins von dreizehn Komma eins auf neun Komma vier Gramm pro Deziliter.
+A|Blutzucker nüchtern zweihundertachtzehn, zwei Stunden nach dem Essen dreihundertvier Milligramm pro Deziliter.
+T|Blutdruck einhundertachtundvierzig zu zweiundneunzig, Herzfrequenz sechsundsiebzig pro Minute, Temperatur siebenunddreißig Komma drei Grad Celsius.
+T|Kalium drei Komma sechs, Natrium einhunderteinundvierzig, Kreatinin eins Komma zwei Milligramm pro Deziliter.
+T|Hämoglobin zwölf Komma sieben Gramm pro Deziliter, Leukozyten siebentausendvierhundert, C-reaktives Protein neunzehn Milligramm pro Liter.
+T|Metoprolol siebenundvierzig Komma fünf Milligramm eins null null, Torasemid zehn Milligramm eins null null.
+T|Paracetamol eintausend Milligramm bis zu dreimal täglich bei Bedarf, maximal drei Gramm pro Tag.
+T|Heparin siebentausendfünfhundert Einheiten subkutan zweimal täglich bis zur vollständigen Mobilisation.
+T|Kein Husten, kein Auswurf, kein Brennen beim Wasserlassen, kein Durchfall.
+T|Cor und Pulmo auskultatorisch unauffällig, Abdomen weich und indolent, Extremitäten frei beweglich.
+T|Elektrokardiogramm: Sinusrhythmus, Frequenz vierundachtzig, Linkstyp, keine ST-Strecken-Veränderungen.
+T|Sonografie: keine freie Flüssigkeit, Gallenwege nicht erweitert, Harnblase gut gefüllt und glatt begrenzt.
+T|Diagnose: chronisch obstruktive Lungenerkrankung, Vorhofflimmern, Osteoporose, Zustand nach Schenkelhalsfraktur links.
+T|Wir empfehlen die Fortführung der Therapie und eine Laborkontrolle in vierzehn Tagen.
+T|Seit wann besteht der Schwindel, und tritt er eher im Liegen oder beim Aufstehen auf?
+T|Bitte nehmen Sie das Antibiotikum bis zum Ende ein, auch wenn es Ihnen schon besser geht.
+T|Bitte vereinbaren Sie für nächste Woche einen Termin zur Kontrolle in der Sprechstunde.
+T|Die Patientin wurde über die Befunde aufgeklärt und wünscht die ambulante Weiterbehandlung.

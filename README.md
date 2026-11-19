@@ -103,9 +103,10 @@ beendet sie nicht; sie bleibt im Infobereich (Rechtsklick → Beenden).
   macht, wird künftig ersetzt. Übernommen wird nur, was dem richtigen Wort ähnlich ist.
   Mitgeliefert ist ein **medizinisches Basiswörterbuch** (abschaltbar): Fehlschreibungen von rund
   5 900 Wirkstoffen, Diagnosen, anatomischen und klinischen Begriffen. Siehe unten.
-- **Stimmtraining** – 297 medizinische Sätze aus 24 Themen zum Vorlesen. Die App vergleicht, was sie
-  verstanden hat, mit dem Satz und trägt deine Aussprache falsch erkannter Fachbegriffe ins Wörterbuch ein.
-  Freiwillig; je mehr Sätze, desto besser. Siehe „Stimmtraining“ unten.
+- **Stimmtraining** – Sätze zum Vorlesen: ein Grundstock für alle (etwa 9 Minuten) und je Fachrichtung gut
+  30 Minuten (bisher Notfallmedizin, Innere Medizin und Nephrologie). Die App vergleicht, was sie verstanden hat,
+  mit dem Satz und trägt deine Aussprache falsch erkannter Fachbegriffe ins Wörterbuch ein. „Messen …“ zeigt mit
+  eigenen Prüfsätzen, was das Vorlesen gebracht hat. Freiwillig. Siehe „Stimmtraining“ unten.
 - **Textbausteine** – gesprochenes Stichwort → hinterlegter Text.
 - **LLM** (Einstellungen, Reiter LLM) – Server-Adresse, API-Schlüssel, Modell und eigene Prompts für die KI-Nachbearbeitung.
   Spricht jede OpenAI-kompatible Schnittstelle (Ollama, LM Studio, vLLM, eigener Anbieter).
@@ -331,16 +332,31 @@ daneben, was sie verstanden hat. Ein falsch erkanntes Wort kommt ins persönlich
   Kabel im Diktat ersetzt würde. Solche Fälle zeigt die App an, lernt sie aber nicht.
 
 Getrennt gehörte Zusammensetzungen werden als Paar gelernt („Set-Implantation“ → „Stentimplantation“).
-Das Material: 297 Sätze aus 24 Themen, darunter Kardiologie, Pneumologie, Gastroenterologie, Nephrologie, Neurologie,
-Notaufnahme, Chirurgie und Orthopädie, Onkologie und Hämatologie, Medikation, Befund und Verlauf
-(`diktat/lesetexte.json`, erweiterbar). Der Ton bleibt im Arbeitsspeicher. Alles Gelernte steht auf der Seite
-Wörterbuch und lässt sich dort ändern oder löschen.
+
+**Das Material.** Unter **Fachrichtung** wählst du, was du liest. Der **Grundstock** (90 Sätze, etwa 9 Minuten)
+enthält, was alle brauchen: Zahlen, Einheiten, Dosierungen, Vitalwerte, häufige Arzneimittel. Eine Fachrichtung
+(**Notfallmedizin**, **Innere Medizin und Nephrologie**; weitere folgen) beginnt mit dem Grundstock und bringt
+danach gut 30 Minuten eigene Sätze: wie Ärztinnen und Ärzte diktieren oder übergeben, Gespräche mit Patientinnen und
+Patienten, Organisation. Die Sätze sind so geordnet, dass die ergiebigsten zuerst kommen; du kannst jederzeit
+aufhören und später weitermachen. Die früheren Themen (Kardiologie, Neurologie, Chirurgie …) stehen weiter unten in
+der Auswahl. Quelle: `werkzeug/lesetexte/`, eine Textdatei je Fachrichtung.
+
+**Messen.** „Messen …“ lässt dich 40 Prüfsätze vorlesen (etwa vier Minuten), die im Training nie vorkommen, und
+zeigt deine Wortfehlerquote. Einmal vor dem Training und später wieder: So siehst du, was das Vorlesen bringt.
+
+**Der Ton der Übungssätze** wird im Datenordner aufgehoben (nur diese erfundenen Sätze, nie Diktate), damit das
+Sprachmodell später auf deine Stimme nachtrainiert werden kann. „Alle löschen“ auf der Seite entfernt sie. Alles
+Gelernte steht auf der Seite Wörterbuch und lässt sich dort ändern oder löschen.
 
 **Aus Aufnahme mit Transkript lernen**: Wer Diktate mit dem fertigen Text dazu hat, wählt die Tondateien aus; das
 Transkript liegt als Textdatei mit gleichem Namen daneben (`befund1.wav` und `befund1.txt` oder `.docx`). LocalScribe
 erkennt die Aufnahme, vergleicht mit dem Transkript und lernt Verhörer fürs Wörterbuch und Fachwörter für den
-Wortschatz. Der Ton wird nur gelesen. Auf Wunsch (ab Werk aus) hebt das Stimmtraining die vorgelesenen, erfundenen
-Sätze als Ton auf, als Material für ein mögliches Nachtraining auf die eigene Stimme; Diktate nie.
+Wortschatz. Der Ton wird nur gelesen.
+
+**Profil sichern.** Unter Einstellungen schreibt „Profil sichern …“ Wörterbuch, Wortschatz, Textbausteine,
+Aufträge, Tasten, Server und deine Stimmaufnahmen in eine Datei (`.lsprofil`). „Profil zurückholen …“ liest sie an
+diesem oder einem anderen Rechner wieder ein. Nicht enthalten: Diktate, Fälle und der Schlüssel für ein
+Sprachmodell-Konto. Updates fassen das Profil nicht an.
 
 ## Sprecher trennen
 

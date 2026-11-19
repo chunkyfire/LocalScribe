@@ -1,6 +1,7 @@
 """Fassung 0.8: Schreibweisen, Stimmtraining, Sprecher trennen, Fachkorrektur mit Türsteher, Modellordner."""
 import json
 import pathlib
+import re
 import sys
 import tempfile
 
@@ -53,6 +54,43 @@ check("Training lernt keine Beugungsformen", read and not learned, str(learned))
 check("Anderer Satz gelesen: nichts lernen", training.learn("Pantoprazol vierzig Milligramm.", "Das Wetter ist heute schön.") == (False, [], []))
 n = sum(len(v) for v in training.material().values())
 check("Lesematerial vorhanden", n >= 150, f"({n} Sätze in {len(training.material())} Themen)")
+# 1.6.0: neue Übungssätze je Fachrichtung, Prüfsätze getrennt, Vergleich von Sprech- und Schreibform
+_flat = lambda s: " ".join(training.plain(s))
+_base, _fields = training.sentences(), training.fields()
+check("Stimmtraining: Grundstock rund neun Minuten, jede Fachrichtung mindestens dreißig",
+      8 <= training.minutes(_base) <= 12 and _fields
+      and all(training.minutes(training.sentences(f)) - training.minutes(_base) >= 30 for f in _fields),
+      [(f, round(training.minutes(training.sentences(f)))) for f in _fields])
+check("Stimmtraining: Fachrichtung beginnt mit dem Grundstock", all(training.sentences(f)[:len(_base)] == _base for f in _fields))
+_train = {_flat(s) for f in [training.BASE] + _fields for s in training.sentences(f)}
+_tests = [s for f in [training.BASE] + _fields for s in training.held_out(f)]
+check("Stimmtraining: Prüfsätze kommen im Training nicht vor und es gibt genug davon",
+      all(_flat(s) not in _train for s in _tests) and len(training.held_out()) >= 12
+      and all(len(training.held_out(f)) >= 30 for f in _fields), len(_tests))
+check("Stimmtraining: kein Satz doppelt, keiner auch in den bisherigen Themen",
+      len(_train) == len({s for f in [training.BASE] + _fields for s in training.sentences(f)})
+      and not _train & {_flat(s) for name in training.topics() for s in training.sentences(name)})
+check("Zahlwörter: Hunderter, Tausender, zusammengesetzte; Wörter bleiben Wörter",
+      [training.number(w) for w in ("einhundertsechzig", "fünfundneunzig", "zweitausendvierhundert", "zwölfhundert",
+                                    "zweihundertvierzigtausend", "eins", "ein", "Einwilligung", "dreifach", "einmal")]
+      == [160, 95, 2400, 1200, 240000, 1, None, None, None, None])
+for _spoken, _written in (
+        ("Blutdruck einhundertsechzig zu fünfundneunzig, Sättigung siebenundneunzig Prozent unter Raumluft.", "Blutdruck 160/95, Sättigung 97% unter Raumluft."),
+        ("Noradrenalin null Komma drei Mikrogramm pro Kilogramm pro Minute, pH sieben Komma zwei sechs.", "Noradrenalin 0,3 µg/kg/min, pH 7,26."),
+        ("Ramipril fünf Milligramm eins null null, Leukozyten neuntausendsechshundert pro Mikroliter.", "Ramipril 5 mg 1-0-0, Leukozyten 9.600/µl."),
+        ("Adrenalin ein Milligramm alle vier Minuten, Heparin fünftausend Einheiten intravenös.", "Adrenalin 1 mg alle 4 Minuten, Heparin 5000 IE i.v.")):
+    check("Sprechform und Schreibform gelten als gleich: " + _written[:28], training.score(_spoken, _written)[0] == 0,
+          (training.plain(_spoken), training.plain(_written)))
+check("Messen: ein falsches Wort ist ein Fehler", training.score("Kein Fieber, kein Husten.", "Kein Fieber, kein Hosten.") == (1, 4))
+check("Vorlesen: Satz mit vielen Zahlen gilt als gelesen",
+      training.learn("Blutdruck einhundertsechzig zu fünfundneunzig, Herzfrequenz achtundachtzig pro Minute, Temperatur sechsunddreißig Komma acht Grad Celsius.",
+                     "Blutdruck 160/95, Herzfrequenz 88/min, Temperatur 36,8 °C.")[0])
+# Die Fenster rufen nur auf, was die App wirklich hat (Zurückholen rief seit 1.3.0 eine Funktion, die es nicht gab)
+_hub = (pathlib.Path(__file__).parent.parent / "diktat" / "hub.py").read_text(encoding="utf-8")
+_app = (pathlib.Path(__file__).parent.parent / "diktat" / "app.py").read_text(encoding="utf-8")
+_have = set(re.findall(r"^    def (\w+)\(", _app, re.M)) | set(re.findall(r"^    (\w+) = staticmethod\(", _app, re.M))
+_missing = sorted(set(re.findall(r"\bctl\.(\w+)\(", _hub)) - _have)
+check("Fenster ruft nur vorhandene Funktionen der App", not _missing, _missing)
 
 # ----- Sprecher
 # Zeitleiste: 0 bis 2 s Sprecher 2, Pause, 3 bis 5 s Sprecher 1 (Nummern der Gruppierung), Schritt 0,1 s
@@ -205,7 +243,7 @@ with tempfile.TemporaryDirectory() as tmp:
           and rows[0]["audio"] == path.name, str(rows[0]))
     check("Zähler stimmt", training.kept() == (2, 3.0), str(training.kept()))
     check("Löschen entfernt alles", training.clear() == 2 and training.kept() == (0, 0.0) and not list(training.store().glob("*")))
-    check("Aufheben ist ab Werk aus", config.DEFAULTS.get("training_keep") is False)
+    check("Aufheben ist seit 1.6.0 ab Werk an (nur die erfundenen Übungssätze)", config.DEFAULTS.get("training_keep") is True)
     config.DIR = old
 # Aus Aufnahme mit Transkript lernen: Ton wird nur gelesen
 with tempfile.TemporaryDirectory() as tmp:
@@ -689,7 +727,7 @@ try:
     _c = config.load()
     _names = [p["name"] for p in _c["prompts"]]
     check("Aufträge: neue kommen einmal dazu, der eigene bleibt", _names == ["Arztbrief", "Zusammenfassung", "Meeting-Protokoll"]
-          and _c["prompts"][0]["text"] == "mein eigener" and _c["config_version"] == 6, _names)
+          and _c["prompts"][0]["text"] == "mein eigener" and _c["config_version"] == 7, _names)
     check("Aufträge: Aufnahme zeigt ab Werk Zusammenfassung und Protokoll, den eigenen Arztbrief nicht",
           [p["record"] for p in _c["prompts"]] == [False, True, True])
     config.FILE.write_text(json.dumps({"config_version": 4, "hotkey_hold": ["ctrl", "win"], "prompts": [
@@ -706,12 +744,35 @@ try:
     config.save(_c)
     check("Aufträge: gelöschte kommen nicht wieder", [p["name"] for p in config.load()["prompts"]] == ["Arztbrief"])
     check("Aufträge: neue Installation hat alle sechs", len(config.DEFAULTS["prompts"]) == 6)
+    # 1.6.0: Übungssätze werden ohne Haken aufgehoben; Profil mit Stimmaufnahmen sichern und zurückholen
+    config.FILE.write_text(json.dumps({"config_version": 6, "hotkey_hold": ["ctrl", "win"], "training_keep": False,
+                                       "dictionary": {"Riba": "RIVA"}}), encoding="utf-8")
+    _c7 = config.load()
+    check("1.6.0: Übungssätze werden aufgehoben, Fachrichtung leer", _c7["training_keep"] is True and _c7["field"] == ""
+          and _c7["config_version"] == 7 and _c7["training_scores"] == [])
+    import numpy as _np
+    training.keep(_np.zeros(16000, dtype=_np.float32), "Erster Übungssatz.")
+    training.keep(_np.zeros(8000, dtype=_np.float32), "Ein Prüfsatz.", test=True)
+    check("Stimmaufnahmen: Übungs- und Prüfsätze liegen getrennt", training.kept() == (1, 1.0) and training.kept(test=True) == (1, 0.5)
+          and (config.DIR / "training" / "pruef" / "index.jsonl").exists())
+    _prof = config.DIR / ("mein" + config.PROFILE)
+    check("Profil: Einstellungen und Stimmaufnahmen in einer Datei", config.export(_prof) == 2 and _prof.stat().st_size > 500)
+    check("Profil: gelöscht sind alle Aufnahmen weg", training.clear() == 2 and training.kept() == (0, 0.0) and training.kept(test=True) == (0, 0.0))
+    _c7["dictionary"] = {}
+    config.save(_c7)
+    _back7 = config.restore(_prof)
+    check("Profil: Wörterbuch und Stimmaufnahmen sind wieder da", _back7["dictionary"] == {"Riba": "RIVA"} and _back7.get("_voice") == 2
+          and training.kept() == (1, 1.0) and training.kept(test=True) == (1, 0.5))
+    check("Profil: zweimal zurückholen verdoppelt nichts", config.restore(_prof).get("_voice") == 0 and training.kept() == (1, 1.0))
+    _json7 = config.DIR / "nur.json"
+    check("Profil: nur Einstellungen als JSON geht weiter", config.export(_json7) == 0 and "_voice" not in config.restore(_json7))
+    training.clear()
     # 1.5.0: Sprecher trennen einmal an, das zweite deutsche Sprachmodell gibt es nicht mehr
     config.FILE.write_text(json.dumps({"config_version": 5, "hotkey_hold": ["ctrl", "win"], "speakers": False,
                                        "model_choice": "genau"}), encoding="utf-8")
     _c6 = config.load()
     check("1.5.0: Sprecher trennen an, Canary wird Deutsch", _c6["speakers"] is True and _c6["model_choice"] == "de"
-          and _c6["config_version"] == 6 and set(config.MODELS) == {"de", "multi"} and _c6["handover_frame"] == "zna", _c6.get("model_choice"))
+          and _c6["config_version"] == 7 and set(config.MODELS) == {"de", "multi"} and _c6["handover_frame"] == "zna", _c6.get("model_choice"))
     config.FILE.write_text(json.dumps({"config_version": 6, "hotkey_hold": ["ctrl", "win"], "speakers": False,
                                        "model_choice": "multi", "handover_frame": "its"}), encoding="utf-8")
     _c6 = config.load()

@@ -1,0 +1,310 @@
+# Notfallmedizin: Notaufnahme, Schockraum, Rettungsdienst. Mindestens dreißig Minuten.
+# A = Ärztin oder Arzt diktiert oder übergibt, P = Gespräch mit Patientin oder Patient, O = Organisation, T = Prüfsatz (nie im Training)
+A|Vorstellung mit dem Rettungsdienst bei seit zwei Stunden bestehendem retrosternalem Druckgefühl mit Ausstrahlung in den Unterkiefer.
+A|Im Zwölf-Kanal-EKG ST-Hebungen in zwei, drei und aVF, spiegelbildliche Senkungen in eins und aVL.
+A|Akutes Koronarsyndrom mit ST-Hebung der Hinterwand, Herzkatheterlabor ist alarmiert, Transport unter Monitoring.
+A|Acetylsalicylsäure zweihundertfünfzig Milligramm und Heparin fünftausend Einheiten intravenös wurden bereits präklinisch gegeben.
+A|Troponin initial vierzehn Nanogramm pro Liter, Kontrolle nach einer Stunde zweiundfünfzig, damit signifikanter Anstieg.
+A|Nitroglycerin zwei Hübe sublingual, darunter Besserung der Beschwerden von acht auf drei von zehn.
+A|Akute Dyspnoe seit dem Morgen, Sauerstoffsättigung initial vierundachtzig Prozent, Sprechdyspnoe, Einsatz der Atemhilfsmuskulatur.
+A|Verdacht auf Lungenarterienembolie bei Tachykardie, einseitiger Beinschwellung und Immobilisation nach Kniegelenkersatz.
+A|CT-Angiografie: zentrale Lungenarterienembolie beidseits, rechter Ventrikel dilatiert, Rückstau von Kontrastmittel in die Lebervenen.
+A|Unfraktioniertes Heparin als Bolus achtzig Einheiten pro Kilogramm, anschließend Perfusor nach partieller Thromboplastinzeit.
+A|Kardiales Lungenödem bei hypertensiver Entgleisung, Blutdruck zweihundertzehn zu einhundertfünfzehn, feuchte Rasselgeräusche bis in die Mittelfelder.
+A|Furosemid vierzig Milligramm intravenös, Nitroperfusor, nichtinvasive Beatmung mit CPAP acht Millibar.
+A|Infektexazerbierte COPD, Vernebelung mit Salbutamol und Ipratropiumbromid, Prednisolon fünfzig Milligramm intravenös.
+A|Blutgasanalyse arteriell: pH sieben Komma zwei sechs, Kohlendioxidpartialdruck einundsiebzig, Bikarbonat neunundzwanzig, Laktat eins Komma vier.
+A|Hyperkapnisches Atemversagen, Beginn einer nichtinvasiven Beatmung, Verlegung auf die Intensivstation.
+A|Spannungspneumothorax rechts mit Halsvenenstauung und Hypotonie, Entlastungspunktion, danach Anlage einer Thoraxdrainage.
+A|Thoraxdrainage im fünften Interkostalraum in der vorderen Axillarlinie, Sog zwanzig Zentimeter Wassersäule.
+A|Synkope ohne Prodromi beim Treppensteigen, kein Zungenbiss, kein Einnässen, rasche Reorientierung.
+A|Im Monitor intermittierender AV-Block dritten Grades mit Pausen bis sechs Sekunden, transkutaner Schrittmacher in Bereitschaft.
+A|Tachykardes Vorhofflimmern mit einer Kammerfrequenz von einhundertsechzig, hämodynamisch stabil, Beginn unklar.
+A|Frequenzkontrolle mit Metoprolol fünf Milligramm langsam intravenös, darunter Abfall auf einhundertzehn pro Minute.
+A|Regelmäßige Schmalkomplextachykardie einhundertneunzig pro Minute, Vagusmanöver erfolglos, Adenosin sechs Milligramm als schneller Bolus.
+A|Instabile Breitkomplextachykardie, synchronisierte Kardioversion mit einhundertfünfzig Joule in Kurznarkose, danach Sinusrhythmus.
+A|Reanimation bei beobachtetem Kollaps, initialer Rhythmus Kammerflimmern, drei Schocks, Wiederkehr des Spontankreislaufs nach vierzehn Minuten.
+A|Adrenalin ein Milligramm alle vier Minuten, Amiodaron dreihundert Milligramm nach dem dritten Schock.
+A|Nach Wiederkehr des Kreislaufs intubiert, endtidales Kohlendioxid achtunddreißig, Zieltemperatur sechsunddreißig Grad.
+A|Akutes fokal-neurologisches Defizit mit Hemiparese rechts, Aphasie und Blickwendung nach links, Beginn vor siebzig Minuten.
+A|NIHSS vierzehn Punkte, Blutzucker einhundertzwölf, keine Antikoagulation, Schlaganfall-Alarm ausgelöst.
+A|CT-Angiografie: Verschluss der Arteria cerebri media links im M1-Segment, kein Blutungsnachweis.
+A|Systemische Thrombolyse mit Alteplase null Komma neun Milligramm pro Kilogramm, zehn Prozent als Bolus.
+A|Vor Lysebeginn Blutdrucksenkung mit Urapidil auf Werte unter einhundertfünfundachtzig zu einhundertzehn.
+A|Anmeldung zur mechanischen Thrombektomie, Verlegung mit Arztbegleitung in das neurovaskuläre Zentrum.
+A|Erstmaliger generalisierter tonisch-klonischer Anfall, Dauer etwa drei Minuten, postiktal verlangsamt, lateraler Zungenbiss.
+A|Status epilepticus, Lorazepam vier Milligramm intravenös, bei Persistenz Levetiracetam sechzig Milligramm pro Kilogramm.
+A|Donnerschlagkopfschmerz mit Nackensteifigkeit und Erbrechen, dringender Ausschluss einer Subarachnoidalblutung.
+A|Natives Schädel-CT unauffällig, bei Beschwerdebeginn vor mehr als sechs Stunden zusätzlich Lumbalpunktion.
+A|Schädel-Hirn-Trauma nach Sturz unter Apixaban, Glasgow Coma Scale fünfzehn, Kopfplatzwunde okzipital.
+A|Im CT schmales akutes Subduralhämatom links frontal ohne Mittellinienverlagerung, neurochirurgisches Konsil angefordert.
+A|Antagonisierung mit Prothrombinkomplexkonzentrat fünfundzwanzig Einheiten pro Kilogramm, Kontrolle der Bildgebung nach sechs Stunden.
+A|Polytrauma nach Motorradunfall, Schockraumalarm, Atemweg frei, Thorax stabil, Becken instabil, Beckenschlinge angelegt.
+A|eFAST mit freier Flüssigkeit im Morison-Pouch und perisplenisch, kein Perikarderguss, Lungengleiten beidseits vorhanden.
+A|Massivtransfusion aktiviert, Tranexamsäure ein Gramm über zehn Minuten, Zielwert des systolischen Blutdrucks neunzig.
+A|Traumaspirale: Milzruptur Grad vier, Rippenserienfraktur links, instabile Beckenringfraktur, keine intrakranielle Blutung.
+A|Distale Radiusfraktur links mit dorsaler Abkippung, Reposition im Bruchspalthämatom, dorsale Unterarmgipsschiene.
+A|Mediale Schenkelhalsfraktur rechts nach häuslichem Sturz, Bein verkürzt und außenrotiert, Durchblutung, Motorik und Sensibilität intakt.
+A|Sprunggelenkdistorsion rechts, Ottawa-Kriterien negativ, daher kein Röntgen, Versorgung mit Orthese.
+A|Vordere Schulterluxation links, Reposition in Analgosedierung, danach Röntgenkontrolle und Ruhigstellung im Gilchrist-Verband.
+A|Schnittwunde am linken Zeigefinger volar, Sensibilität und Beugesehnenfunktion intakt, Wundnaht in Oberst-Leitungsanästhesie.
+A|Tetanusschutz unklar, daher simultane Impfung, Wundkontrolle in zwei Tagen, Fadenzug nach zehn Tagen.
+A|Akutes Abdomen mit brettharter Bauchdecke und freier Luft unter dem Zwerchfell, viszeralchirurgische Vorstellung sofort.
+A|Druckschmerz am McBurney-Punkt mit Loslassschmerz, Leukozyten sechzehntausend, sonografisch Appendix zehn Millimeter und nicht komprimierbar.
+A|Akute Cholezystitis mit positivem Murphy-Zeichen, Wandverdickung auf sechs Millimeter und Konkrement im Infundibulum.
+A|Akute Pankreatitis, Lipase eintausendachthundert, forcierte Volumentherapie mit Ringer-Laktat und bedarfsgerechte Analgesie.
+A|Mechanischer Dünndarmileus bei Zustand nach Laparotomie, Magensonde gelegt, zwölfhundert Milliliter gallig gefördert.
+A|Sigmadivertikulitis mit gedeckter Perforation, Beginn mit Piperacillin und Tazobactam vier Komma fünf Gramm.
+A|Obere gastrointestinale Blutung mit Teerstuhl und Hämatemesis, Hämoglobin sechs Komma neun, Kreislauf nach Volumengabe stabil.
+A|Zwei großlumige Zugänge, Pantoprazol achtzig Milligramm als Bolus, Kreuzblut für vier Erythrozytenkonzentrate, Notfallendoskopie angemeldet.
+A|Rupturiertes Bauchaortenaneurysma mit acht Zentimetern Durchmesser, permissive Hypotonie, Gefäßchirurgie und Operationssaal informiert.
+A|Verdacht auf akute Mesenterialischämie bei Vorhofflimmern, Laktat fünf Komma acht, Schmerzen ohne Abwehrspannung.
+A|Nierenkolik links, sonografisch Harnstau zweiten Grades, Metamizol ein Gramm als Kurzinfusion, darunter beschwerdefrei.
+A|Akuter Harnverhalt mit Restharn von neunhundert Millilitern, Anlage eines transurethralen Dauerkatheters, Urin klar.
+A|Akutes Skrotum rechts seit drei Stunden, Hochstand des Hodens, sofortige urologische Freilegung bei Verdacht auf Torsion.
+A|Unterbauchschmerz bei positivem Schwangerschaftstest, freie Flüssigkeit im Douglas-Raum, Verdacht auf Extrauteringravidität.
+A|Sepsis mit pneumogenem Fokus, quick SOFA zwei Punkte, Laktat drei Komma neun Millimol pro Liter.
+A|Zwei Paar Blutkulturen abgenommen, Ceftriaxon zwei Gramm intravenös, kristalloide Lösung dreißig Milliliter pro Kilogramm.
+A|Trotz Volumengabe mittlerer arterieller Druck unter fünfundsechzig, Beginn mit Noradrenalin null Komma eins Mikrogramm pro Kilogramm pro Minute.
+A|Urosepsis bei obstruktiver Pyelonephritis, urologische Entlastung mittels Harnleiterschiene noch heute.
+A|Bakterielle Meningitis nicht ausgeschlossen, Dexamethason zehn Milligramm, danach Ceftriaxon und Ampicillin, Lumbalpunktion nach Bildgebung.
+A|Anaphylaxie Grad drei nach Wespenstich, Adrenalin null Komma fünf Milligramm intramuskulär in den Oberschenkel.
+A|Zusätzlich Prednisolon zweihundertfünfzig Milligramm, Dimetinden und Volumen, Überwachung für mindestens zwölf Stunden.
+A|Angioödem der Zunge unter ACE-Hemmer, Atemweg bedroht, Anästhesie zur fiberoptischen Intubation hinzugezogen.
+A|Mischintoxikation mit Benzodiazepinen und Alkohol, Glasgow Coma Scale neun, Schutzreflexe erhalten, stabile Seitenlage.
+A|Opioidintoxikation mit Miosis und Bradypnoe, Naloxon null Komma vier Milligramm fraktioniert, danach wach und ansprechbar.
+A|Paracetamolintoxikation mit zwölf Gramm vor fünf Stunden, Acetylcystein nach Schema, Spiegelbestimmung und Giftnotruf.
+A|Kohlenmonoxidvergiftung mit Carboxyhämoglobin achtundzwanzig Prozent, hochdosierter Sauerstoff, Rücksprache mit dem Druckkammerzentrum.
+A|Hyperkaliämie sieben Komma eins mit zeltförmigen T-Wellen, Calciumgluconat zehn Prozent zehn Milliliter langsam intravenös.
+A|Zusätzlich zehn Einheiten Insulin in Glukoselösung, Salbutamol vernebelt, nephrologisches Konsil zur Dialyse.
+A|Diabetische Ketoazidose, pH sieben Komma null acht, Blutzucker fünfhundertvierzig, Ketone im Urin dreifach positiv.
+A|Ein Liter Vollelektrolytlösung in der ersten Stunde, Insulinperfusor null Komma eins Einheiten pro Kilogramm pro Stunde, Kalium substituieren.
+A|Hypoglykämie mit zweiunddreißig Milligramm pro Deziliter unter Sulfonylharnstoff, Glukose vierzig Prozent vierzig Milliliter, stationäre Überwachung.
+A|Hyponatriämie einhundertachtzehn mit Verwirrtheit, vorsichtiger Ausgleich, Anstieg höchstens acht Millimol in vierundzwanzig Stunden.
+A|Narkoseeinleitung als Rapid Sequence Induction mit Esketamin, Rocuronium eins Komma zwei Milligramm pro Kilogramm und Fentanyl.
+A|Videolaryngoskopische Intubation beim ersten Versuch, Tubus sieben Komma fünf, Zahnreihe zweiundzwanzig Zentimeter, Kapnografie positiv.
+A|Beatmung druckkontrolliert, Tidalvolumen sechs Milliliter pro Kilogramm ideales Körpergewicht, PEEP acht, inspiratorische Sauerstofffraktion null Komma fünf.
+A|Analgosedierung mit Propofol und Sufentanil über Perfusor, Zielwert auf der Richmond-Skala minus zwei.
+A|Schwieriger Atemweg bei Mundöffnung unter zwei Fingern, Larynxmaske als Rückfallebene, Koniotomie-Set bereitgelegt.
+A|Analgesie mit Piritramid sieben Komma fünf Milligramm titriert, zusätzlich Ondansetron vier Milligramm gegen Übelkeit.
+A|Prozedurale Sedierung mit Midazolam zwei Milligramm und Esketamin fünfundzwanzig Milligramm unter Monitoring und Sauerstoffgabe.
+A|Akute Aortendissektion Typ A mit Blutdruckdifferenz von vierzig zwischen den Armen, Herzchirurgie und Hubschrauber angefordert.
+A|Blutdruckeinstellung mit Esmolol und Urapidil, Zielwert systolisch unter einhundertzwanzig, Herzfrequenz unter sechzig.
+A|Perikarditis mit lageabhängigem Thoraxschmerz, konkaven ST-Hebungen in fast allen Ableitungen und kleinem Perikarderguss.
+A|Dekompensierte Herzinsuffizienz mit Beinödemen, Pleuraergüssen beidseits und NT-proBNP von achttausendvierhundert.
+A|Hypertensive Entgleisung ohne Endorganschaden, langsame Senkung, Entlassung mit Anpassung der Dauermedikation.
+A|Tiefe Beinvenenthrombose der Vena poplitea links, Wells-Score drei, Beginn mit Apixaban zehn Milligramm zweimal täglich.
+A|Akute Extremitätenischämie rechts, Fuß kalt, blass und pulslos, Heparin fünftausend Einheiten, gefäßchirurgische Vorstellung.
+A|Ambulant erworbene Pneumonie rechts basal, CRB-fünfundsechzig-Score ein Punkt, ambulante Therapie mit Amoxicillin möglich.
+A|Schwerer Asthmaanfall mit stiller Lunge, Magnesiumsulfat zwei Gramm über zwanzig Minuten, Verlegung auf die Überwachungsstation.
+A|Hämoptysen von etwa einhundert Millilitern, Lagerung auf die betroffene Seite, Bronchoskopie angemeldet.
+A|Hämorrhagischer Schock bei Messerstich in die linke Flanke, Druckverband, Blutprodukte ungekreuzt null negativ.
+A|Stumpfes Thoraxtrauma mit Sternumfraktur, Troponin und EKG unauffällig, Überwachung für vierundzwanzig Stunden.
+A|Halswirbelsäule nach den kanadischen Kriterien nicht freigegeben, daher CT der Halswirbelsäule, Zervikalstütze belassen.
+A|Stabile Deckplattenimpressionsfraktur des ersten Lendenwirbels ohne neurologisches Defizit, konservative Therapie mit Analgesie.
+A|Lumboischialgie mit Reithosenanästhesie und Blasenentleerungsstörung, Verdacht auf Kaudasyndrom, Notfall-MRT veranlasst.
+A|Verbrennung zweiten Grades an beiden Unterarmen, neun Prozent der Körperoberfläche, Kühlung beendet, steriler Verband.
+A|Flüssigkeitsbedarf nach Parkland-Formel berechnet, Kontaktaufnahme mit dem Zentrum für Schwerbrandverletzte.
+A|Akzidentelle Hypothermie mit einer Kerntemperatur von einunddreißig Grad, aktive Wiedererwärmung, Bewegung nur achsengerecht.
+A|Hitzschlag mit einer Körpertemperatur von einundvierzig Grad und Verwirrtheit, sofortige Kühlung, Kontrolle von Kreatinkinase und Gerinnung.
+A|Rhabdomyolyse mit Kreatinkinase achtundzwanzigtausend, forcierte Diurese, engmaschige Kontrolle von Kalium und Kreatinin.
+A|Akutes Nierenversagen bei Exsikkose, Kreatinin drei Komma vier, Pausieren von Ramipril, Metformin und Diuretikum.
+A|Alkoholentzugssyndrom mit Tremor und Tachykardie, Diazepam symptomorientiert, Thiamin einhundert Milligramm vor Glukose.
+A|Hepatische Enzephalopathie Grad zwei bei Leberzirrhose, Lactulose, Suche nach Auslösern wie Infekt oder Blutung.
+A|Ösophagusvarizenblutung, Terlipressin ein Milligramm, Ceftriaxon, Erythromycin vor der Endoskopie, restriktive Transfusion.
+A|Spontan bakterielle Peritonitis, im Aszitespunktat vierhundertzwanzig Granulozyten pro Mikroliter, Beginn mit Ceftriaxon.
+A|Delir bei Harnwegsinfekt und Exsikkose, Reorientierung, Brille und Hörgerät, Verzicht auf Benzodiazepine.
+A|Häuslicher Sturz ohne Bewusstlosigkeit, Prellung der rechten Hüfte, Röntgen ohne Frakturnachweis, Mobilisation mit Rollator möglich.
+A|Akute Suizidalität mit konkreten Plänen, keine Distanzierung möglich, Vorstellung in der Psychiatrie und Sitzwache.
+A|Psychomotorischer Erregungszustand, verbale Deeskalation erfolglos, Lorazepam zwei Komma fünf Milligramm oral angeboten und eingenommen.
+A|Unterbringung nach dem Landesgesetz bei akuter Eigengefährdung beantragt, Ordnungsamt und diensthabender Psychiater informiert.
+A|Fieberkrampf bei einem zweijährigen Kind, Dauer zwei Minuten, jetzt wach, Fokus Otitis media, Vorstellung in der Kinderklinik.
+A|Pseudokrupp mit bellendem Husten und inspiratorischem Stridor, Dexamethason oral, Adrenalin vernebelt, deutliche Besserung.
+A|Säugling mit Trinkschwäche und stehenden Hautfalten, Dehydratation etwa acht Prozent, intraossärer Zugang bei frustraner Venenpunktion.
+A|Erysipel am rechten Unterschenkel mit Eintrittspforte im Zehenzwischenraum, Ruhigstellung, Hochlagerung, Penicillin intravenös.
+A|Perianalabszess bei drei Uhr in Steinschnittlage, chirurgische Entlastung in Kurznarkose geplant.
+A|Hundebiss an der rechten Hand, Wunde ausgiebig gespült, keine Primärnaht, Amoxicillin mit Clavulansäure, Kontrolle morgen.
+A|Epistaxis unter Phenprocoumon, vordere Nasentamponade beidseits, INR vier Komma zwei, Vitamin K zehn Milligramm oral.
+A|Peritonsillarabszess links mit Kieferklemme und kloßiger Sprache, Vorstellung in der Hals-Nasen-Ohren-Klinik.
+A|Akuter Glaukomanfall mit rotem Auge, steinhartem Bulbus und Übelkeit, Acetazolamid fünfhundert Milligramm, augenärztliches Konsil.
+A|Vaginale Blutung in der neunten Schwangerschaftswoche, Kreislauf stabil, Vorstellung in der Gynäkologie.
+A|Triage nach dem Manchester-System orange, Arztkontakt innerhalb von zehn Minuten, Behandlungsplatz mit Monitor.
+A|Neubeurteilung nach dreißig Minuten: Vitalwerte stabil, Schmerzen rückläufig, Patient wünscht keine weitere Analgesie.
+A|Übergabe an die Intensivstation: intubiert, katecholaminpflichtig, zwei periphere Zugänge, arterielle Kanüle rechts radial, Angehörige informiert.
+A|Aufnahme auf die Überwachungsstation zur Rhythmusüberwachung, serielle Troponinkontrolle, Echokardiografie am Folgetag.
+A|Entlassung gegen ärztlichen Rat nach ausführlicher Aufklärung über die Risiken, Unterschrift liegt vor.
+A|Ambulante Weiterbehandlung, Krankschreibung für drei Tage, Wiedervorstellung bei Verschlechterung jederzeit.
+A|Der Fall wurde mit dem diensthabenden Oberarzt besprochen, das weitere Vorgehen ist abgestimmt.
+A|Röntgen des Handgelenks in zwei Ebenen: keine Fraktur, Weichteilschwellung, Verdacht auf Kahnbeinfraktur bleibt, daher Dünnschicht-CT.
+A|Platzwunde an der Augenbraue von drei Zentimetern, Wundreinigung, Naht mit fünf Einzelknopfnähten in Lokalanästhesie.
+A|Fremdkörpergefühl nach dem Essen, Speichel kann nicht geschluckt werden, Bolusobstruktion der Speiseröhre, Notfallendoskopie.
+A|Elektrounfall mit Haushaltsstrom, EKG unauffällig, keine Strommarken, Entlassung nach Beobachtung.
+A|Transitorische ischämische Attacke mit Sprachstörung für zwanzig Minuten, ABCD-zwei-Score fünf, Aufnahme auf die Stroke Unit.
+A|Peripherer Lagerungsschwindel rechts, Dix-Hallpike-Manöver positiv, Befreiungsmanöver nach Epley mit promptem Erfolg.
+A|Zentraler Schwindel nicht auszuschließen bei Blickrichtungsnystagmus und Gangataxie, MRT des Schädels mit Diffusionssequenz.
+A|Addison-Krise mit Hypotonie und Hyponatriämie, Hydrocortison einhundert Milligramm intravenös, Volumen und Glukosekontrolle.
+A|Thyreotoxische Krise mit Tachykardie und Fieber, Thiamazol, Propranolol und Hydrocortison, Aufnahme auf die Intensivstation.
+A|Sichelzellkrise mit starken Knochenschmerzen, Sauerstoff, Volumen, Opioidanalgesie, Rücksprache mit der Hämatologie.
+A|Neutropenisches Fieber acht Tage nach Chemotherapie, Leukozyten vierhundert, sofort Piperacillin und Tazobactam, Umkehrisolation.
+A|Rücksprache mit dem Giftinformationszentrum: Überwachung für sechs Stunden, EKG-Kontrolle, keine Aktivkohle mehr sinnvoll.
+A|Ertrinkungsunfall im Badesee, Unterkühlung, Sauerstoffsättigung achtundachtzig Prozent, Röntgen mit beidseitigen Infiltraten.
+A|Leichenschau durchgeführt, sichere Todeszeichen vorhanden, Todesart ungeklärt, Kriminalpolizei verständigt.
+A|Notfallsonografie: Vena cava inferior kollabiert, linker Ventrikel hyperkontraktil, keine freie Flüssigkeit, somit Volumenmangel wahrscheinlich.
+A|Kompressionssonografie der Beinvenen: Vena femoralis communis rechts nicht komprimierbar, somit proximale Thrombose.
+A|Blutzuckerentgleisung ohne Ketoazidose, sechshundertzwanzig Milligramm pro Deziliter, Osmolalität dreihundertvierzig, langsame Rehydratation.
+A|Glasgow Coma Scale sieben bei unklarer Vigilanzminderung, Schutzintubation, danach CT des Schädels und toxikologisches Screening.
+A|Kreislaufstillstand mit pulsloser elektrischer Aktivität, reversible Ursachen geprüft, Echokardiografie ohne Tamponade.
+A|Therapiezieländerung im Konsens mit den Angehörigen, Verzicht auf Reanimation und Intubation, palliative Symptomkontrolle.
+A|Morphin zwei Milligramm subkutan gegen Atemnot, Midazolam bei Unruhe, Verlegung in ein Einzelzimmer.
+A|Verlauf in der Notaufnahme komplikationslos, Übergabe an den Stationsarzt telefonisch um zweiundzwanzig Uhr fünfzehn.
+A|Schwangere in der vierunddreißigsten Woche nach Auffahrunfall, Kardiotokografie unauffällig, Anti-D-Prophylaxe bei rhesusnegativer Mutter.
+A|Infizierte Hüftprothese rechts mit Fieber und Rötung, Punktion unter sterilen Bedingungen, Antibiose erst nach Probengewinnung.
+A|Oberschenkelhalsnahe Schmerzen bei Kind mit Hinken, Hüftsonografie mit Erguss, Abgrenzung von Coxitis fugax und septischer Arthritis.
+P|Guten Abend, ich bin der diensthabende Arzt in der Notaufnahme, erzählen Sie bitte, was passiert ist.
+P|Wann genau haben die Brustschmerzen angefangen, und was haben Sie in dem Moment gerade gemacht?
+P|Ist der Schmerz eher drückend, stechend oder brennend, und wird er beim Einatmen stärker?
+P|Zieht der Schmerz in den Arm, in den Rücken, in den Kiefer oder in den Oberbauch?
+P|Hatten Sie dabei Luftnot, Schweißausbrüche, Übelkeit oder das Gefühl, ohnmächtig zu werden?
+P|Bekommen Sie schlechter Luft, wenn Sie flach liegen, und wie viele Kissen brauchen Sie nachts?
+P|Hatten Sie in letzter Zeit eine längere Reise, eine Operation oder ein geschwollenes Bein?
+P|Ist Ihnen schwarz vor Augen geworden, bevor Sie gestürzt sind, oder können Sie sich nicht erinnern?
+P|Hat jemand beobachtet, ob Sie gezuckt haben, und wie lange waren Sie nicht ansprechbar?
+P|Bitte lächeln Sie einmal, heben Sie beide Arme und sprechen Sie mir diesen Satz nach.
+P|Seit wann hängt der Mundwinkel, und um wie viel Uhr waren Sie zuletzt ganz ohne Beschwerden?
+P|War das der stärkste Kopfschmerz Ihres Lebens, und kam er schlagartig wie ein Donnerschlag?
+P|Wo hat der Bauchschmerz begonnen, und ist er inzwischen an eine andere Stelle gewandert?
+P|Wann hatten Sie zuletzt Stuhlgang, und gehen noch Winde ab?
+P|War der Stuhl schwarz oder blutig, oder haben Sie Blut erbrochen?
+P|Könnten Sie schwanger sein, und wann war Ihre letzte Regelblutung?
+P|Brennt es beim Wasserlassen, oder haben Sie Schmerzen in der Flanke und Fieber?
+P|Sind Sie auf den Kopf gefallen, und nehmen Sie Medikamente zur Blutverdünnung?
+P|Können Sie das Bein belasten, und spüren Sie meine Berührung an beiden Füßen gleich?
+P|Wann wurden Sie zuletzt gegen Tetanus geimpft, haben Sie Ihren Impfpass dabei?
+P|Was haben Sie eingenommen, wie viele Tabletten waren es, und um wie viel Uhr?
+P|Haben Sie im Moment Gedanken, sich das Leben zu nehmen, oder konkrete Pläne dafür?
+P|Wie viel Alkohol haben Sie heute getrunken, und haben Sie zusätzlich andere Substanzen genommen?
+P|Ich lege Ihnen jetzt einen Zugang in die Vene, das gibt einen kurzen Stich.
+P|Sie bekommen gleich ein Schmerzmittel über die Vene, davon kann Ihnen kurz schwindelig werden.
+P|Wir kleben jetzt die Elektroden für das EKG auf, bitte liegen Sie einen Moment ganz ruhig.
+P|Für die Untersuchung im CT brauchen wir Kontrastmittel, dabei wird Ihnen kurz warm.
+P|Ich möchte mit dem Ultraschall auf Ihren Bauch schauen, das Gel ist etwas kalt.
+P|Wir müssen Nervenwasser am Rücken entnehmen, ich erkläre Ihnen den Ablauf und die Risiken.
+P|Für das Einrenken der Schulter bekommen Sie eine kurze Betäubung, Sie schlafen dabei wenige Minuten.
+P|Die Wunde muss genäht werden, vorher spritze ich ein örtliches Betäubungsmittel.
+P|Ihr EKG zeigt Veränderungen, die zu einem Herzinfarkt passen, wir bringen Sie sofort ins Herzkatheterlabor.
+P|Im CT sehen wir ein Blutgerinnsel in der Lunge, deshalb bekommen Sie jetzt ein blutverdünnendes Medikament.
+P|Die Aufnahme vom Kopf zeigt keine Blutung, das ist eine gute Nachricht.
+P|Ihr Handgelenk ist gebrochen, wir richten den Bruch ein und legen eine Gipsschiene an.
+P|Die Blinddarmentzündung muss operiert werden, die Kollegen der Chirurgie kommen gleich zu Ihnen.
+P|Ihre Werte sprechen für eine Lungenentzündung, die wir mit einem Antibiotikum behandeln.
+P|Ihr Blutzucker ist stark entgleist, deshalb bleiben Sie zur Überwachung bei uns.
+P|Wir haben zum Glück nichts Bedrohliches gefunden, Sie dürfen heute wieder nach Hause.
+P|Ich würde Sie gern zur Beobachtung über Nacht hierbehalten, sind Sie damit einverstanden?
+P|Es tut mir leid, dass Sie so lange warten mussten, wir hatten mehrere schwer kranke Patienten.
+P|Die Reihenfolge richtet sich nach der Dringlichkeit und nicht danach, wer zuerst gekommen ist.
+P|Bitte bleiben Sie nüchtern, bis wir wissen, ob eine Operation nötig ist.
+P|Halten Sie den Arm hoch und kühlen Sie die Schwellung mehrmals täglich für zwanzig Minuten.
+P|Die Gipsschiene darf nicht nass werden, bei Kribbeln oder blauen Fingern kommen Sie bitte sofort.
+P|Die Fäden werden in zehn Tagen bei Ihrem Hausarzt gezogen, bis dahin die Wunde trocken halten.
+P|Bitte lassen Sie sich in den nächsten vierundzwanzig Stunden von einem Angehörigen beobachten.
+P|Kommen Sie sofort wieder bei Erbrechen, starken Kopfschmerzen, Schläfrigkeit oder Sehstörungen.
+P|Sie dürfen heute nicht selbst Auto fahren, weil Sie ein Beruhigungsmittel bekommen haben.
+P|Nehmen Sie das Schmerzmittel regelmäßig zu den Mahlzeiten und nicht auf nüchternen Magen.
+P|Trinken Sie reichlich, schonen Sie sich, und lassen Sie die Werte in drei Tagen kontrollieren.
+P|Bei Luftnot, Brustschmerzen oder Fieber über neununddreißig Grad rufen Sie bitte den Rettungsdienst.
+P|Den Brief für Ihren Hausarzt und das Rezept bekommen Sie gleich an der Anmeldung.
+P|Haben Sie verstanden, worauf Sie zu Hause achten sollen, oder soll ich es noch einmal erklären?
+P|Wen dürfen wir über Ihren Zustand informieren, und unter welcher Nummer erreichen wir die Person?
+P|Sind Sie die Tochter, und wissen Sie, welche Medikamente Ihr Vater regelmäßig einnimmt?
+P|Ihr Mann ist schwer krank und muss künstlich beatmet werden, wir tun alles, was möglich ist.
+P|Hat Ihre Mutter einmal gesagt, was sie sich in einer solchen Situation wünschen würde?
+P|Ihr Kind hatte einen Fieberkrampf, das sieht dramatisch aus, hinterlässt aber in aller Regel keine Schäden.
+P|Geben Sie den Fiebersaft nach Gewicht und höchstens alle sechs Stunden.
+P|Hat Ihr Kind heute getrunken, und wie viele nasse Windeln gab es seit dem Morgen?
+P|Ich höre, dass Sie große Angst haben, wir bleiben bei Ihnen und erklären jeden Schritt.
+P|Versuchen Sie, langsam durch die Nase einzuatmen und doppelt so lange auszuatmen.
+P|Bitte bleiben Sie liegen, bis wir sicher sind, dass die Wirbelsäule nicht verletzt ist.
+P|Darf ich Sie am Bauch untersuchen, sagen Sie bitte sofort, wenn es wehtut.
+P|Drücken Sie bitte meine beiden Hände, und ziehen Sie die Fußspitzen zu sich heran.
+P|Folgen Sie meinem Finger nur mit den Augen, ohne den Kopf zu bewegen.
+P|Sind Sie mit dem Rettungswagen gekommen, oder hat Sie jemand hergebracht?
+P|Wurde Ihnen schon einmal ein Stent eingesetzt, oder hatten Sie eine Operation am Herzen?
+P|Haben Sie einen Herzschrittmacher, einen Defibrillator oder Metall im Körper?
+P|Reagieren Sie auf bestimmte Schmerzmittel oder Narkosemittel mit Ausschlag oder Atemnot?
+P|Ich empfehle Ihnen dringend zu bleiben, respektiere aber Ihre Entscheidung, wenn Sie gehen möchten.
+P|Dann unterschreiben Sie bitte hier, dass Sie gegen ärztlichen Rat nach Hause gehen.
+P|Sie haben eine starke allergische Reaktion, deshalb bekommen Sie jetzt eine Spritze in den Oberschenkel.
+P|Tragen Sie das Notfallset ab jetzt immer bei sich, ich zeige Ihnen, wie der Pen funktioniert.
+P|Das Rauschen im Ohr und der Drehschwindel kommen vom Gleichgewichtsorgan und sind nicht gefährlich.
+P|Wir machen jetzt gemeinsam eine Lagerungsübung, dabei wird Ihnen kurz stark schwindelig.
+P|Der Blutdruck ist zu hoch, wir senken ihn langsam, damit das Gehirn sich anpassen kann.
+P|Mit dieser Verletzung sind Sie für zwei Wochen nicht arbeitsfähig, die Bescheinigung gebe ich Ihnen mit.
+P|Bitte stellen Sie sich morgen früh nüchtern in der chirurgischen Sprechstunde zur Kontrolle vor.
+P|Die Ergebnisse der Blutkulturen dauern zwei Tage, wir rufen Sie an, falls sich etwas ergibt.
+P|Sie bekommen Sauerstoff über die Nasenbrille, sagen Sie Bescheid, wenn die Luft knapper wird.
+P|Ich weiß, dass das Warten anstrengend ist, das CT ist in etwa zwanzig Minuten frei.
+P|Möchten Sie, dass wir jemanden für Sie anrufen, oder ist schon jemand unterwegs?
+O|Leitstelle, hier Notaufnahme, wir sind für Schlaganfälle und Schockräume ab sofort wieder aufnahmebereit.
+O|Der Rettungsdienst meldet ein Polytrauma an, Eintreffen in zwölf Minuten, bitte Schockraumteam alarmieren.
+O|Voranmeldung: männlich, etwa sechzig Jahre, Reanimation läuft, Eintreffen in acht Minuten über die Liegendanfahrt.
+O|Bitte Anästhesie, Unfallchirurgie, Radiologie und Blutbank für den Schockraum eins verständigen.
+O|Wir brauchen sofort ein Intensivbett, bitte klären Sie die Kapazität mit der internistischen Intensivstation.
+O|Die Überwachungsstation ist voll belegt, ich frage in den umliegenden Häusern nach einem Monitorbett.
+O|Bitte melden Sie den Patienten als Sekundärtransport mit Arztbegleitung bei der Leitstelle an.
+O|Das CT ist für die nächsten dreißig Minuten durch den Schlaganfall blockiert, alle anderen warten bitte.
+O|Kannst du bitte das Notfalllabor mit Kreuzblut abnehmen und die Blutkulturen vor der Antibiose?
+O|Bitte zweites EKG in zehn Minuten schreiben und mir sofort zeigen.
+O|Wer übernimmt Kabine vier, dort wartet eine Platzwunde seit über zwei Stunden?
+O|Übergabe an den Nachtdienst: neun Patienten in Behandlung, zwei warten auf Betten, einer auf das CT.
+O|Der Patient in Kabine sieben ist isolationspflichtig, bitte Schutzkittel, Handschuhe und Maske benutzen.
+O|Bitte den diensthabenden Kardiologen anrufen, es geht um einen Hebungsinfarkt, er soll direkt ins Katheterlabor kommen.
+O|Ich brauche ein neurologisches Konsil in Kabine zwei, Verdacht auf Schlaganfall im Lysefenster.
+O|Könnten Sie bitte in der Hausarztpraxis anrufen und den aktuellen Medikamentenplan faxen lassen?
+O|Die Polizei möchte eine Blutentnahme, bitte Dokumentationsbogen und versiegelte Röhrchen vorbereiten.
+O|Bitte informieren Sie den Sozialdienst, die Patientin kann so nicht nach Hause entlassen werden.
+O|Der Bettenmanager meldet ein freies Bett auf der Station fünf B, Übergabe in zwanzig Minuten.
+O|Der Transportdienst ist bestellt, der Patient geht liegend mit Sauerstoff auf die Station.
+O|Für die Übergabe nutzen wir bitte das Schema Situation, Hintergrund, Einschätzung und Empfehlung.
+O|Wir machen jetzt ein kurzes Team-Timeout: Wer führt, wer dokumentiert, wer übernimmt den Atemweg?
+O|Zehn-für-zehn: Was ist das Problem, was haben wir, und was ist der nächste Schritt?
+O|Bitte Reanimationsbrett, Defibrillator und Absaugung in den Schockraum, Medikamente nach Standard aufziehen.
+O|Die Wartezeit in der niedrigsten Dringlichkeitsstufe beträgt im Moment etwa drei Stunden.
+O|Der Patient hat die Notaufnahme vor dem Arztkontakt verlassen, bitte mit Uhrzeit dokumentieren.
+O|Das Giftinformationszentrum ruft in zehn Minuten zurück, bitte das Telefon am Stützpunkt freihalten.
+O|Wir melden die Notaufnahme wegen Überfüllung für eine Stunde von der Versorgung internistischer Patienten ab.
+O|Die Angehörigen warten im Besprechungsraum, ich komme nach der Schockraumversorgung zu ihnen.
+O|Bitte bestellen Sie zwei Erythrozytenkonzentrate und zwei Einheiten Frischplasma auf Abruf.
+O|Das Point-of-Care-Gerät zeigt einen Fehler, bitte die Probe zusätzlich ins Zentrallabor schicken.
+O|Morgen um sieben Uhr dreißig ist Frühbesprechung, danach Fallvorstellung aus dem Nachtdienst.
+O|Die Dolmetscherin für Arabisch ist telefonisch zugeschaltet, wir können mit der Aufklärung beginnen.
+O|Bitte Wertsachen und Kleidung des Patienten mit Liste dokumentieren und im Tresor einschließen.
+O|Der Hausarzt bittet um Rückruf wegen der Einweisung, die Nummer liegt an der Anmeldung.
+O|Für den Schockraum gilt ab jetzt: nur das Kernteam im Raum, alle anderen bitte hinter die Linie.
+O|Nachbesprechung des Einsatzes in fünf Minuten im Aufenthaltsraum, jeder darf sagen, was gut und was schlecht lief.
+O|Die Kinderklinik übernimmt, bitte den Transport im Rettungswagen mit Begleitung eines Elternteils organisieren.
+O|Kannst du den Brief fertig machen, der Patient wartet nur noch auf die Entlassung?
+O|Bitte tragt die Übergabezeit und den aufnehmenden Arzt in das Protokoll ein.
+T|Vorstellung mit Thoraxschmerz seit vierzig Minuten, im EKG ST-Hebungen in V zwei bis V fünf, Katheterlabor alarmiert.
+T|Lungenarterienembolie mit Rechtsherzbelastung, Heparinbolus fünftausend Einheiten, Verlegung auf die Überwachungsstation.
+T|Akute respiratorische Insuffizienz bei exazerbierter COPD, nichtinvasive Beatmung, Kohlendioxidpartialdruck vierundsechzig.
+T|Hemiparese links und Dysarthrie seit neunzig Minuten, NIHSS neun, Thrombolyse mit Alteplase begonnen.
+T|Krampfanfall über fünf Minuten, Midazolam zehn Milligramm bukkal, danach Levetiracetam intravenös.
+T|Schädel-Hirn-Trauma unter Phenprocoumon, im CT kleine Kontusionsblutung rechts temporal, Prothrombinkomplexkonzentrat gegeben.
+T|Polytrauma mit instabilem Becken, eFAST positiv, Tranexamsäure ein Gramm, Massivtransfusion läuft.
+T|Subkapitale Humerusfraktur rechts nach Sturz, Ruhigstellung im Gilchrist-Verband, Kontrolle in einer Woche.
+T|Akute Appendizitis, Leukozyten vierzehntausend, C-reaktives Protein sechsundachtzig, Vorstellung in der Viszeralchirurgie.
+T|Untere gastrointestinale Blutung unter Rivaroxaban, Hämoglobin sieben Komma acht, zwei Erythrozytenkonzentrate angefordert.
+T|Sepsis bei Harnwegsinfekt, Laktat vier Komma eins, Blutkulturen, Piperacillin und Tazobactam, dreißig Milliliter pro Kilogramm Volumen.
+T|Anaphylaxie nach Erdnuss, Adrenalin null Komma drei Milligramm intramuskulär, Prednisolon und Überwachung.
+T|Intoxikation mit trizyklischen Antidepressiva, QRS verbreitert auf einhundertvierzig Millisekunden, Natriumbikarbonat gegeben.
+T|Hyperkaliämie sechs Komma acht bei Dialysepatient, Calciumgluconat, Insulin mit Glukose, Dialyse organisiert.
+T|Diabetische Ketoazidose mit pH sieben Komma eins fünf, Insulinperfusor, Volumen, Kalium vier Komma null.
+T|Rapid Sequence Induction mit Propofol und Rocuronium, Intubation komplikationslos, Tubus acht Komma null.
+T|Aortendissektion Typ B ohne Malperfusion, Blutdrucksenkung mit Urapidil, Aufnahme auf die Intensivstation.
+T|Delir bei Pneumonie, keine fokalen Defizite, Sauerstoff zwei Liter, Ampicillin und Sulbactam.
+T|Wann hat die Luftnot begonnen, und haben Sie dabei Schmerzen beim Atmen oder Husten mit Auswurf?
+T|Sind Sie gestolpert, oder wurde Ihnen vor dem Sturz schwindelig oder schwarz vor Augen?
+T|Im Röntgenbild sehen wir einen Bruch am Sprunggelenk, der wahrscheinlich operiert werden muss.
+T|Kommen Sie bitte sofort wieder, wenn die Wunde rot wird, pocht oder Eiter austritt.
+T|Der Rettungsdienst meldet einen Schlaganfall an, Eintreffen in sechs Minuten, bitte CT freihalten.
+T|Bitte das Bett auf der Intensivstation bestätigen und den Transport mit Monitor und Arzt begleiten.

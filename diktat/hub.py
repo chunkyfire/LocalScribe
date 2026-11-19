@@ -1998,15 +1998,29 @@ class TrainPage(Page):
         super().__init__("Stimmtraining",
                          "Lies medizinische Sätze vor. LocalScribe vergleicht, was es verstanden hat, mit dem, was "
                          "dasteht, und merkt sich deine Aussprache der Fachbegriffe im Wörterbuch. Freiwillig, "
-                         "jederzeit unterbrechbar – je mehr Sätze, desto besser passt die Erkennung zu deiner Stimme. "
-                         "Der Ton bleibt im Arbeitsspeicher; gespeichert wird er nur, wenn du unten das Aufheben einschaltest.")
+                         "jederzeit unterbrechbar. Die wichtigsten Sätze kommen zuerst: Auch fünf Minuten lohnen sich. "
+                         "Der Ton dieser erfundenen Sätze wird auf diesem Rechner aufgehoben, damit das Sprachmodell "
+                         "später auf deine Stimme nachtrainiert werden kann; Diktate werden nie aufgehoben.")
         self.ctl = ctl
         self.topic = QtWidgets.QComboBox()
-        self.topic.addItem("Alle Themen", "")
-        for name, sentences in training.material().items():
-            self.topic.addItem(f"{name} ({len(sentences)})", name)
-        self.topic.currentIndexChanged.connect(lambda _: self.next(0))
+        self.topic.addItem(f"Grundstock für alle · {training.minutes(training.sentences()):.0f} Minuten", training.BASE)
+        for name in training.fields():
+            self.topic.addItem(f"{name} · {training.minutes(training.sentences(name)):.0f} Minuten", name)
+        if training.topics():
+            self.topic.insertSeparator(self.topic.count())
+        for name in training.topics():
+            self.topic.addItem(f"{name} · bisherige Sätze ({len(training.sentences(name))})", name)
+        self.topic.setToolTip("Eine Fachrichtung beginnt mit dem Grundstock und bringt danach ihre eigenen Sätze. "
+                              "Die Minuten gelten für beides zusammen.")
+        # die Auswahl darf die Karte nicht breiter machen als das Fenster: Sie füllt den Platz, statt ihn zu fordern
+        self.topic.setSizeAdjustPolicy(QtWidgets.QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
+        self.topic.setMinimumContentsLength(16)
+        self.topic.setMaximumWidth(460)
+        self.topic.setCurrentIndex(max(0, self.topic.findData(ctl.cfg.get("field") or training.BASE)))
+        self.topic.currentIndexChanged.connect(self._field)
+        self.testing = None                              # läuft eine Messung: {"items", "errors", "words", "n", "field"}
         self.count = label("", "muted")
+        self.count.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
         self.sentence = label("", "h2", wrap=True)
         self.sentence.setMinimumHeight(74)
         self.speak = button("Halten und vorlesen", name="primary")
@@ -2014,11 +2028,15 @@ class TrainPage(Page):
         self.speak.released.connect(self.ctl.listen_stop)
         self.result = label("Knopf gedrückt halten, den Satz in deinem normalen Diktiertempo vorlesen, loslassen. "
                             "Zahlen und Einheiten so sprechen, wie du es sonst auch tust.", "muted", wrap=True)
-        self.body.addWidget(card(hbox(label("Thema"), self.topic, None, self.count),
+        self.test_btn = button("Messen …", self._test)
+        self.test_btn.setToolTip("Liest Prüfsätze, die im Training nie vorkommen, und zeigt deine Wortfehlerquote. "
+                                 "Einmal vor dem Training und später wieder: So siehst du, was das Vorlesen gebracht hat.")
+        self.scores = label("", "muted", wrap=True)
+        self.body.addWidget(card(hbox(label("Fachrichtung"), (self.topic, 1), self.count),
                                  self.sentence,
-                                 hbox(self.speak, button("Überspringen", lambda: self.next(1)),
-                                      button("Zurück", lambda: self.next(-1)), None),
-                                 self.result))
+                                 hbox(self.speak, button("Überspringen", self._skip),
+                                      button("Zurück", lambda: self.next(-1)), None, self.test_btn),
+                                 self.result, self.scores))
         self.learned = label("", "muted", wrap=True)
         self.learned.hide()                              # steht im Wörterbuch; hier nur die Meldung nach jedem Satz
         self.pairs = label("Diktate mit fertigem Text: Tondateien wählen, das Transkript liegt als Textdatei gleichen "
@@ -2032,11 +2050,8 @@ class TrainPage(Page):
         self.body.addWidget(card(label("Aus eigenem Material lernen", "h2"), self.pairs,
                                  hbox(self.pair_btn, button("Aus eigenen Texten lernen …", self._learn_files), None,
                                       self.words_n, button("Leeren", self._learn_clear)), self.words))
-        self.keep = QtWidgets.QCheckBox("Vorgelesene Übungssätze als Ton aufheben (Material für ein Nachtraining)")
-        self.keep.setChecked(bool(self.ctl.cfg.get("training_keep")))
-        self.keep.toggled.connect(self._keep)
         self.kept = label("", "muted", wrap=True)
-        self.body.addWidget(card(label("Nachtraining auf deine Stimme", "h2"), self.keep, self.kept,
+        self.body.addWidget(card(label("Deine Stimmaufnahmen", "h2"), self.kept,
                                  hbox(button("Ordner öffnen", self._open_store), button("Alle löschen", self._clear), None)))
         self.sig_pairs.connect(self._pairs_done)
         self.body.addStretch(1)
@@ -2047,21 +2062,38 @@ class TrainPage(Page):
         self.next(0)
         self._kept()
         self._words()
+        self._scores()
+
+    def _field(self, _):
+        """Fachrichtung gewählt: merken, eine laufende Messung endet."""
+        self.testing = None
+        self.test_btn.setText("Messen …")
+        name = self.topic.currentData() or training.BASE
+        if name != (self.ctl.cfg.get("field") or training.BASE):
+            self.ctl.cfg["field"] = name
+            config.save(self.ctl.cfg)
+        self.next(0)
 
     def _items(self):
-        topic = self.topic.currentData()
-        return [s for name, group in training.material().items() if not topic or name == topic for s in group]
+        if self.testing:
+            return self.testing["items"]
+        return training.sentences(self.topic.currentData() or training.BASE)
 
     def next(self, step):
         self.items = self._items()
+        if self.testing:                            # Messung: der Reihe nach, ohne Zurück
+            self.pos = min(self.testing["n"], len(self.items) - 1)
+            self.sentence.setText(self.items[self.pos])
+            return self.count.setText(f"Messung: Satz {self.pos + 1} von {len(self.items)}")
         done = set(self.ctl.cfg.get("training_done") or [])
         if step == 0:                               # beim Öffnen: erster noch nicht gelesener Satz
             self.pos = next((i for i, s in enumerate(self.items) if s not in done), 0)
         else:
             self.pos = (self.pos + step) % len(self.items)
         self.sentence.setText(self.items[self.pos])
-        read = sum(1 for s in self.items if s in done)
-        self.count.setText(f"{read} von {len(self.items)} gelesen")
+        read = [s for s in self.items if s in done]
+        self.count.setText(f"{len(read)} von {len(self.items)} gelesen · {training.minutes(read):.0f} von "
+                           f"{training.minutes(self.items):.0f} Minuten")
         if self.session:
             self.learned.setText("In dieser Sitzung: " + ", ".join(f"„{w}“ → „{r}“" for w, r in self.session))
         else:
@@ -2095,9 +2127,81 @@ class TrainPage(Page):
         self.words.setText("Fachwörter aus deinen Diktaten, Transkripten und eingelesenen Briefen; beim Erkennen werden sie "
                            "bevorzugt. Übernommen werden nur einzelne Wörter aus dem Lexikon, keine Sätze, keine Namen.")
 
-    def _keep(self, on):
-        self.ctl.cfg["training_keep"] = bool(on)
+    # ----- Messen: Prüfsätze, die im Training nie vorkommen
+    def _test(self):
+        if self.testing:                            # abbrechen
+            self.testing = None
+            self.test_btn.setText("Messen …")
+            restyle(self.result, "muted")
+            self.result.setText("Messung abgebrochen.")
+            return self.next(0)
+        name = self.topic.currentData() or training.BASE
+        items = training.held_out(name if name in training.fields() else training.BASE)
+        if not items:
+            return self.result.setText("Für diese Auswahl gibt es keine Prüfsätze.")
+        self.testing = {"items": items, "errors": 0, "words": 0, "n": 0, "field": name}
+        self.test_btn.setText("Messung abbrechen")
+        restyle(self.result, "muted")
+        self.result.setText(f"Messung mit {len(items)} Prüfsätzen, etwa {max(1, round(training.minutes(items)))} Minuten. Lies jeden "
+                            "Satz einmal, so wie du diktierst. Hier wird nichts gelernt, nur gezählt.")
+        self.next(0)
+
+    def _measured(self, expected, text, audio):
+        """Ein Prüfsatz ist gelesen: zählen, Ton zu den Prüfsätzen legen, am Ende das Ergebnis festhalten."""
+        cfg, t = self.ctl.cfg, self.testing
+        heard = engine.postprocess(text, dict(cfg, trailing_space=False))      # so, wie der Text beim Diktieren ankäme
+        if not heard.strip():
+            restyle(self.result, "bad")
+            return self.result.setText("Nichts verstanden – bitte noch einmal, Knopf erst drücken, dann sprechen.")
+        wrong, words = training.score(expected, heard)
+        t["errors"], t["words"], t["n"] = t["errors"] + wrong, t["words"] + words, t["n"] + 1
+        if cfg.get("training_keep", True) and audio is not None and len(audio):
+            try:
+                training.keep(audio, expected, test=True)
+            except OSError:
+                log.exception("Prüfsatz ließ sich nicht aufheben")
+        if t["n"] < len(t["items"]):
+            restyle(self.result, "muted")
+            self.result.setText(f"Verstanden: „{heard.strip()}“")
+            return self.next(1)
+        self._test_done()
+
+    def _skip(self):
+        if not self.testing:
+            return self.next(1)
+        self.testing["n"] += 1                      # ausgelassener Prüfsatz zählt nicht mit
+        if self.testing["n"] < len(self.testing["items"]):
+            return self.next(1)
+        self._test_done()
+
+    def _test_done(self):
+        cfg, t = self.ctl.cfg, self.testing
+        self.testing = None
+        self.test_btn.setText("Messen …")
+        if not t["words"]:
+            restyle(self.result, "muted")
+            self.result.setText("Messung ohne gelesenen Satz beendet.")
+            return self.next(0)
+        rate = 100 * t["errors"] / max(1, t["words"])
+        cfg["training_scores"] = (cfg.get("training_scores") or [])[-19:] + [{
+            "at": time.time(), "field": t["field"], "wer": round(rate, 1), "words": t["words"],
+            "minutes": round(training.kept()[1] / 60, 1)}]
         self.ctl.apply_cfg()
+        restyle(self.result, "ok")
+        self.result.setText(f"Messung fertig: {f'{rate:.1f}'.replace('.', ',')} % Wortfehler ({t['words']} Wörter). "
+                            "Wiederhole sie nach dem Training zum Vergleich.")
+        self._scores()
+        self._kept()
+        self.next(0)
+
+    def _scores(self):
+        rows = self.ctl.cfg.get("training_scores") or []
+        if not rows:
+            return self.scores.setText("Noch keine Messung. Miss einmal vor dem Training („Messen …“, etwa fünf Minuten): "
+                                       "Dann zeigt dir eine spätere Messung, was das Vorlesen gebracht hat.")
+        self.scores.setText("Messungen: " + "  →  ".join(
+            f"{time.strftime('%d.%m.', time.localtime(r.get('at', 0)))} {str(r.get('wer')).replace('.', ',')} % "
+            f"(nach {str(r.get('minutes', 0)).replace('.', ',')} Minuten Training)" for r in rows[-4:]))
 
     def _open_store(self):
         training.store().mkdir(parents=True, exist_ok=True)
@@ -2105,8 +2209,12 @@ class TrainPage(Page):
 
     def _kept(self):
         n, sec = training.kept()
-        self.kept.setText(f"{n} Aufnahme{'n' if n != 1 else ''}, {sec / 60:.1f} Minuten, nur auf diesem Rechner. Aufgehoben werden "
-                          "nur die erfundenen Übungssätze dieser Seite, nie Diktate. Ab etwa 30 Minuten lohnt ein Versuch.")
+        tests = training.kept(test=True)[0]
+        self.kept.setText(f"{n} Übungs{'satz' if n == 1 else 'sätze'}, {sec / 60:.1f} Minuten".replace(".", ",")
+                          + (f", dazu {tests} Prüfsätze" if tests else "")
+                          + ". Sie liegen im Datenordner von LocalScribe, verlassen ihn nicht und gehören zu deinem Profil "
+                          "(Einstellungen, „Profil sichern“). Aufgehoben werden nur die erfundenen Sätze dieser Seite, nie "
+                          "Diktate. Ab etwa 30 Minuten lohnt ein Nachtraining des Sprachmodells auf deine Stimme.")
 
     def _pairs(self):
         if self.ctl.transcriber is None or not getattr(self.ctl, "ready", True):
@@ -2169,7 +2277,7 @@ class TrainPage(Page):
             return
         box = QtWidgets.QMessageBox(self)
         box.setWindowTitle("Aufnahmen löschen")
-        box.setText(f"{n} Aufnahmen aus dem Stimmtraining endgültig löschen?")
+        box.setText(f"{n} Aufnahmen aus dem Stimmtraining und alle Prüfsätze endgültig löschen?")
         yes = box.addButton("Löschen", QtWidgets.QMessageBox.DestructiveRole)
         box.addButton("Abbrechen", QtWidgets.QMessageBox.RejectRole)
         box.exec()
@@ -2189,6 +2297,8 @@ class TrainPage(Page):
             restyle(self.result, "bad")
             return self.result.setText(f"Das hat nicht geklappt: {error}")
         cfg = self.ctl.cfg
+        if self.testing:
+            return self._measured(self.items[self.pos], text, getattr(self.ctl, "heard_audio", None))
         # so, wie der Text ohne persönliches Wörterbuch ankäme: gelernt wird nur, was dann noch falsch ist
         heard = engine.postprocess(text, {"dictionary": {}, "trailing_space": False,
                                           "base_dictionary": cfg.get("base_dictionary", True),
@@ -2207,7 +2317,7 @@ class TrainPage(Page):
         cfg["training_done"] = sorted(set(cfg.get("training_done") or []) | {expected})
         self.ctl.apply_cfg()
         audio = getattr(self.ctl, "heard_audio", None)
-        if cfg.get("training_keep") and audio is not None and len(audio):
+        if cfg.get("training_keep", True) and audio is not None and len(audio):
             try:
                 training.keep(audio, expected)
             except OSError:
@@ -2779,12 +2889,13 @@ class SettingsPage(Page):
             self.own_note))
         self.keep_note = label("", "muted", wrap=True)
         self.body.addWidget(card(
-            label("Einstellungen sichern", "h2"),
-            label("Wörterbuch, Textbausteine, Aufträge, Tasten und Server in eine Datei schreiben und daraus zurückholen, "
-                  "etwa für einen anderen Rechner. Vor jedem Wechsel der Fassung legt LocalScribe von selbst eine Kopie "
-                  "im Datenordner ab (Ordner „sicherung“, die letzten zehn). API-Schlüssel stehen nicht in der Datei: "
-                  "Die liegen im Schlüsselspeicher von Windows und bleiben bei Updates erhalten.", "muted", wrap=True),
-            hbox(button("In Datei sichern …", self._keep), button("Aus Datei zurückholen …", self._bring),
+            label("Profil sichern", "h2"),
+            label("Dein Profil in eine Datei schreiben und daraus zurückholen, etwa für einen anderen Rechner: Wörterbuch, "
+                  "gelernter Wortschatz, Textbausteine, Aufträge, Tasten, Server und die Stimmaufnahmen aus dem "
+                  "Stimmtraining. Updates fassen das Profil nicht an; vor jedem Wechsel der Fassung legt LocalScribe "
+                  "zusätzlich eine Kopie der Einstellungen ab (Ordner „sicherung“, die letzten zehn). API-Schlüssel "
+                  "stehen nicht in der Datei: Die liegen im Schlüsselspeicher von Windows.", "muted", wrap=True),
+            hbox(button("Profil sichern …", self._keep), button("Profil zurückholen …", self._bring),
                  button("Ordner mit den Sicherungen öffnen", self._kept_open), None),
             self.keep_note))
         self.care_note = label("", "muted", wrap=True)
@@ -2870,30 +2981,34 @@ class SettingsPage(Page):
 
     def _keep(self):
         path, _ = QtWidgets.QFileDialog.getSaveFileName(
-            self, "Einstellungen sichern", f"LocalScribe-Einstellungen-{time.strftime('%Y-%m-%d')}.json", "Einstellungen (*.json)")
+            self, "Profil sichern", f"LocalScribe-Profil-{time.strftime('%Y-%m-%d')}{config.PROFILE}",
+            f"Profil mit Stimmaufnahmen (*{config.PROFILE});;Nur Einstellungen (*.json)")
         if not path:
             return
         try:
             config.save(self.ctl.cfg)
-            config.export(path)
+            voice = config.export(path)
         except OSError as e:
             return self.saved(self.keep_note, f"Nicht gesichert: {e}", ok=False)
-        self.saved(self.keep_note, f"Gesichert in {path}")
+        self.saved(self.keep_note, f"Gesichert in {path}" + (f" ({voice} Stimmaufnahmen)" if voice else ""))
 
     def _bring(self):
-        path, _ = QtWidgets.QFileDialog.getOpenFileName(self, "Einstellungen zurückholen", "", "Einstellungen (*.json)")
+        path, _ = QtWidgets.QFileDialog.getOpenFileName(self, "Profil zurückholen", "",
+                                                        f"Profil oder Einstellungen (*{config.PROFILE} *.json)")
         if not path:
             return
         try:
             cfg = config.restore(path)
         except (ValueError, OSError) as e:
             return self.saved(self.keep_note, str(e), ok=False)
+        voice = cfg.pop("_voice", 0)
         self.ctl.cfg.clear()
         self.ctl.cfg.update(cfg)
-        self.ctl.apply_settings()
+        self.ctl.apply_cfg()
         self.window().refresh()
         self.refresh()
-        self.saved(self.keep_note, "Zurückgeholt. Die bisherigen Einstellungen liegen als Kopie im Ordner „sicherung“.")
+        self.saved(self.keep_note, "Zurückgeholt" + (f", dazu {voice} Stimmaufnahmen" if voice else "")
+                   + ". Die bisherigen Einstellungen liegen als Kopie im Ordner „sicherung“.")
 
     def _kept_open(self):
         folder = config.DIR / config.BACKUPS

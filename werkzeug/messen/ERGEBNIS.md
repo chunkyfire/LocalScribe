@@ -521,3 +521,16 @@ in `jev.py` (17 und 19 Fragen). Sechs erfundene Fälle, Antwortzeit 0,4 bis 0,5 
 | Notaufnahme: Thoraxschmerz mit ST-Senkungen (bisheriger Fragesatz) | Notaufnahme 100 %, Kardiologie, Aufnahme 87 % | EKG 96 %, Labor 97 % (Thoraxlabor), Monitoring 95 %, Zugang 94 % |
 
 Das ist eine Durchsicht auf Plausibilität an sechs Fällen, keine Auswertung der Treffsicherheit.
+
+## Übungssätze und Messdiktate überschnitten sich (19.11.2026, behoben in 1.6.0)
+
+Dem Nutzer fiel auf, dass im Stimmtraining Sätze stehen, die er aus seinen fünf Messdiktaten kennt. Nachgezählt
+(`tests\_cem\ueberlapp.py`, gibt nur Zahlen aus): Von den 38 Sätzen der fünf Diktate standen 6 fast wortgleich im
+Stimmtraining, 59 von 94 Fachwörtern kamen dort vor, und 12 der 297 Übungssätze teilten eine Folge von vier Wörtern
+mit einem Diktat. Die unabhängigen Sätze (395 Arztbrief-Sätze) überschnitten sich zu 0,1 %.
+
+Folgen: Die 8,3 % auf den eigenen Diktaten sind für jemanden, der das Stimmtraining gemacht hat, zu günstig; als
+Maßstab für die Wirkung des Trainings taugen sie nicht. Seit 1.6.0 sind die Übungssätze neu geschrieben
+(`werkzeug/lesetexte/`, Grundstock und je Fachrichtung gut 30 Minuten) und von allen Messungen getrennt: Je
+Fachrichtung liegen Prüfsätze bei, die das Training nie zeigt („Messen …“ im Stimmtraining). Ob die neuen Sätze sich
+mit den Messdiktaten decken, prüft `tests\_cem\ueberlapp2.py` auf dem Rechner, auf dem die Diktate liegen.

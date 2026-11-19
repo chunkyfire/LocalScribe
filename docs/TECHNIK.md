@@ -1,6 +1,6 @@
 # LocalScribe – Technische Dokumentation
 
-Stand: Version 1.5.0. Für Betrieb, IT und alle, die den Code lesen oder prüfen wollen. Die Bedienung steht im
+Stand: Version 1.6.0. Für Betrieb, IT und alle, die den Code lesen oder prüfen wollen. Die Bedienung steht im
 [Handbuch](LocalScribe-Handbuch.pdf), die Messwerte mit Methode in [`werkzeug/messen/ERGEBNIS.md`](../werkzeug/messen/ERGEBNIS.md).
 
 ## 1. Was die App ist
@@ -137,7 +137,8 @@ Gepackt mit PyInstaller zu einem Ordner mit `LocalScribe.exe`; `build.ps1` strei
 | `diktat/beam.py` | Dekodieren mit mehreren Lesarten und Wortschatz-Bonus |
 | `diktat/wortschatz.py` | Wortschatz dafür: Kernliste, eigene Begriffe, gelernte Fachwörter |
 | `diktat/fach.py` | Fachbegriffe am Klang reparieren (Lexikon mit 39.600 Begriffen, Wirkstoffendungen) |
-| `diktat/training.py` | Lernen aus vorgelesenen Sätzen und aus Aufnahmen mit Transkript |
+| `diktat/training.py` | Stimmtraining: Übungs- und Prüfsätze je Fachrichtung, Lernen aus vorgelesenen Sätzen und aus Aufnahmen mit Transkript, Wortfehler einer Messung |
+| `werkzeug/lesetexte/` | Quelltexte der Übungssätze je Fachrichtung und `bauen.py`, das sie prüft, ordnet und `diktat/lesetexte.json` schreibt |
 | `diktat/visite.py` | Visite & Übergabe: Fall auswerten lassen (Arztbrief-Entwurf, Sicherheitsnetz, Rückfragen), Fallablage mit Papierkorb |
 | `diktat/jev.py` | Jev (TypeSafe): je Rahmen ein fester Fragesatz in einer Anfrage, Antworten als Wahrscheinlichkeiten. Notaufnahme: 17 Fragen aus WacheNG (Ersteinschätzung). Station: 17, Intensiv: 19 Fragen (Tages-Check: Lage und „heute prüfen“) |
 | `diktat/sprecher.py` | Sprecher trennen: pyannote-Segmentierung und WeSpeaker-Stimmabdrücke (ONNX, CPU) |
@@ -202,11 +203,34 @@ Nichts davon verändert das Sprachmodell; gelernt wird in Wörterbuch und Wortsc
 In den Wortschatz kommen nur einzelne Wörter, die im mitgelieferten Lexikon stehen, höchstens 4.000. Sätze und
 Namen von Patienten können so nicht hineingeraten. Tondateien werden beim Lernen nur gelesen.
 
-Material für ein Nachtraining: Auf Wunsch (`training_keep`, ab Werk aus) hebt das Stimmtraining die vorgelesenen,
-erfundenen Sätze als WAV mit Text in `training\` auf, nie Diktate oder eingelesene Aufnahmen. Ob ein Nachtraining
-des Sprachmodells auf die eigene Stimme die Erkennung verbessert, ist nicht gemessen; mit künstlichen Stimmen
-brachte es nichts (`ERGEBNIS.md`). Das Training selbst läuft außerhalb der App (`werkzeug/training`, braucht eine
-Grafikkarte) und würde nur den kleinen Schreibteil des Modells (69 MB) ersetzen.
+**Übungssätze (seit 1.6.0).** `diktat/lesetexte.json` entsteht aus `werkzeug/lesetexte/*.txt`: je Fachrichtung
+eine Datei, jede Zeile ein Satz in Sprechform (Zahlen als Wörter) mit einer Art davor: `A|` Ärztin oder Arzt diktiert
+oder übergibt, `P|` Gespräch mit Patientin oder Patient, `O|` Organisation, `T|` Prüfsatz. `bauen.py` prüft Länge
+(6 bis 30 Wörter), Satzende, Dubletten und dass kein Prüfsatz einem Übungssatz gleicht, und ordnet die Übungssätze
+gierig: Der nächste Satz ist der, der die meisten neuen Lautfolgen und Fachwörter bringt, die Arten gemischt. Wer
+nach zehn Minuten aufhört, hat deshalb das meiste schon abgedeckt. Enthalten sind der Grundstock (90 Sätze, etwa
+9 Minuten), Notfallmedizin (284 Sätze, 32 Minuten) und Innere Medizin und Nephrologie (284 Sätze, 31 Minuten); eine
+Fachrichtung wird immer nach dem Grundstock gelesen. Die 19 früheren Themen bleiben wählbar. Eine weitere
+Fachrichtung ist eine weitere Textdatei.
+
+**Messung.** Je Fachrichtung liegen 24 Prüfsätze bei, zum Grundstock 16; das Training zeigt sie nie. „Messen …“
+lässt sie vorlesen und rechnet die Wortfehlerquote (`training.score`): Beide Seiten werden vorher gleich
+geschrieben (`training.plain`: Zahlwörter zu Ziffern, Einheiten kurz, Satzzeichen weg), damit „zwölf Milligramm“
+und „12 mg“ nicht als Fehler zählen. Das Ergebnis steht mit Datum und den bis dahin gelesenen Minuten in
+`training_scores`. Die Messung lernt nichts ins Wörterbuch.
+
+**Material für ein Nachtraining.** Das Stimmtraining hebt die vorgelesenen, erfundenen Sätze als WAV mit Text in
+`training\` auf (Prüfsätze in `training\pruef\`), nie Diktate oder eingelesene Aufnahmen; seit 1.6.0 ohne
+Schalter im Fenster (`training_keep`, ab Werk an). Ob ein Nachtraining des Sprachmodells auf die eigene Stimme die
+Erkennung verbessert, ist nicht gemessen; mit künstlichen Stimmen brachte es nichts (`ERGEBNIS.md`). Das Training
+selbst läuft außerhalb der App (`werkzeug/training`, braucht eine Grafikkarte) und würde nur den kleinen
+Schreibteil des Modells (69 MB) ersetzen.
+
+**Profil sichern (seit 1.6.0).** „Profil sichern …“ unter Einstellungen schreibt eine Datei `.lsprofil`: ein
+ZIP-Archiv mit `einstellungen.json` (wie die bisherige Sicherung, ohne Schlüssel und ohne Verlauf) und dem Ordner
+`training\`. „Profil zurückholen …“ liest `.lsprofil` oder eine frühere `.json`; Stimmaufnahmen werden ergänzt,
+vorhandene nicht überschrieben (`config.export`, `config.restore`). Diktate, Fälle und der Schlüssel für ein
+Sprachmodell-Konto sind nicht enthalten.
 
 ## 7. Daten auf dem Rechner
 
@@ -231,7 +255,7 @@ zuletzt `%TEMP%` aus (`config._dir`).
 | `diktat.log`, `absturz.log` | Betriebsmeldungen: Dauer, Zeichenzahl, Fehler. Kein diktierter Text. |
 | `aufnahmen\` | Sicherung einer laufenden langen Aufnahme; wird gelöscht, sobald der Text fertig ist |
 | `visite.sqlite` | Fälle aus „Visite & Übergabe“: Eingabe und Ergebnis als Text, mit Papierkorb |
-| `training\` | nur wenn eingeschaltet: vorgelesene Sätze des Stimmtrainings als Ton |
+| `training\` | vorgelesene Übungssätze des Stimmtrainings als Ton mit Text (`index.jsonl`), Prüfsätze in `pruef\`; nie Diktate |
 
 Der Schlüssel für ein Sprachmodell-Konto liegt in der Windows-Anmeldeinformationsverwaltung (`keyring`), nicht in
 einer Datei. Ton aus Diktaten per Taste wird nie auf die Platte geschrieben.
@@ -294,7 +318,8 @@ zufälligen Schlüssel aus dem QR-Code. Ab Werk aus.
 | `llm`, `llm_fix` | Sprachmodell-Server und Fachkorrektur | aus |
 | `visite_prompt` | eigene Anweisung für den Rahmen Notaufnahme; leer = die mitgelieferte. Station und Intensiv haben feste Aufträge (`visite.STATION`, `visite.ITS`) | leer |
 | `visite_model`, `visite_jev`, `visite_rules` | Modell für Arztbrief, Visiteneintrag und Übergabe (leer: bei OpenRouter `google/gemini-3.8-flash@low`, sonst das LLM-Modell; der Zusatz `@low` geht bei OpenRouter als `reasoning.effort` hinaus, `llm.model_of`), Jev-Modell (leer: `~typesafe/jev-latest`), Hausregeln für Jev | leer |
-| `training_keep` | vorgelesene Sätze als Ton aufheben | aus |
+| `training_keep` | vorgelesene Übungs- und Prüfsätze als Ton aufheben (kein Schalter im Fenster; für eine zentrale Vorgabe) | an (seit 1.6.0) |
+| `field`, `training_scores` | Fachrichtung im Stimmtraining; Messungen mit Prüfsätzen (Zeitpunkt, Wortfehler, Trainingsminuten) | leer |
 | `phone` | Handy als Mikrofon | aus |
 | `model_dir` | eigener Ordner mit den Sprachmodellen, zum Beispiel ein Netzlaufwerk | leer |
 | `live_preview` (nur Datei) | Vorschau auf die laufende Äußerung in der Aufnahme | an |

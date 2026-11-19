@@ -101,7 +101,9 @@ DEFAULTS = {
     "learned": [],                # gelernte Fachwörter (aus Diktaten und eingelesenen Texten)
     "mic_warm": False,            # Mikrofon dauerhaft offen halten: kein Startverzug, erste Silbe bleibt
     "speakers": True,             # Sprecher trennen bei Aufnahme und Datei (bei nur einer Stimme bleibt der Text, wie er ist)
-    "training_keep": False,       # Stimmtraining: vorgelesene (erfundene) Sätze als Ton aufheben, für ein Nachtraining
+    "training_keep": True,        # Stimmtraining: vorgelesene (erfundene) Sätze als Ton aufheben, für ein Nachtraining
+    "field": "",                  # Fachrichtung für die Sätze im Stimmtraining; leer = Grundstock
+    "training_scores": [],        # Messungen mit Prüfsätzen: Zeitpunkt, Fachrichtung, Wortfehler, Trainingsminuten
     "live_preview": True,         # Aufnahme: laufende Äußerung schon beim Sprechen vorläufig anzeigen
     "model_dir": "",              # eigener Ordner mit Sprachmodellen (z. B. ein gemeinsames Netzlaufwerk); leer = keiner
     "handover_frame": "zna",      # Übergabe: zuletzt gewählter Rahmen (zna, station, its); gilt für den nächsten Fall
@@ -112,7 +114,7 @@ DEFAULTS = {
     "visite_rules": "",           # Hausregeln (Schockraum, Labor, Zuständigkeiten), die Jev mitbekommt; leer = keine
     "training_done": [],          # Stimmtraining: schon gelesene Sätze
     "phone": {"enabled": False, "port": 8765, "token": ""},   # Handy als Mikrofon (Webseite im eigenen Netz)
-    "config_version": 6,
+    "config_version": 7,
     "quantization": "int8",
     "provider": "CPUExecutionProvider",
     "threads": 0,
@@ -246,6 +248,11 @@ def load() -> dict:
                 if cfg.get("model_choice") == "genau":
                     cfg["model_choice"] = "de"
                 cfg["config_version"] = 6
+            if int(stored.get("config_version") or 1) < 7:
+                # 1.6.0: Wer das Stimmtraining nutzt, will, dass die Stimme lernt: Die vorgelesenen (erfundenen) Sätze
+                # werden ohne eigenen Haken aufgehoben.
+                cfg["training_keep"] = True
+                cfg["config_version"] = 7
             cfg.pop("model", None)
             cfg.pop("model_revision", None)
         except Exception:
@@ -284,16 +291,64 @@ def backup(tag: str = "") -> Path | None:
         return None
 
 
-def export(path) -> None:
-    """Die Einstellungen als Datei an einen frei gewählten Ort schreiben."""
-    shutil.copyfile(FILE, path)
+PROFILE = ".lsprofil"          # Profil: Einstellungen und Stimmaufnahmen in einer Datei (ein ZIP)
+SETTINGS = "einstellungen.json"
+VOICE = "training"
+
+
+def export(path) -> int:
+    """Einstellungen an einen frei gewählten Ort schreiben. Endet der Name auf .lsprofil, kommen die Stimmaufnahmen des
+    Stimmtrainings (Übungs- und Prüfsätze) mit in die Datei. Gibt die Zahl der Aufnahmen zurück. API-Schlüssel sind nie dabei."""
+    if not str(path).lower().endswith(PROFILE):
+        shutil.copyfile(FILE, path)
+        return 0
+    import zipfile
+    count, voice = 0, DIR / VOICE
+    with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as z:
+        z.write(FILE, SETTINGS)
+        for f in sorted(voice.rglob("*")) if voice.is_dir() else []:
+            if f.is_file() and f.suffix in (".wav", ".jsonl"):
+                z.write(f, f"{VOICE}/{f.relative_to(voice).as_posix()}")
+                count += f.suffix == ".wav"
+    return count
+
+
+def _voice_in(z) -> int:
+    """Stimmaufnahmen aus einem Profil dazulegen: Vorhandene Dateien bleiben, das Verzeichnis wird ergänzt."""
+    count = 0
+    names = [n for n in z.namelist() if n.startswith(VOICE + "/") and ".." not in n and not n.endswith("/")]
+    for name in (n for n in names if n.endswith(".jsonl")):
+        folder = DIR / Path(name).parent
+        folder.mkdir(parents=True, exist_ok=True)
+        new = []
+        for line in z.read(name).decode("utf-8", "replace").splitlines():
+            try:
+                audio = Path(json.loads(line)["audio"]).name
+            except (ValueError, KeyError, TypeError):
+                continue
+            source = f"{Path(name).parent.as_posix()}/{audio}"
+            if source in names and not (folder / audio).exists():
+                (folder / audio).write_bytes(z.read(source))
+                new.append(line)
+        if new:
+            with open(folder / Path(name).name, "a", encoding="utf-8") as f:
+                f.write("\n".join(new) + "\n")
+            count += len(new)
+    return count
 
 
 def restore(path) -> dict:
-    """Einstellungen aus einer gesicherten Datei zurückholen. Die bisherigen werden vorher gesichert."""
+    """Einstellungen (oder ein Profil mit Stimmaufnahmen) aus einer gesicherten Datei zurückholen. Die bisherigen
+    Einstellungen werden vorher gesichert; vorhandene Stimmaufnahmen bleiben und werden ergänzt."""
+    import zipfile
+    profile = None
     try:
-        stored = json.loads(Path(path).read_text(encoding="utf-8-sig"))
-    except (OSError, ValueError) as e:
+        if zipfile.is_zipfile(path):
+            profile = zipfile.ZipFile(path)
+            stored = json.loads(profile.read(SETTINGS).decode("utf-8-sig"))
+        else:
+            stored = json.loads(Path(path).read_text(encoding="utf-8-sig"))
+    except (OSError, ValueError, KeyError) as e:
         raise ValueError(f"Die Datei lässt sich nicht lesen ({e}).") from e
     if not isinstance(stored, dict) or not ({"hotkey_hold", "dictionary", "llm"} & set(stored)):
         raise ValueError("Das ist keine Einstellungsdatei von LocalScribe.")
@@ -301,7 +356,11 @@ def restore(path) -> dict:
     tmp = FILE.with_suffix(".tmp")
     tmp.write_text(json.dumps(stored, indent=2, ensure_ascii=False), encoding="utf-8")
     os.replace(tmp, FILE)
-    return load()
+    cfg = load()
+    if profile is not None:
+        with profile:
+            cfg["_voice"] = _voice_in(profile)        # nur für die Meldung, wird nicht gespeichert
+    return cfg
 
 
 def prompt_by_name(cfg: dict, name: str):

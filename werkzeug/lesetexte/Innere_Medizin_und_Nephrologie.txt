@@ -1,0 +1,310 @@
+# Innere Medizin und Nephrologie: Station, Ambulanz, Dialyse, Transplantation. Mindestens dreißig Minuten.
+# A = Ärztin oder Arzt diktiert oder übergibt, P = Gespräch mit Patientin oder Patient, O = Organisation, T = Prüfsatz (nie im Training)
+A|Stationäre Aufnahme bei kardialer Dekompensation mit Ruhedyspnoe, Beinödemen und einer Gewichtszunahme von sechs Kilogramm in zwei Wochen.
+A|Echokardiografisch linksventrikuläre Ejektionsfraktion dreißig Prozent, mittelgradige Mitralklappeninsuffizienz, Vena cava gestaut.
+A|Unter intravenöser Diuretikatherapie mit Furosemid Negativbilanz von acht Litern, Entlassgewicht neunundsiebzig Kilogramm.
+A|Herzinsuffizienztherapie mit Sacubitril und Valsartan, Bisoprolol, Spironolacton fünfundzwanzig Milligramm und Empagliflozin zehn Milligramm.
+A|NT-proBNP bei Aufnahme elftausendzweihundert, bei Entlassung dreitausendvierhundert Pikogramm pro Milliliter.
+A|Koronare Dreigefäßerkrankung, Zustand nach Bypassoperation, aktuell stabile Angina pectoris bei höherer Belastung.
+A|LDL-Cholesterin einhundertachtzehn, Zielwert unter fünfundfünfzig, daher Ergänzung von Ezetimib zehn Milligramm.
+A|Permanentes Vorhofflimmern, orale Antikoagulation mit Apixaban, Dosisreduktion auf zwei Komma fünf Milligramm bei Alter und Nierenfunktion.
+A|Langzeit-Blutdruckmessung mit einem Tagesmittel von einhundertzweiundfünfzig zu neunzig, fehlende Nachtabsenkung.
+A|Erweiterung der antihypertensiven Therapie um Chlortalidon zwölf Komma fünf Milligramm, Zielblutdruck unter einhundertdreißig zu achtzig.
+A|Diabetes mellitus Typ zwei mit HbA1c neun Komma vier Prozent, Beginn mit Semaglutid subkutan einmal wöchentlich.
+A|Intensivierte Insulintherapie, Basalinsulin achtzehn Einheiten, zu den Mahlzeiten nach Kohlenhydrateinheiten und Korrekturfaktor.
+A|Metformin bei einer Filtrationsrate unter dreißig Milliliter pro Minute abgesetzt, Umstellung auf einen DPP-vier-Hemmer.
+A|Diabetisches Fußsyndrom mit plantarem Ulkus am rechten Vorfuß, Druckentlastung, Wundabstrich, Gefäßdiagnostik.
+A|Manifeste Hyperthyreose bei Morbus Basedow, TSH supprimiert, Beginn mit Thiamazol zwanzig Milligramm täglich.
+A|Ambulant erworbene Pneumonie des linken Unterlappens, Ampicillin und Sulbactam drei Gramm dreimal täglich, Oralisierung an Tag drei.
+A|Parapneumonischer Pleuraerguss rechts, Punktion von eins Komma zwei Litern, nach Light-Kriterien Exsudat.
+A|COPD mit häufigen Exazerbationen, Dreifachtherapie inhalativ, Indikation zur Sauerstofflangzeittherapie bei Sauerstoffpartialdruck unter fünfundfünfzig.
+A|Lungenfunktion mit Einsekundenkapazität vierundvierzig Prozent vom Soll, Residualvolumen erhöht, Diffusionskapazität vermindert.
+A|Obere Endoskopie: Ulcus duodeni Forrest drei, Helicobacter positiv, Eradikation mit Bismut-Quadrupeltherapie über vierzehn Tage.
+A|Koloskopie bis ins terminale Ileum, drei Adenome abgetragen, Kontrolle in drei Jahren empfohlen.
+A|Akuter Schub einer Colitis ulcerosa mit acht blutigen Stühlen täglich, Calprotectin über zweitausend, Prednisolon vierzig Milligramm.
+A|Leberzirrhose Child-Pugh B bei Alkoholabusus, MELD-Score siebzehn, Aszites, Ösophagusvarizen Grad zwei.
+A|Aszitestherapie mit Spironolacton einhundert Milligramm und Furosemid vierzig Milligramm, Natriumrestriktion, tägliche Gewichtskontrolle.
+A|Parazentese von sechs Litern unter Albuminsubstitution, acht Gramm je Liter, Punktat ohne Hinweis auf Infektion.
+A|Primärprophylaxe der Varizenblutung mit Carvedilol sechs Komma zwei fünf Milligramm, Rifaximin nach zweiter Enzephalopathie.
+A|Chronische Hepatitis B, HBs-Antigen positiv, Viruslast niedrig, Transaminasen normal, vorerst nur Verlaufskontrollen.
+A|Eisenmangelanämie mit Hämoglobin acht Komma sechs, Ferritin neun, Eisencarboxymaltose fünfhundert Milligramm intravenös.
+A|Makrozytäre Anämie bei Vitamin-B-zwölf-Mangel, Substitution eintausend Mikrogramm intramuskulär, Abklärung einer Autoimmungastritis.
+A|Monoklonale Gammopathie unklarer Signifikanz, IgG Kappa, freie Leichtketten mit normalem Quotienten, Kontrolle in sechs Monaten.
+A|Clostridioides-difficile-Infektion nach Antibiotikatherapie, Fidaxomicin zweihundert Milligramm zweimal täglich für zehn Tage.
+A|Infektiöse Endokarditis der Aortenklappe mit Staphylococcus aureus, Vegetation zwölf Millimeter, herzchirurgische Mitbeurteilung.
+A|Komplizierter Harnwegsinfekt mit Escherichia coli, ESBL-Bildner, Therapie resistenzgerecht mit Ertapenem ein Gramm täglich.
+A|Akuter Gichtanfall am Großzehengrundgelenk, Colchicin null Komma fünf Milligramm zweimal täglich, Harnsäure neun Komma zwei.
+A|Polymyalgia rheumatica mit Schultergürtelschmerz und Morgensteifigkeit, Prednisolon fünfzehn Milligramm, prompte Besserung.
+A|Osteoporose mit Wirbelkörperfrakturen, T-Score minus drei Komma eins, Denosumab sechzig Milligramm halbjährlich.
+A|Hyperkalzämie drei Komma vier Millimol pro Liter bei Malignom, Volumengabe und Zoledronsäure vier Milligramm.
+A|Hyponatriämie einhundertvierundzwanzig bei Syndrom der inadäquaten ADH-Sekretion, Trinkmengenbeschränkung auf einen Liter.
+A|Hypokaliämie zwei Komma neun unter Thiazid, orale Substitution mit Kaliumchlorid, Magnesium mitbestimmt.
+A|Polypharmazie mit vierzehn Wirkstoffen, Überprüfung nach Priscus-Liste, vier Präparate abgesetzt.
+A|Akute Nierenschädigung KDIGO Stadium zwei, Kreatinin von eins Komma eins auf zwei Komma neun Milligramm pro Deziliter.
+A|Prärenale Genese bei Diarrhö und fortgeführter Einnahme von Ramipril und Diuretikum, fraktionelle Natriumexkretion unter einem Prozent.
+A|Sonografie: Nieren beidseits elf Zentimeter, Parenchym normal breit, kein Harnstau, keine Raumforderung.
+A|Postrenales Nierenversagen bei Harnstau dritten Grades beidseits, urologische Entlastung, danach polyurische Phase mit sechs Litern.
+A|Urinsediment mit dysmorphen Erythrozyten, Akanthozyten zwölf Prozent und Erythrozytenzylindern, somit glomeruläre Hämaturie.
+A|Protein-Kreatinin-Quotient vier Komma acht Gramm pro Gramm, Serumalbumin zwei Komma eins Gramm pro Deziliter, nephrotisches Syndrom.
+A|Chronische Nierenerkrankung KDIGO G drei b A zwei, Filtrationsrate achtunddreißig, Albumin-Kreatinin-Quotient einhundertneunzig Milligramm pro Gramm.
+A|Progressionshemmung mit maximal dosiertem Ramipril, Dapagliflozin zehn Milligramm und Finerenon zehn Milligramm.
+A|Diabetische Nephropathie mit Abfall der Filtrationsrate um sechs Milliliter pro Minute pro Jahr.
+A|Sonografisch gesteuerte Nierenbiopsie am linken unteren Nierenpol, zwei Stanzzylinder, Bettruhe und Hämoglobinkontrolle nach sechs Stunden.
+A|Histologie: IgA-Nephropathie mit mesangialer Proliferation, Oxford-Klassifikation M eins, E null, S eins, T null, C null.
+A|Membranöse Glomerulonephritis, Phospholipase-A-zwei-Rezeptor-Antikörper einhundertsechzig, Therapie mit Rituximab geplant.
+A|Minimal-Change-Glomerulopathie, Prednisolon ein Milligramm pro Kilogramm, Remission nach vier Wochen.
+A|Fokal-segmentale Glomerulosklerose mit steroidresistentem Verlauf, Umstellung auf Ciclosporin, genetische Diagnostik veranlasst.
+A|Rapid-progressive Glomerulonephritis, PR-drei-ANCA positiv, Kreatinin fünf Komma eins, pulmonale Beteiligung mit Hämoptysen.
+A|Induktion mit Methylprednisolon fünfhundert Milligramm an drei Tagen, Rituximab und Avacopan dreißig Milligramm zweimal täglich.
+A|Anti-GBM-Erkrankung mit halbmondförmiger Glomerulonephritis, täglicher Plasmaaustausch, Cyclophosphamid und Steroide.
+A|Lupusnephritis Klasse vier, Mycophenolatmofetil zwei Gramm täglich, Hydroxychloroquin, Komplement C drei erniedrigt.
+A|Autosomal-dominante polyzystische Nierenerkrankung, Nierengesamtvolumen zweitausendeinhundert Milliliter, Mayo-Klasse eins D, Tolvaptan begonnen.
+A|Thrombotische Mikroangiopathie mit Fragmentozyten, Thrombozyten achtunddreißigtausend, LDH eintausendvierhundert, Haptoglobin nicht messbar.
+A|ADAMTS-dreizehn-Aktivität unter zehn Prozent, somit thrombotisch-thrombozytopenische Purpura, Plasmaaustausch und Caplacizumab.
+A|Atypisches hämolytisch-urämisches Syndrom, Beginn mit Eculizumab nach Meningokokkenimpfung und Antibiotikaprophylaxe.
+A|Myelomniere bei freien Lambda-Leichtketten von viertausend Milligramm pro Liter, Hydrierung, Bortezomib und Dexamethason.
+A|Hepatorenales Syndrom bei dekompensierter Zirrhose, Terlipressin und Albumin, Evaluation zur Lebertransplantation.
+A|Kardiorenales Syndrom mit diuretikarefraktärer Überwässerung, sequenzielle Nephronblockade mit Torasemid und Xipamid.
+A|Renale Anämie mit Hämoglobin neun Komma drei, Transferrinsättigung vierzehn Prozent, zunächst Eisen, dann Erythropoetin.
+A|Sekundärer Hyperparathyreoidismus, Parathormon vierhundertzwanzig Pikogramm pro Milliliter, Phosphat zwei Komma eins Millimol pro Liter.
+A|Phosphatbinder Sevelamer achthundert Milligramm zu den Mahlzeiten, Calcitriol null Komma zwei fünf Mikrogramm, Cinacalcet dreißig Milligramm.
+A|Metabolische Azidose mit Bikarbonat sechzehn, Beginn mit Natriumhydrogencarbonat ein Gramm dreimal täglich.
+A|Chronische Hyperkaliämie fünf Komma neun unter Blockade des Renin-Angiotensin-Systems, Patiromer acht Komma vier Gramm täglich.
+A|Aufklärung über Nierenersatzverfahren erfolgt, Entscheidung für Hämodialyse, Anmeldung zur Anlage eines Cimino-Shunts links.
+A|Urämie mit Perikardreiben, Übelkeit und Harnstoff zweihundertachtzig, Einleitung der Dialyse über einen Vorhofkatheter rechts jugulär.
+A|Hämodialyse dreimal wöchentlich über vier Stunden, Blutfluss dreihundert, Trockengewicht zweiundsiebzig Kilogramm, Ultrafiltration zwei Komma fünf Liter.
+A|Dialysequalität mit Kt durch V eins Komma vier, Shuntfluss achthundert Milliliter pro Minute, keine Rezirkulation.
+A|Shuntverschluss links seit dem Morgen, kein Schwirren, interventionelle Rekanalisation angemeldet, Überbrückung per Katheter.
+A|Peritonealdialyse mit vier Wechseln täglich zu je zwei Litern, Ultrafiltration achthundert Milliliter, Restdiurese ein Liter.
+A|Peritonitis unter Peritonealdialyse, trübes Dialysat mit zweitausendvierhundert Zellen pro Mikroliter, Vancomycin und Ceftazidim intraperitoneal.
+A|Katheterassoziierte Infektion mit Staphylococcus epidermidis, Entfernung des Vorhofkatheters, Vancomycin nach Spiegel.
+A|Zustand nach Nierentransplantation vor acht Monaten, Kreatinin stabil eins Komma vier, Proteinurie nicht nachweisbar.
+A|Immunsuppression mit Tacrolimus, Talspiegel sechs Komma zwei Nanogramm pro Milliliter, Mycophenolat und Prednisolon fünf Milligramm.
+A|Anstieg des Kreatinins auf zwei Komma drei, Transplantatbiopsie mit akuter T-Zell-vermittelter Abstoßung Banff eins B.
+A|Steroidstoß mit Methylprednisolon fünfhundert Milligramm über drei Tage, darunter Rückgang des Kreatinins.
+A|BK-Virus-Nephropathie mit einer Viruslast von achtzigtausend Kopien, Reduktion der Immunsuppression.
+A|CMV-Reaktivierung mit Leukopenie und Diarrhö, Valganciclovir in nierenadaptierter Dosis, Mycophenolat pausiert.
+A|Donorspezifische Antikörper neu nachgewiesen, Verdacht auf antikörpervermittelte Abstoßung, Plasmapherese und Immunglobuline.
+A|Vorbereitung zur Transplantationslistung abgeschlossen, Blutgruppe A positiv, keine Kontraindikationen, Meldung als transplantabel.
+A|Lebendspendeevaluation der Ehefrau, seitengetrennte Szintigrafie, Kreuzprobe negativ, Vorstellung in der Ethikkommission.
+A|Kontrastmitteluntersuchung bei einer Filtrationsrate von fünfundzwanzig, vorherige Hydrierung, nephrotoxische Medikamente pausiert.
+A|Dosisanpassung nach Nierenfunktion: Meropenem ein Gramm zweimal täglich, Enoxaparin halbiert, Gabapentin reduziert.
+A|Nephrolithiasis mit rezidivierenden Kalziumoxalatsteinen, Trinkmenge zweieinhalb Liter, Zitrat im Sammelurin erniedrigt.
+A|Renovaskuläre Hypertonie bei Nierenarterienstenose rechts, Duplexsonografie mit einer Flussgeschwindigkeit über zweihundert Zentimeter pro Sekunde.
+A|Primärer Hyperaldosteronismus, Aldosteron-Renin-Quotient erhöht, Kochsalzbelastungstest pathologisch, Nebennierenvenenkatheter geplant.
+A|Interstitielle Nephritis unter Protonenpumpenhemmer, Eosinophilurie, Absetzen des Auslösers und Prednisolon.
+A|Rhabdomyolyse nach Sturz mit langer Liegezeit, Kreatinkinase vierundvierzigtausend, Alkalisierung des Urins, Dialyse in Bereitschaft.
+A|AL-Amyloidose mit renaler und kardialer Beteiligung, Kongorot-positive Ablagerungen, Vorstellung im Amyloidosezentrum.
+A|Alport-Syndrom mit Innenohrschwerhörigkeit, Mutation im COL-vier-A-fünf-Gen, Ramipril zur Progressionshemmung.
+A|Hantavirus-Infektion mit Thrombozytopenie, Flankenschmerz und Nierenversagen, supportive Therapie, spontane Erholung.
+A|Blutgasanalyse venös: pH sieben Komma zwei neun, Bikarbonat fünfzehn, Anionenlücke zwölf, somit hyperchlorämische Azidose.
+A|Urinuntersuchung: Osmolalität dreihundertachtzig, Natrium zweiundfünfzig Millimol pro Liter, spezifisches Gewicht eintausendzehn.
+A|Sammelurin über vierundzwanzig Stunden: Volumen zwei Komma zwei Liter, Eiweiß eins Komma sechs Gramm, Kreatinin-Clearance einundvierzig.
+A|Verlauf unter Dialyse komplikationslos, Blutdruck vor der Behandlung einhundertsechzig zu fünfundachtzig, danach einhundertdreißig zu siebzig.
+A|Interdialytische Gewichtszunahme vier Komma zwei Kilogramm, erneute Schulung zur Trinkmenge und zur salzarmen Kost.
+A|Kaliumreiche Kost als Ursache der Hyperkaliämie, Ernährungsberatung, zusätzlich Natrium-Zirkonium-Cyclosilikat zehn Gramm.
+A|Calciphylaxie mit schmerzhaften Nekrosen am Oberschenkel, Absetzen von Phenprocoumon, Natriumthiosulfat nach der Dialyse.
+A|Restless-Legs-Syndrom und urämischer Pruritus, Optimierung der Dialysedosis, Difelikefalin nach der Behandlung.
+A|Impfstatus aktualisiert: Hepatitis B mit doppelter Dosis, Pneumokokken, Influenza, Herpes zoster.
+A|Tiefe Beinvenenthrombose unter nephrotischem Syndrom, Antikoagulation, Albumin unter zwei Gramm pro Deziliter als Risikofaktor.
+A|Hypertensiver Notfall mit Lungenödem bei Dialysepatient, Urapidil, notfallmäßige Ultrafiltration von drei Litern.
+A|Geriatrisches Assessment: Barthel-Index sechzig, Timed-up-and-go zweiundzwanzig Sekunden, Mini-Mental-Status vierundzwanzig.
+A|Entscheidung für eine konservative Therapie ohne Dialyse im Einvernehmen mit Patient und Familie, palliativmedizinische Anbindung.
+A|Entlassmedikation: Torasemid zwanzig Milligramm eins null null, Amlodipin zehn Milligramm eins null null, Sevelamer eins eins eins.
+A|Wir bitten um Kontrolle von Kreatinin, Kalium und Tacrolimus-Spiegel in einer Woche in der Transplantationsambulanz.
+A|Wiedervorstellung in der nephrologischen Ambulanz in drei Monaten mit Sammelurin und Blutdruckprotokoll.
+A|Sarkoidose mit bihilärer Lymphadenopathie, Hyperkalzämie und granulomatöser interstitieller Nephritis, Beginn einer Steroidtherapie.
+A|Riesenzellarteriitis mit Kopfschmerz und Kauschmerz, Blutsenkung neunzig, sofort Prednisolon sechzig Milligramm, Biopsie der Temporalarterie.
+A|Tiefe Leukopenie unter Methotrexat bei eingeschränkter Nierenfunktion, Folinsäure, Pausieren der Basistherapie.
+A|Subklinische Hypothyreose mit TSH sieben Komma acht, Antikörper gegen thyreoidale Peroxidase positiv, Kontrolle in drei Monaten.
+A|Nebennierenrindeninsuffizienz, Hydrocortison zwanzig Milligramm verteilt auf zwei Gaben, Notfallausweis ausgestellt.
+A|Phäochromozytom ausgeschlossen bei normalen Metanephrinen im Plasma, Inzidentalom der Nebenniere von achtzehn Millimetern.
+A|Schlafbezogene Atmungsstörung mit einem Apnoe-Hypopnoe-Index von vierunddreißig, Einleitung einer Überdrucktherapie.
+A|Lungenarterienembolie ohne Rechtsherzbelastung, ambulante Therapie möglich, Antikoagulation für mindestens drei Monate.
+A|Tumorsuche bei ungewolltem Gewichtsverlust von zwölf Kilogramm: Computertomografie, Endoskopien und Tumormarker ohne wegweisenden Befund.
+A|Fieber unklarer Genese seit drei Wochen, Blutkulturen steril, Echokardiografie unauffällig, Positronenemissionstomografie angemeldet.
+A|Akute myeloische Leukämie mit Blasten im Differenzialblutbild, Verlegung in die Hämatologie zur Induktionstherapie.
+A|Heparininduzierte Thrombozytopenie Typ zwei, Vier-T-Score sechs, Umstellung auf Argatroban.
+A|Schwere Hypomagnesiämie unter Tacrolimus und Protonenpumpenhemmer, intravenöse Substitution, Umstellung des Säureblockers.
+A|Renale Denervation diskutiert bei therapieresistenter Hypertonie unter fünf Substanzen, zunächst Ausschluss mangelnder Einnahmetreue.
+A|Bioimpedanzmessung mit drei Litern Überwässerung, Trockengewicht um ein Kilogramm gesenkt.
+A|Verschluss der Vena subclavia links nach mehreren Kathetern, Shuntanlage daher am rechten Arm.
+A|Heimhämodialyse gewünscht, Trainingsprogramm über sechs Wochen, Partner als Assistenz geschult.
+A|Sterile Leukozyturie mit Flankenschmerz, Verdacht auf Urogenitaltuberkulose, dreimal Morgenurin auf Mykobakterien.
+A|Hyperurikämie unter Diuretikum, Allopurinol einhundert Milligramm in nierenadaptierter Dosis, Zielwert unter sechs.
+A|Blutzuckertagesprofil mit Werten zwischen einhundertzehn und einhundertachtzig, keine Hypoglykämien, Schema belassen.
+A|Sekundärprophylaxe nach Myokardinfarkt mit Acetylsalicylsäure einhundert Milligramm, Atorvastatin achtzig Milligramm und Betablocker.
+A|Transthorakale Echokardiografie: konzentrische Hypertrophie, diastolische Dysfunktion Grad zwei, kein relevantes Vitium.
+A|Lymphknotenschwellung zervikal und axillär, Exstirpation, Histologie mit diffus großzelligem B-Zell-Lymphom.
+A|Aufnahme zur ersten Gabe von Cyclophosphamid, Hydrierung, Mesna und antiemetische Prophylaxe mit Ondansetron.
+A|Pneumocystis-Prophylaxe mit Cotrimoxazol dreimal wöchentlich unter Rituximab und hochdosierten Steroiden.
+A|Nach Absetzen der nichtsteroidalen Antirheumatika Erholung der Nierenfunktion auf ein Kreatinin von eins Komma drei.
+A|Stationärer Verlauf: fieberfrei seit drei Tagen, Entzündungswerte rückläufig, Mobilisation auf Stationsebene selbstständig.
+A|Zusammenfassend chronische Nierenerkrankung multifaktorieller Genese mit kardiovaskulärem Hochrisikoprofil.
+A|Schwangerschaftswunsch bei Lupusnephritis in Remission, Umstellung von Mycophenolat auf Azathioprin drei Monate vorher.
+A|Präeklampsie in der zweiunddreißigsten Woche mit Proteinurie und Blutdruck einhundertsiebzig zu einhundertzehn, Verlegung in die Geburtshilfe.
+A|Sichere Zeichen der Überwässerung mit Halsvenenstauung, Pleuraergüssen und Anasarka, Ultrafiltration täglich für drei Tage.
+A|Nebenwirkung unter SGLT-zwei-Hemmer mit Genitalmykose, topische Therapie, Fortführung des Präparats.
+A|Abdomensonografie: Splenomegalie vierzehn Zentimeter, Pfortader hepatopetal, kein Aszites, Leberoberfläche höckrig.
+A|Kapillarmikroskopie mit Megakapillaren, antinukleäre Antikörper eins zu sechshundertvierzig, Verdacht auf systemische Sklerose.
+A|Atemwegsinfekt mit Nachweis von Influenza A, Oseltamivir nierenadaptiert, Tröpfchenisolation für fünf Tage.
+A|Stuhlfrequenz normalisiert, Kostaufbau vertragen, Entlassung für morgen nach Laborkontrolle geplant.
+A|Refeeding-Syndrom bei Kachexie, Phosphat null Komma vier Millimol pro Liter, langsame Steigerung der Kalorienzufuhr.
+P|Guten Morgen, ich bin Ihre Stationsärztin, wie haben Sie die Nacht verbracht?
+P|Wie weit können Sie im Moment gehen, bevor Sie wegen Luftnot stehen bleiben müssen?
+P|Sind Ihre Beine abends dicker, und hat sich Ihr Gewicht in den letzten Tagen verändert?
+P|Wie viel trinken Sie am Tag, alles zusammengerechnet, auch Suppe, Kaffee und Obst?
+P|Ist Ihnen aufgefallen, dass der Urin schäumt, dunkler ist oder dass Sie weniger ausscheiden?
+P|Müssen Sie nachts zum Wasserlassen aufstehen, und wenn ja, wie oft?
+P|Messen Sie Ihren Blutdruck zu Hause, und welche Werte haben Sie zuletzt aufgeschrieben?
+P|Nehmen Sie häufiger Schmerzmittel wie Ibuprofen oder Diclofenac, auch ohne Rezept?
+P|Gibt es in Ihrer Familie Nierenerkrankungen, Dialysepatienten oder Zystennieren?
+P|Haben Sie Gelenkschmerzen, Hautausschläge, Nasenbluten oder blutigen Auswurf bemerkt?
+P|Wie oft messen Sie Ihren Blutzucker, und hatten Sie zuletzt Unterzuckerungen?
+P|Spritzen Sie das Insulin immer an derselben Stelle, oder wechseln Sie die Einstichstellen?
+P|Haben Sie Kribbeln oder Taubheit in den Füßen, und schauen Sie Ihre Füße regelmäßig an?
+P|Haben Sie Brennen hinter dem Brustbein, Schluckbeschwerden oder schwarzen Stuhl bemerkt?
+P|Hat sich Ihr Stuhlgang verändert, ist Blut oder Schleim dabei?
+P|Haben Sie in den letzten Monaten ungewollt abgenommen, nachts geschwitzt oder Fieber gehabt?
+P|Wie viele Treppenstufen schaffen Sie ohne Pause, und brauchen Sie dabei Ihr Spray?
+P|Ihre Nieren arbeiten im Moment nur noch mit etwa einem Drittel der normalen Leistung.
+P|Das bedeutet nicht, dass Sie bald an die Dialyse müssen, aber wir müssen die Nieren jetzt schützen.
+P|Die wichtigsten Stellschrauben sind der Blutdruck, der Blutzucker und der Verzicht auf bestimmte Schmerzmittel.
+P|Im Urin finden wir zu viel Eiweiß, das ist ein Zeichen dafür, dass der Nierenfilter undicht ist.
+P|Um die Ursache zu klären, empfehle ich eine Gewebeprobe aus der Niere.
+P|Dabei entnehmen wir unter örtlicher Betäubung mit einer feinen Nadel zwei kleine Gewebezylinder.
+P|Das wichtigste Risiko ist eine Blutung, deshalb bleiben Sie danach einen Tag im Bett und unter Beobachtung.
+P|Die Gewebeprobe zeigt eine Entzündung der Nierenkörperchen, die wir gut behandeln können.
+P|Sie bekommen dafür ein Medikament, das Ihr Immunsystem bremst, deshalb sind Sie anfälliger für Infekte.
+P|Bitte melden Sie sich sofort bei Fieber, Husten oder Brennen beim Wasserlassen.
+P|Dieses Medikament schützt Herz und Nieren, auch wenn es ursprünglich gegen Zucker entwickelt wurde.
+P|An Tagen mit Durchfall, Erbrechen oder Fieber lassen Sie diese drei Tabletten bitte weg.
+P|Bitte wiegen Sie sich jeden Morgen nach dem Wasserlassen und schreiben Sie das Gewicht auf.
+P|Wenn Sie in drei Tagen mehr als zwei Kilogramm zunehmen, rufen Sie uns bitte an.
+P|Versuchen Sie, weniger Salz zu essen, und würzen Sie lieber mit Kräutern.
+P|Bei Ihrem Kaliumwert sollten Sie Bananen, Trockenobst, Nüsse und Fruchtsäfte meiden.
+P|Phosphat steckt vor allem in Schmelzkäse, Wurst, Cola und Fertiggerichten.
+P|Den Phosphatbinder nehmen Sie bitte immer direkt zum Essen, sonst wirkt er nicht.
+P|Die Trinkmenge sollte bei Ihnen einen Liter pro Tag nicht überschreiten.
+P|Ich möchte mit Ihnen in Ruhe über die Möglichkeiten sprechen, wenn die Nieren nicht mehr ausreichen.
+P|Es gibt die Blutwäsche im Zentrum, die Bauchfelldialyse zu Hause und die Transplantation.
+P|Für die Blutwäsche kommen Sie dreimal pro Woche für etwa vier Stunden zu uns.
+P|Bei der Bauchfelldialyse wechseln Sie selbst viermal täglich die Flüssigkeit im Bauch.
+P|Für die Blutwäsche brauchen wir einen Gefäßzugang am Unterarm, den sogenannten Shunt.
+P|An diesem Arm bitte keinen Blutdruck messen, kein Blut abnehmen lassen und nichts Schweres tragen.
+P|Fühlen Sie jeden Tag, ob der Shunt schwirrt, und melden Sie sich sofort, wenn das Schwirren fehlt.
+P|Eine Nierenspende von Angehörigen ist möglich, darüber können wir gern gemeinsam mit Ihrer Familie sprechen.
+P|Auf der Warteliste beträgt die durchschnittliche Wartezeit leider mehrere Jahre.
+P|Die Medikamente gegen die Abstoßung müssen Sie jeden Tag pünktlich zur gleichen Uhrzeit einnehmen.
+P|Am Tag der Blutabnahme nehmen Sie die Morgendosis bitte erst nach der Abnahme.
+P|Bitte verzichten Sie auf Grapefruit und Johanniskraut, beides verändert den Spiegel Ihrer Medikamente.
+P|Schützen Sie Ihre Haut konsequent vor der Sonne, das Hautkrebsrisiko ist unter diesen Medikamenten erhöht.
+P|Ihr Herz pumpt schwächer als normal, deshalb staut sich Wasser in Lunge und Beinen.
+P|Mit den Wassertabletten werden Sie in den nächsten Tagen einige Liter ausscheiden.
+P|Das Vorhofflimmern selbst ist nicht gefährlich, aber es können sich Blutgerinnsel bilden.
+P|Deshalb empfehle ich Ihnen ein Medikament zur Blutverdünnung, das Sie zweimal täglich einnehmen.
+P|Ihr Langzeitzucker ist zu hoch, wir sollten die Behandlung gemeinsam anpassen.
+P|Die Spritze geben Sie sich einmal pro Woche selbst, am Anfang kann Ihnen davon etwas übel sein.
+P|Wenn Sie zittern, schwitzen oder Heißhunger bekommen, essen Sie sofort Traubenzucker.
+P|Die Magenspiegelung hat ein Geschwür im Zwölffingerdarm gezeigt, das durch einen Keim verursacht wird.
+P|Sie nehmen jetzt zwei Wochen lang mehrere Tabletten, danach kontrollieren wir den Erfolg.
+P|Bei der Darmspiegelung haben wir kleine Polypen entfernt, die Gewebeuntersuchung steht noch aus.
+P|Ihre Leber ist durch den Alkohol vernarbt, jeder weitere Schluck schadet ihr.
+P|Wir können Ihnen helfen, vom Alkohol loszukommen, wenn Sie das möchten.
+P|Die Blutarmut kommt vom Eisenmangel, wir müssen noch herausfinden, wo Sie Blut verlieren.
+P|Das Eisen bekommen Sie heute als Infusion, das dauert etwa eine Viertelstunde.
+P|Die Lungenentzündung spricht gut an, ab morgen bekommen Sie das Antibiotikum als Tablette.
+P|Wir haben Ihre Medikamente durchgesehen und vier davon gestrichen, die Sie nicht mehr brauchen.
+P|Hier ist Ihr neuer Medikamentenplan, bitte zeigen Sie ihn auch Ihrer Hausärztin.
+P|Ich würde Sie morgen entlassen, wenn die Blutwerte stabil bleiben.
+P|Haben Sie zu Hause Hilfe, oder sollen wir einen Pflegedienst für die ersten Wochen organisieren?
+P|Wer richtet zu Hause Ihre Tabletten, und kommen Sie mit der Dosierbox zurecht?
+P|Gegen den Juckreiz helfen rückfettende Cremes und kühle Umschläge, zusätzlich passen wir die Dialyse an.
+P|Die Wadenkrämpfe bei der Dialyse entstehen, wenn wir zu schnell zu viel Wasser entziehen.
+P|Ich verstehe, dass die Dialyse Ihr Leben sehr verändert, viele Patienten gewöhnen sich aber gut daran.
+P|Es ist auch ein möglicher Weg, auf die Dialyse zu verzichten und die Beschwerden zu lindern.
+P|Was ist Ihnen für die kommende Zeit am wichtigsten, und wovor haben Sie am meisten Angst?
+P|Möchten Sie, dass Ihre Familie beim nächsten Gespräch dabei ist?
+P|Vor der Untersuchung mit Kontrastmittel bekommen Sie eine Infusion, um die Nieren zu schützen.
+P|Den Urin sammeln Sie bitte ab morgen früh über genau vierundzwanzig Stunden in diesem Behälter.
+P|Den ersten Morgenurin schütten Sie weg, danach kommt jede Portion in den Behälter.
+P|Bitte bringen Sie zur nächsten Kontrolle Ihr Blutdruckheft und alle Medikamentenpackungen mit.
+P|Die Impfung gegen Gürtelrose und die Grippeimpfung empfehle ich Ihnen ausdrücklich.
+P|Mit dieser Nierenfunktion dürfen Sie das Präparat aus der Apotheke gegen Sodbrennen nur kurz nehmen.
+P|Regelmäßige Bewegung, zum Beispiel täglich eine halbe Stunde zügiges Gehen, hilft Herz und Nieren.
+P|Wenn Sie mit dem Rauchen aufhören, ist das wirksamer als jede Tablette, die ich Ihnen geben kann.
+P|Die Zysten in den Nieren sind erblich, Ihre Kinder können sich später untersuchen lassen.
+P|Die Blutwerte von heute sind besser als vor einer Woche, die Behandlung schlägt an.
+P|Leider hat sich die Nierenfunktion weiter verschlechtert, wir sollten jetzt den Shunt planen.
+P|Das neue Organ arbeitet sehr gut, die Werte sind fast im Normalbereich.
+P|Die Gewebeprobe zeigt eine Abstoßungsreaktion, die wir mit hochdosiertem Kortison behandeln.
+P|Bitte halten Sie Abstand zu Menschen mit Erkältung und waschen Sie sich häufig die Hände.
+P|Haben Sie noch Fragen, oder soll ich etwas noch einmal mit anderen Worten erklären?
+P|Wir sehen uns in drei Monaten wieder, den Termin bekommen Sie an der Anmeldung.
+P|Sollte es Ihnen vorher schlechter gehen, erreichen Sie uns rund um die Uhr über das Dialysezentrum.
+O|Bitte melden Sie für morgen eine Nierenbiopsie an und kontrollieren Sie vorher Gerinnung und Blutbild.
+O|Die Biopsie muss heute noch per Kurier in die Nephropathologie, bitte in Formalin und in Kochsalz.
+O|Für Zimmer acht brauchen wir morgen früh einen Dialyseplatz, Dauer vier Stunden, Katheter rechts.
+O|Kannst du die Dialyseverordnung anpassen, das Trockengewicht ist jetzt einundsiebzig Kilogramm?
+O|Die Shuntsprechstunde ist dienstags, bitte geben Sie der Patientin einen Termin in zwei Wochen.
+O|Bitte den Tacrolimus-Spiegel immer vor der Morgendosis abnehmen und als eilig markieren.
+O|Das Transplantationszentrum bittet um die aktuellen Befunde, ich schicke den Brief heute Nachmittag.
+O|Es gibt ein Organangebot für unseren Patienten, bitte sofort Kreuzprobe und Aufnahme organisieren.
+O|Die Visite beginnt heute erst um neun, vorher ist die Röntgenbesprechung.
+O|In der Frühbesprechung möchte ich den Patienten mit dem unklaren Nierenversagen vorstellen.
+O|Bitte bestellen Sie für morgen ein Sammelgefäß und erklären Sie dem Patienten den Sammelurin.
+O|Die Ernährungsberatung soll bitte bei Zimmer vier zur kaliumarmen Kost vorbeikommen.
+O|Wir brauchen ein kardiologisches Konsil zur Frage der Klappenintervention vor der Listung.
+O|Der Sozialdienst klärt bitte Pflegegrad, Hilfsmittel und den Transport zur Dialyse.
+O|Bitte Taxischein und Dialysefahrten für die nächsten vier Wochen beantragen.
+O|Für die Plasmapherese morgen benötigen wir zwölf Einheiten Frischplasma und einen freien Platz ab acht Uhr.
+O|Das Rituximab ist in der Apotheke bestellt, die Gabe erfolgt morgen in der Tagesklinik.
+O|Kannst du bitte die Blutzuckerwerte der Nacht in die Kurve eintragen und mir zeigen?
+O|Bilanz und Gewicht bitte täglich dokumentieren, Trinkmenge auf eineinhalb Liter begrenzen.
+O|Die Angehörigen kommen um fünfzehn Uhr zum Gespräch über die Therapieziele.
+O|Der Entlassbrief für Zimmer zwei muss bis zwölf Uhr fertig sein, der Transport ist bestellt.
+O|Bitte faxen Sie den Medikamentenplan an das Heimdialysezentrum und an die Hausärztin.
+O|Das Tumorboard ist am Donnerstag, ich melde die Patientin mit dem Nierenzellkarzinom an.
+O|Für die Studie brauchen wir noch die unterschriebene Einwilligung und die Ausgangswerte.
+O|Die Hygiene bittet um Isolation in Zimmer elf wegen eines multiresistenten Keims.
+O|Wer übernimmt heute den Bereitschaftsdienst für die Akutdialyse auf der Intensivstation?
+O|Die Dialysemaschine in Raum drei meldet einen Leitfähigkeitsalarm, bitte Technik informieren.
+O|Für den neuen Patienten fehlen noch Hepatitis- und HIV-Serologie vor der ersten Dialyse.
+O|Bitte tragen Sie die Impfungen in den Dialysepass ein und geben Sie eine Kopie mit.
+O|Ich bin bis elf Uhr in der Ambulanz, bei Notfällen bitte auf dem Diensttelefon anrufen.
+O|Die Qualitätsdaten des Quartals müssen bis Freitag an das Register übermittelt werden.
+O|Der Patient wird heute auf die Normalstation verlegt, Übergabe bitte mit Bilanzziel und Dialyseplan.
+O|Können wir die Koloskopie um einen Tag verschieben, der Patient ist heute an der Dialyse?
+O|Bitte die Antibiotikagabe nach der Dialyse einplanen, sonst wird der Wirkstoff herausgefiltert.
+O|Zur Shuntoperation müssen Blutverdünner und Dialysetermin mit der Gefäßchirurgie abgestimmt werden.
+O|Die Kostenübernahme für das Medikament ist beantragt, die Antwort der Kasse steht aus.
+O|Morgen hospitiert eine Studentin im Praktischen Jahr, bitte nehmt sie mit zur Visite.
+O|Fortbildung am Mittwoch: neue Leitlinie zur Behandlung der chronischen Nierenerkrankung.
+O|Bitte erinnern Sie mich an den Rückruf im Labor wegen der Urinelektrophorese.
+O|Übergabe an den Spätdienst: Zimmer fünf fiebert, Blutkulturen sind abgenommen, Antibiose läuft.
+O|Die Patientin aus der Notaufnahme kommt in zwanzig Minuten, Bett sieben ist vorbereitet.
+O|Vielen Dank an alle, die heute bei der Notfalldialyse so schnell geholfen haben.
+T|Kardiale Dekompensation mit einer Ejektionsfraktion von fünfunddreißig Prozent, Furosemid intravenös, Negativbilanz vier Liter.
+T|Diabetes mellitus Typ zwei, HbA1c acht Komma sieben Prozent, Beginn mit Dapagliflozin zehn Milligramm.
+T|Vorhofflimmern, Antikoagulation mit Edoxaban dreißig Milligramm bei eingeschränkter Nierenfunktion.
+T|Pneumonie rechts basal, Ampicillin und Sulbactam, C-reaktives Protein von zweihundertzehn auf vierundsechzig gefallen.
+T|Leberzirrhose Child-Pugh C, Aszites, Parazentese von fünf Litern mit Albuminsubstitution.
+T|Eisenmangelanämie, Ferritin elf, Hämoglobin neun Komma eins, Koloskopie und Gastroskopie geplant.
+T|Akute Nierenschädigung KDIGO Stadium drei, Kreatinin vier Komma sechs, Kalium fünf Komma acht, Sonografie ohne Harnstau.
+T|Chronische Nierenerkrankung G vier A drei, Filtrationsrate zweiundzwanzig, Vorbereitung auf ein Nierenersatzverfahren.
+T|Nephrotisches Syndrom mit Proteinurie von sieben Gramm pro Tag, Nierenbiopsie mit membranöser Glomerulonephritis.
+T|ANCA-assoziierte Vaskulitis mit Nierenbeteiligung, Methylprednisolon, Rituximab, Kreatinin drei Komma neun.
+T|IgA-Nephropathie, Proteinurie eins Komma zwei Gramm, Ramipril zehn Milligramm und Dapagliflozin.
+T|Hämodialyse dreimal wöchentlich, Trockengewicht achtundsechzig Kilogramm, Ultrafiltration drei Liter, Shunt unauffällig.
+T|Peritonealdialyse-Peritonitis, Zellzahl eintausendachthundert, Vancomycin und Ceftazidim intraperitoneal.
+T|Renale Anämie, Hämoglobin neun Komma acht, Erythropoetin viertausend Einheiten wöchentlich, Eisen intravenös.
+T|Sekundärer Hyperparathyreoidismus, Parathormon sechshundertdreißig, Phosphat zwei Komma drei, Cinacalcet begonnen.
+T|Nierentransplantation vor zwei Jahren, Tacrolimus-Talspiegel fünf Komma vier, Kreatinin eins Komma sechs, stabil.
+T|Akute Abstoßung im Transplantat, Steroidstoß über drei Tage, Kontrolle der donorspezifischen Antikörper.
+T|Hyponatriämie einhundertzweiundzwanzig, Urinosmolalität vierhundertzehn, Trinkmengenbeschränkung und Verlaufskontrolle.
+T|Wie viel wiegen Sie heute, und haben Sie in den letzten Tagen Wasser in den Beinen bemerkt?
+T|Ihre Nierenwerte sind stabil geblieben, wir kontrollieren in drei Monaten erneut.
+T|Bitte nehmen Sie den Phosphatbinder zu jeder Hauptmahlzeit und trinken Sie nicht mehr als einen Liter.
+T|Für die Dialyse brauchen Sie einen Shunt, die Operation dauert etwa eine Stunde.
+T|Bitte für morgen einen Dialyseplatz und die Kontrolle von Kalium und Blutbild organisieren.
+T|Der Tacrolimus-Spiegel von heute fehlt noch, bitte im Labor nachfragen und mich anrufen.
