@@ -1,6 +1,6 @@
 # LocalScribe – Technische Dokumentation
 
-Stand: Version 1.6.0. Für Betrieb, IT und alle, die den Code lesen oder prüfen wollen. Die Bedienung steht im
+Stand: Version 1.6.1. Für Betrieb, IT und alle, die den Code lesen oder prüfen wollen. Die Bedienung steht im
 [Handbuch](LocalScribe-Handbuch.pdf), die Messwerte mit Methode in [`werkzeug/messen/ERGEBNIS.md`](../werkzeug/messen/ERGEBNIS.md).
 
 ## 1. Was die App ist
@@ -63,12 +63,18 @@ entpackt haben.
 Scheitert der Download des Modells (Proxy, Firewall), zeigt das Fenster den Grund im Klartext, dazu die Knöpfe
 „Erneut versuchen“, „Komplettpaket herunterladen“ und „Protokoll öffnen“.
 
-Aktualisieren, zwei Wege (Einstellungen, ganz unten). **Nach Updates suchen**: Auf Klick fragt die App bei
+Aktualisieren: Unten links im Fenster steht die laufende Fassung (`Hub.update_idle`); ein Klick dort oder auf
+**Nach Updates suchen** (Einstellungen, ganz unten) fragt nach, der Knopf wird zu „Update <Nummer>“, lädt auf den
+nächsten Klick und heißt danach „Neu starten“. Liegt eine neuere Fassung schon im Programmordner (eingerichtet an
+einem anderen Rechner am selben Ordner), erscheint „Neu starten“ ohne Nachfrage im Netz (`pflege.pending`, alle
+zehn Minuten). Zwei Wege in den Einstellungen. **Nach Updates suchen**: Auf Klick fragt die App bei
 `github.com` nach der neuesten Fassung (`pflege.latest`, die Weiterleitung von `…/releases/latest` nennt die Nummer).
 Gibt es eine neuere, liest sie das Inhaltsverzeichnis des kleinen Pakets über HTTP-Range-Anfragen, daraus die Datei
 `NEUES.txt` („Was ist neu“), vergleicht Größe und CRC-32 jeder Datei mit der laufenden Fassung, kopiert Unverändertes
 von dort und lädt nur die geänderten Dateien (`pflege.fetch`); beim Entpacken prüft sie deren Prüfsummen. Von 0.15.2
-auf 1.0.0 waren das 4 Dateien, rund 12 statt 112 MB. Von selbst fragt die App nie im Netz nach.
+auf 1.0.0 waren das 4 Dateien, rund 12 statt 112 MB. Von selbst fragt die App nur im Netz nach, wenn „Einmal am
+Tag von selbst nach Updates fragen“ eingeschaltet ist (`update_check`, ab Werk aus): dann einmal je 23 Stunden,
+dieselbe Anfrage wie beim Klick, ohne Meldung, wenn es nichts Neues gibt oder das Netz fehlt.
 **Aus ZIP-Datei aktualisieren**: für Rechner, die GitHub nicht erreichen; die App entpackt das gewählte Paket.
 
 Ab 1.2.0 ersetzt ein Update nichts mehr (`diktat/ort.py`, `diktat/pflege.py`):
@@ -222,9 +228,11 @@ und „12 mg“ nicht als Fehler zählen. Das Ergebnis steht mit Datum und den b
 **Material für ein Nachtraining.** Das Stimmtraining hebt die vorgelesenen, erfundenen Sätze als WAV mit Text in
 `training\` auf (Prüfsätze in `training\pruef\`), nie Diktate oder eingelesene Aufnahmen; seit 1.6.0 ohne
 Schalter im Fenster (`training_keep`, ab Werk an). Ob ein Nachtraining des Sprachmodells auf die eigene Stimme die
-Erkennung verbessert, ist nicht gemessen; mit künstlichen Stimmen brachte es nichts (`ERGEBNIS.md`). Das Training
-selbst läuft außerhalb der App (`werkzeug/training`, braucht eine Grafikkarte) und würde nur den kleinen
-Schreibteil des Modells (69 MB) ersetzen.
+Erkennung verbessert, ist an einer echten Stimme noch nicht gemessen. Das Training läuft außerhalb der App und
+braucht eine Grafikkarte: `werkzeug/training/stimme.py <training-Ordner> <Arbeitsordner>` trainiert nur den kleinen
+Schreibteil des Modells (69 MB) in Stufen (5, 10, 20, 40 Minuten Vorlesen), `stimme_messen.py` misst jede Stufe
+über den Weg der App an den Prüfsätzen und, wenn gewünscht, an freien Diktaten. Nichts wird hochgeladen. Probelauf
+mit einer künstlichen Stimme: `ERGEBNIS.md`.
 
 **Profil sichern (seit 1.6.0).** „Profil sichern …“ unter Einstellungen schreibt eine Datei `.lsprofil`: ein
 ZIP-Archiv mit `einstellungen.json` (wie die bisherige Sicherung, ohne Schlüssel und ohne Verlauf) und dem Ordner
@@ -262,14 +270,14 @@ einer Datei. Ton aus Diktaten per Taste wird nie auf die Platte geschrieben.
 
 ## 8. Netzwerkverbindungen
 
-Von sich aus baut die App genau eine Art von Verbindung auf: den einmaligen Download der Modelle. Dazu kommt, nur
-auf Klick, die Frage nach einer neuen Fassung.
+Von sich aus baut die App genau eine Art von Verbindung auf: den einmaligen Download der Modelle. Dazu kommt die
+Frage nach einer neuen Fassung: nur auf Klick, oder einmal am Tag, wenn das in den Einstellungen eingeschaltet ist.
 
 | Ziel | Wann | Was geht hinaus |
 |---|---|---|
 | `github.com` (Release `modell-primeline-1`) | erster Start | nichts außer der Anfrage |
 | `huggingface.co` | Ausweichquelle für das Modell; Stimmmodell beim ersten Einschalten der Sprechertrennung | nichts außer der Anfrage |
-| `github.com` (Releases) | nur auf Klick: „Nach Updates suchen“ und das Laden der geänderten Dateien | nichts außer der Anfrage |
+| `github.com` (Releases) | auf Klick (unten links im Fenster oder „Nach Updates suchen“) und beim Laden der geänderten Dateien; einmal am Tag nur mit `update_check` (ab Werk aus) | nichts außer der Anfrage |
 | selbst eingetragener Sprachmodell-Server | nur wenn KI-Nachbearbeitung oder Fachkorrektur eingeschaltet sind oder in „Visite & Übergabe“ auf „Auswerten“ gedrückt wird | der diktierte Text bzw. der Fall, nach dem Schutz aus `schutz.py` |
 | `openrouter.ai/api/v1/systemone` (Jev) | nur bei „Auswerten“ in „Visite & Übergabe“ und nur, wenn OpenRouter der eingetragene Server ist | der Fall nach dem Schutz aus `schutz.py`, dazu die festen Fragen und, falls eingetragen, die Hausregeln |
 | eigenes Netz, Port 8765 | nur wenn „Handy als Mikrofon“ eingeschaltet ist | nichts; das Telefon schickt Ton an den Rechner |
@@ -318,6 +326,7 @@ zufälligen Schlüssel aus dem QR-Code. Ab Werk aus.
 | `llm`, `llm_fix` | Sprachmodell-Server und Fachkorrektur | aus |
 | `visite_prompt` | eigene Anweisung für den Rahmen Notaufnahme; leer = die mitgelieferte. Station und Intensiv haben feste Aufträge (`visite.STATION`, `visite.ITS`) | leer |
 | `visite_model`, `visite_jev`, `visite_rules` | Modell für Arztbrief, Visiteneintrag und Übergabe (leer: bei OpenRouter `google/gemini-3.8-flash@low`, sonst das LLM-Modell; der Zusatz `@low` geht bei OpenRouter als `reasoning.effort` hinaus, `llm.model_of`), Jev-Modell (leer: `~typesafe/jev-latest`), Hausregeln für Jev | leer |
+| `update_check` | einmal am Tag von selbst bei GitHub nach einer neueren Fassung fragen | aus |
 | `training_keep` | vorgelesene Übungs- und Prüfsätze als Ton aufheben (kein Schalter im Fenster; für eine zentrale Vorgabe) | an (seit 1.6.0) |
 | `field`, `training_scores` | Fachrichtung im Stimmtraining; Messungen mit Prüfsätzen (Zeitpunkt, Wortfehler, Trainingsminuten) | leer |
 | `phone` | Handy als Mikrofon | aus |

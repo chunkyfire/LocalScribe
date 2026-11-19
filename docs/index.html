@@ -219,7 +219,7 @@ code { font: 600 14px ui-monospace, Consolas, monospace; background: #eef0ed; pa
     <div><svg class="p"><use href="#i-once"/></svg><span>einmal Internet, danach keins mehr</span></div>
     <div><svg class="p"><use href="#i-noadmin"/></svg><span>keine Admin&shy;rechte</span></div>
   </div>
-  <span class="no">Version 1.6.0</span>
+  <span class="no">Version 1.6.1</span>
 </section>
 
 <section class="sheet" id="installieren">
@@ -387,7 +387,7 @@ code { font: 600 14px ui-monospace, Consolas, monospace; background: #eef0ed; pa
     <div><svg class="p pic"><use href="#p-audio"/></svg><b>Ton wird gelöscht</b><p>Diktate werden nie als Ton gespeichert. Einzige Ausnahme: Das Stimmtraining hebt die erfundenen Übungssätze auf, die du dort vorliest, bis du sie löschst. Die Sicherung einer langen Aufnahme verschwindet, sobald der Text fertig ist.</p></div>
     <div><svg class="p pic"><use href="#p-seven"/></svg><b>Text bleibt 7 Tage</b><p>Danach löscht sich der Verlauf selbst. Frist ändern oder Verlauf ganz abschalten: Einstellungen.</p></div>
     <div><svg class="p pic"><use href="#f-talk"/></svg><b>Stimmabdrücke bleiben nicht</b><p>„Sprecher trennen“ vergleicht Stimmen nur, solange die Transkription läuft. Danach ist der Abdruck weg. Im Text stehen Nummern, keine Namen.</p></div>
-    <div><svg class="p pic"><use href="#i-once"/></svg><b>Internet nur für Modelle</b><p>Die App lädt das Sprachmodell einmal, ein anderes Modell beim Umschalten, das Stimmmodell beim ersten Einschalten. Nach einer neuen Fassung fragt sie nur auf Klick. Sonst geht sie nie ins Netz.</p></div>
+    <div><svg class="p pic"><use href="#i-once"/></svg><b>Internet nur für Modelle</b><p>Die App lädt das Sprachmodell einmal, ein anderes Modell beim Umschalten, das Stimmmodell beim ersten Einschalten. Nach einer neuen Fassung fragt sie nur auf Klick, außer du schaltest die tägliche Nachfrage ein. Sonst geht sie nie ins Netz.</p></div>
     <div><svg class="p pic"><use href="#p-key"/></svg><b>Ausnahme mit Ansage</b><p>Nur wenn du unter Einstellungen, LLM, einen Server außerhalb deines Rechners einträgst, geht Text dorthin. Die App zeigt das rot an und ersetzt vorher Namen, Daten, Nummern und Anschriften durch Platzhalter. Fehlt die Namenserkennung auf dem Rechner, sendet sie nichts. Kein Verfahren findet alles; für echte Patientendaten gehört das Sprachmodell ins eigene Haus.</p></div>
   </div>
   <div class="tip"><svg class="p"><use href="#t-tip"/></svg><p>In Klinik und Praxis gilt: Was du diktierst, sind oft Patientendaten. Solange du keinen fremden Server einträgst, verlassen sie den Rechner nicht. Ob du LocalScribe dienstlich nutzen darfst, entscheidet dein Haus.</p></div>
@@ -428,7 +428,7 @@ code { font: 600 14px ui-monospace, Consolas, monospace; background: #eef0ed; pa
 <section class="sheet end" id="entfernen">
   <div>
     <h2>Aktualisieren</h2>
-    <p>Einstellungen, ganz unten <span class="hl">Nach Updates suchen</span>. Gibt es eine neuere Fassung, zeigt <span class="hl">Was ist neu</span> ihre Änderungen; ein zweiter Klick lädt nur die geänderten Dateien und richtet die neue Fassung neben der laufenden ein. Du arbeitest dabei weiter. Oben im Fenster steht danach <span class="hl">Jetzt neu starten</span>; sonst gilt die neue Fassung ab dem nächsten Start. Einstellungen, Verlauf und Sprachmodell bleiben.</p>
+    <p>Unten links im Fenster steht die laufende Fassung. Ein Klick fragt bei GitHub nach einer neueren. Gibt es eine, steht dort <span class="hl">Update</span> mit der Nummer: Ein Klick lädt nur die geänderten Dateien und richtet die neue Fassung neben der laufenden ein. Du arbeitest dabei weiter. Danach steht dort <span class="hl">Neu starten</span>; sonst gilt die neue Fassung ab dem nächsten Start. Einstellungen, Verlauf und Sprachmodell bleiben. Was neu ist, zeigen die Einstellungen ganz unten; dort lässt sich auch einschalten, dass die App einmal am Tag von selbst nachfragt.</p>
     <p>Erreicht der Rechner GitHub nicht (häufig in Kliniken): die neue ZIP an einem anderen Rechner laden, das kleine Paket genügt, und über <span class="hl">Aus ZIP-Datei aktualisieren</span> auswählen.</p>
     <h2 style="margin-top:34px">Entfernen</h2>
     <p>Einstellungen, ganz unten <span class="hl">LocalScribe entfernen</span>: löscht Verknüpfungen, Autostart und Programmordner, auf Wunsch auch die eigenen Daten.</p>

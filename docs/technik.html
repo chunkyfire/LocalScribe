@@ -172,7 +172,7 @@
 <body>
 <h1 id="localscribe--technische-dokumentation">LocalScribe – Technische
 Dokumentation</h1>
-<p>Stand: Version 1.6.0. Für Betrieb, IT und alle, die den Code lesen
+<p>Stand: Version 1.6.1. Für Betrieb, IT und alle, die den Code lesen
 oder prüfen wollen. Die Bedienung steht im <a
 href="https://chunkyfire.github.io/LocalScribe/LocalScribe-Handbuch.pdf">Handbuch</a>, die Messwerte mit Methode
 in <a
@@ -275,20 +275,30 @@ entpackt haben.</p>
 <p>Scheitert der Download des Modells (Proxy, Firewall), zeigt das
 Fenster den Grund im Klartext, dazu die Knöpfe „Erneut versuchen“,
 „Komplettpaket herunterladen“ und „Protokoll öffnen“.</p>
-<p>Aktualisieren, zwei Wege (Einstellungen, ganz unten). <strong>Nach
-Updates suchen</strong>: Auf Klick fragt die App bei
-<code>github.com</code> nach der neuesten Fassung
-(<code>pflege.latest</code>, die Weiterleitung von
-<code>…/releases/latest</code> nennt die Nummer). Gibt es eine neuere,
-liest sie das Inhaltsverzeichnis des kleinen Pakets über
+<p>Aktualisieren: Unten links im Fenster steht die laufende Fassung
+(<code>Hub.update_idle</code>); ein Klick dort oder auf <strong>Nach
+Updates suchen</strong> (Einstellungen, ganz unten) fragt nach, der
+Knopf wird zu „Update <Nummer>“, lädt auf den nächsten Klick und heißt
+danach „Neu starten“. Liegt eine neuere Fassung schon im Programmordner
+(eingerichtet an einem anderen Rechner am selben Ordner), erscheint „Neu
+starten“ ohne Nachfrage im Netz (<code>pflege.pending</code>, alle zehn
+Minuten). Zwei Wege in den Einstellungen. <strong>Nach Updates
+suchen</strong>: Auf Klick fragt die App bei <code>github.com</code>
+nach der neuesten Fassung (<code>pflege.latest</code>, die Weiterleitung
+von <code>…/releases/latest</code> nennt die Nummer). Gibt es eine
+neuere, liest sie das Inhaltsverzeichnis des kleinen Pakets über
 HTTP-Range-Anfragen, daraus die Datei <code>NEUES.txt</code> („Was ist
 neu“), vergleicht Größe und CRC-32 jeder Datei mit der laufenden
 Fassung, kopiert Unverändertes von dort und lädt nur die geänderten
 Dateien (<code>pflege.fetch</code>); beim Entpacken prüft sie deren
 Prüfsummen. Von 0.15.2 auf 1.0.0 waren das 4 Dateien, rund 12 statt 112
-MB. Von selbst fragt die App nie im Netz nach. <strong>Aus ZIP-Datei
-aktualisieren</strong>: für Rechner, die GitHub nicht erreichen; die App
-entpackt das gewählte Paket.</p>
+MB. Von selbst fragt die App nur im Netz nach, wenn „Einmal am Tag von
+selbst nach Updates fragen“ eingeschaltet ist
+(<code>update_check</code>, ab Werk aus): dann einmal je 23 Stunden,
+dieselbe Anfrage wie beim Klick, ohne Meldung, wenn es nichts Neues gibt
+oder das Netz fehlt. <strong>Aus ZIP-Datei aktualisieren</strong>: für
+Rechner, die GitHub nicht erreichen; die App entpackt das gewählte
+Paket.</p>
 <p>Ab 1.2.0 ersetzt ein Update nichts mehr (<code>diktat/ort.py</code>,
 <code>diktat/pflege.py</code>):</p>
 <pre><code>LocalScribe\LocalScribe.exe          die einmal entpackte Fassung; sie startet immer
@@ -608,11 +618,15 @@ hebt die vorgelesenen, erfundenen Sätze als WAV mit Text in
 <code>training\</code> auf (Prüfsätze in <code>training\pruef\</code>),
 nie Diktate oder eingelesene Aufnahmen; seit 1.6.0 ohne Schalter im
 Fenster (<code>training_keep</code>, ab Werk an). Ob ein Nachtraining
-des Sprachmodells auf die eigene Stimme die Erkennung verbessert, ist
-nicht gemessen; mit künstlichen Stimmen brachte es nichts
-(<code>ERGEBNIS.md</code>). Das Training selbst läuft außerhalb der App
-(<code>werkzeug/training</code>, braucht eine Grafikkarte) und würde nur
-den kleinen Schreibteil des Modells (69 MB) ersetzen.</p>
+des Sprachmodells auf die eigene Stimme die Erkennung verbessert, ist an
+einer echten Stimme noch nicht gemessen. Das Training läuft außerhalb
+der App und braucht eine Grafikkarte:
+<code>werkzeug/training/stimme.py &lt;training-Ordner&gt; &lt;Arbeitsordner&gt;</code>
+trainiert nur den kleinen Schreibteil des Modells (69 MB) in Stufen (5,
+10, 20, 40 Minuten Vorlesen), <code>stimme_messen.py</code> misst jede
+Stufe über den Weg der App an den Prüfsätzen und, wenn gewünscht, an
+freien Diktaten. Nichts wird hochgeladen. Probelauf mit einer
+künstlichen Stimme: <code>ERGEBNIS.md</code>.</p>
 <p><strong>Profil sichern (seit 1.6.0).</strong> „Profil sichern …“
 unter Einstellungen schreibt eine Datei <code>.lsprofil</code>: ein
 ZIP-Archiv mit <code>einstellungen.json</code> (wie die bisherige
@@ -700,8 +714,9 @@ einer Datei. Ton aus Diktaten per Taste wird nie auf die Platte
 geschrieben.</p>
 <h2 id="8-netzwerkverbindungen">8. Netzwerkverbindungen</h2>
 <p>Von sich aus baut die App genau eine Art von Verbindung auf: den
-einmaligen Download der Modelle. Dazu kommt, nur auf Klick, die Frage
-nach einer neuen Fassung.</p>
+einmaligen Download der Modelle. Dazu kommt die Frage nach einer neuen
+Fassung: nur auf Klick, oder einmal am Tag, wenn das in den
+Einstellungen eingeschaltet ist.</p>
 <table>
 <thead>
 <tr class="header">
@@ -725,8 +740,9 @@ der Sprechertrennung</td>
 </tr>
 <tr class="odd">
 <td><code>github.com</code> (Releases)</td>
-<td>nur auf Klick: „Nach Updates suchen“ und das Laden der geänderten
-Dateien</td>
+<td>auf Klick (unten links im Fenster oder „Nach Updates suchen“) und
+beim Laden der geänderten Dateien; einmal am Tag nur mit
+<code>update_check</code> (ab Werk aus)</td>
 <td>nichts außer der Anfrage</td>
 </tr>
 <tr class="even">
@@ -874,34 +890,40 @@ Jev</td>
 <td>leer</td>
 </tr>
 <tr class="odd">
+<td><code>update_check</code></td>
+<td>einmal am Tag von selbst bei GitHub nach einer neueren Fassung
+fragen</td>
+<td>aus</td>
+</tr>
+<tr class="even">
 <td><code>training_keep</code></td>
 <td>vorgelesene Übungs- und Prüfsätze als Ton aufheben (kein Schalter im
 Fenster; für eine zentrale Vorgabe)</td>
 <td>an (seit 1.6.0)</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>field</code>, <code>training_scores</code></td>
 <td>Fachrichtung im Stimmtraining; Messungen mit Prüfsätzen (Zeitpunkt,
 Wortfehler, Trainingsminuten)</td>
 <td>leer</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>phone</code></td>
 <td>Handy als Mikrofon</td>
 <td>aus</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>model_dir</code></td>
 <td>eigener Ordner mit den Sprachmodellen, zum Beispiel ein
 Netzlaufwerk</td>
 <td>leer</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>live_preview</code> (nur Datei)</td>
 <td>Vorschau auf die laufende Äußerung in der Aufnahme</td>
 <td>an</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>threads</code> (nur Datei)</td>
 <td>Zahl der Rechen-Threads; 0 überlässt es der Laufzeit</td>
 <td>0</td>

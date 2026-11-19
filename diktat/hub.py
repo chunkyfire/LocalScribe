@@ -57,6 +57,17 @@ QFrame#side QPushButton { text-align: left; padding: 11px 16px; border: 1px soli
 QFrame#side QPushButton:hover { background: rgba(255, 255, 255, 0.05); }
 QFrame#side QPushButton:checked { background: rgba(198, 255, 61, 0.10); border: 1px solid rgba(198, 255, 61, 0.28);
                                   color: #C6FF3D; font-weight: 600; }
+QFrame#side QPushButton#update { padding: 9px 12px; font-size: 9.5pt; font-weight: 600; color: #C6FF3D;
+                                 background: rgba(198, 255, 61, 0.08); border: 1px solid rgba(198, 255, 61, 0.35); }
+QFrame#side QPushButton#update:hover { background: rgba(198, 255, 61, 0.16); }
+QFrame#side QPushButton#update:disabled { color: #9AA0A6; background: rgba(255, 255, 255, 0.04);
+                                          border: 1px solid rgba(255, 255, 255, 0.12); }
+QFrame#side QPushButton#updateGo { padding: 9px 12px; font-size: 9.5pt; font-weight: 700; color: #0B0B0B;
+                                   background: #C6FF3D; border: 1px solid #C6FF3D; }
+QFrame#side QPushButton#updateGo:hover { background: #D4FF6A; }
+QFrame#side QPushButton#updateIdle { padding: 7px 12px; font-size: 9pt; color: #8A9096; background: transparent;
+                                     border: 1px solid transparent; }
+QFrame#side QPushButton#updateIdle:hover { color: #C9CED4; background: rgba(255, 255, 255, 0.05); }
 QFrame#card { background: rgba(255, 255, 255, 0.045); border: 1px solid rgba(255, 255, 255, 0.10); border-radius: 18px; }
 QFrame#card QWidget { background: transparent; }
 QFrame#row { background: transparent; border: none; border-bottom: 1px solid rgba(255, 255, 255, 0.06); }
@@ -171,6 +182,25 @@ ADVICE = (("openrouter.ai", "Empfehlung: google/gemini-3.1-flash-lite für die k
 ADVICE_LOCAL = ("Auf dem eigenen Rechner: Für Glätten und Zusammenfassen genügt ein Modell um 9 Milliarden Parameter (etwa "
                 "Qwen3.5 9B, braucht rund 8 GB Grafikspeicher). Für Arztbrief und Übergabe sind so kleine Modelle zu ungenau: "
                 "In der Messung übernahmen sie Hörfehler oder setzten Werte ein, die niemand gesagt hatte.")
+
+
+def glyph(kind, color):
+    """Kleines Zeichen für den Update-Knopf: Pfeil in die Ablage (laden) oder Kreispfeil (neu starten)."""
+    pm = QtGui.QPixmap(48, 48)
+    pm.fill(Qt.transparent)
+    p = QtGui.QPainter(pm)
+    p.setRenderHint(QtGui.QPainter.Antialiasing)
+    p.setPen(QtGui.QPen(QtGui.QColor(color), 5, Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin))
+    P = QtCore.QPointF
+    if kind == "down":
+        p.drawLine(P(24, 7), P(24, 29))
+        p.drawPolyline([P(14, 20), P(24, 30), P(34, 20)])
+        p.drawLine(P(10, 41), P(38, 41))
+    else:
+        p.drawArc(QtCore.QRectF(9, 9, 30, 30), 110 * 16, -300 * 16)
+        p.drawPolyline([P(9, 8), P(17, 11), P(11, 19)])
+    p.end()
+    return QtGui.QIcon(pm)
 
 
 def restyle(widget, name):
@@ -2899,6 +2929,9 @@ class SettingsPage(Page):
                  button("Ordner mit den Sicherungen öffnen", self._kept_open), None),
             self.keep_note))
         self.care_note = label("", "muted", wrap=True)
+        self.auto_check = QtWidgets.QCheckBox("Einmal am Tag von selbst nach Updates fragen (bei GitHub; von dir wird dabei nichts "
+                                              "übertragen). Gibt es eines, leuchtet unten links der Knopf „Update“.")
+        self.auto_check.toggled.connect(self._auto_check)
         self.check_button = button("Nach Updates suchen", self._check, name="primary")
         self.found = None                    # neuere Fassung bei GitHub, sobald gefunden
         self.notes_button = button("Was ist neu", self._notes)
@@ -2912,7 +2945,8 @@ class SettingsPage(Page):
                   "muted", wrap=True),
             hbox(self.check_button, self.notes_button, button("Aus ZIP-Datei aktualisieren …", self._update),
                  button("LocalScribe entfernen …", self._remove), None),
-            self.care_note))
+            self.auto_check, self.care_note))
+        self.quiet = False                   # läuft gerade die stille tägliche Nachfrage?
         self.sig_latest.connect(self._latest)
         self.sig_loading.connect(self._loading)
         self.sig_unpacked.connect(self._unpacked)
@@ -2955,18 +2989,32 @@ class SettingsPage(Page):
                               "bisherige Verlauf bleibt im Konto. Gilt ab dem nächsten Start: LocalScribe über das "
                               "Symbol neben der Uhr beenden und neu starten. Rückgängig: den Ordner „daten“ löschen.")
 
+    def _auto_check(self, on):
+        self.ctl.cfg["update_check"] = bool(on)
+        config.save(self.ctl.cfg)
+
     def _care_ready(self) -> bool:
         if self.ctl.hub.busy():
             self.saved(self.care_note, "Erst die laufende Aufnahme oder Transkription beenden.", ok=False)
             return False
         return True
 
-    def _check(self):
-        """Erster Klick: bei GitHub nachfragen. Zweiter Klick (wenn es Neues gibt): laden und ersetzen."""
+    def start_update(self):
+        """Vom Update-Knopf unten links im Fenster: die gefundene Fassung laden und einrichten."""
+        if self.found and self.check_button.isEnabled():
+            self._online()
+
+    def _check(self, quiet=False):
+        """Erster Klick: bei GitHub nachfragen. Zweiter Klick (wenn es Neues gibt): laden und ersetzen.
+        quiet: die tägliche stille Nachfrage der App; sie meldet sich nur, wenn es etwas Neues gibt."""
+        if quiet and (self.found or not self.check_button.isEnabled()):
+            return
         if self.found:
             return self._online()
-        restyle(self.care_note, "muted")
-        self.care_note.setText("Frage bei GitHub nach der neuesten Fassung …")
+        self.quiet = bool(quiet)
+        if not quiet:
+            restyle(self.care_note, "muted")
+            self.care_note.setText("Frage bei GitHub nach der neuesten Fassung …")
         self.check_button.setEnabled(False)
 
         def work():
@@ -3023,9 +3071,14 @@ class SettingsPage(Page):
 
     def _latest(self, info, error):
         self.check_button.setEnabled(True)
+        quiet, self.quiet = self.quiet, False
+        if quiet and (error or not info["newer"] or not pflege.program()):
+            return                               # stille Nachfrage: kein Netz oder nichts Neues ist keine Meldung wert
         if error:
+            self.ctl.hub.update_hint("GitHub ist von hier nicht erreichbar.", error)
             return self.saved(self.care_note, error, ok=False)
         if not info["newer"]:
+            self.ctl.hub.update_hint("Du hast die neueste Fassung.")
             restyle(self.care_note, "ok")
             return self.care_note.setText(f"Du hast die neueste Fassung ({__version__}).")
         if not pflege.program():
@@ -3040,9 +3093,11 @@ class SettingsPage(Page):
         self.notes_button.setText(f"Was ist neu in {info['version']}")
         reason = pflege.readonly(pflege.program())
         if reason:
+            self.ctl.hub.update_hint(f"Fassung {info['version']} ist da, der Ordner ist aber schreibgeschützt.", reason)
             return self.saved(self.care_note, f"Fassung {info['version']} ist da, du hast {__version__}. {reason}",
                               ok=False)
         self.check_button.setText(f"Auf {info['version']} aktualisieren")
+        self.ctl.hub.update_offer(info["version"])
         restyle(self.care_note, "ok")
         self.care_note.setText(f"Fassung {info['version']} ist da, du hast {__version__}. Ein Klick lädt nur, was sich "
                                "geändert hat, und richtet die neue Fassung neben der laufenden ein. Du kannst dabei "
@@ -3051,6 +3106,7 @@ class SettingsPage(Page):
     def _online(self):
         prog, info = pflege.program(), self.found
         self.check_button.setEnabled(False)
+        self.ctl.hub.update_loading("Lädt …")
         restyle(self.care_note, "muted")
         self.care_note.setText("Vergleiche die installierten Dateien mit der neuen Fassung …")
 
@@ -3064,6 +3120,7 @@ class SettingsPage(Page):
 
     def _loading(self, done, total):
         self.care_note.setText(f"Lade die geänderten Dateien: {done / 1e6:.0f} von {total / 1e6:.0f} MB …")
+        self.ctl.hub.update_loading(f"Lädt … {100 * done // max(total, 1)} %")
 
     def _update(self):
         prog = pflege.program()
@@ -3086,6 +3143,7 @@ class SettingsPage(Page):
     def _unpacked(self, new, error):
         self.check_button.setEnabled(True)
         if error:
+            self.ctl.hub.update_failed(error)
             self.saved(self.care_note, error, ok=False)
             return
         self.found = None
@@ -3144,6 +3202,9 @@ class SettingsPage(Page):
         self.days.setValue(int(cfg.get("history_days") or 0))
         self.history.setChecked(bool(cfg.get("history_enabled", True)))
         self.auto.setChecked(self.ctl.autostart_enabled())
+        self.auto_check.blockSignals(True)
+        self.auto_check.setChecked(bool(cfg.get("update_check")))
+        self.auto_check.blockSignals(False)
 
     def show_qr(self):
         server = self.ctl.phone
@@ -3292,6 +3353,19 @@ class Hub(QtWidgets.QWidget):
             self.stack.addWidget(page)
         self.buttons.idClicked.connect(self.show_page)
         nav.addStretch(1)
+        # Update-Bereich unten links: erscheint nur, wenn es etwas zu tun gibt. Ein Klick lädt, ein zweiter startet neu.
+        self.settings = self.pages[-1][1].pages[0]
+        self.update_state, self.update_version = "", ""      # "", "available", "loading", "ready"
+        self.update_btn = button("", self._update_click, "update")
+        self.update_btn.setIconSize(QtCore.QSize(16, 16))
+        self.update_note = label("", "muted", wrap=True)
+        self.update_btn.hide()
+        self.update_note.hide()
+        if pflege.program():                 # aus dem Quelltext gestartet gibt es nichts zu aktualisieren
+            self.update_idle()
+        nav.addWidget(self.update_btn)
+        nav.addWidget(self.update_note)
+        nav.addSpacing(8)
         self.status = label("", "muted", wrap=True)
         nav.addWidget(self.status)
         self.loadbar = QtWidgets.QProgressBar(textVisible=False)
@@ -3379,13 +3453,72 @@ class Hub(QtWidgets.QWidget):
             p.fillRect(self.rect(), glow)
         p.end()
 
+    def _update_show(self, state, name, kind, color, text, note, tip, enabled=True):
+        self.update_state = state
+        restyle(self.update_btn, name)
+        self.update_btn.setIcon(glyph(kind, color))
+        self.update_btn.setText(text)
+        self.update_btn.setToolTip(tip)
+        self.update_btn.setEnabled(enabled)
+        self.update_note.setText(note)
+        self.update_note.setToolTip("")
+        self.update_btn.show()
+        self.update_note.setVisible(bool(note))
+
+    def update_idle(self):
+        """Ruhezustand: unauffällig die laufende Fassung; ein Klick fragt bei GitHub nach einer neueren."""
+        self._update_show("", "updateIdle", "down", "#8A9096", f"Fassung {__version__}", "",
+                          "Nach Updates suchen: fragt bei GitHub nach der neuesten Fassung. Gibt es eine, lädt der nächste "
+                          "Klick nur die geänderten Dateien und richtet sie neben der laufenden ein.")
+
+    def update_hint(self, text, tip=""):
+        """Kurze Auskunft unter dem Knopf (neueste Fassung, kein Netz); verschwindet von selbst wieder."""
+        if self.update_state in ("loading", "ready"):
+            return
+        if self.update_state == "asking":
+            self.update_idle()
+        self.update_note.setText(text)
+        self.update_note.setToolTip(tip)
+        self.update_note.setVisible(bool(text) and self.update_btn.isVisible())
+        QtCore.QTimer.singleShot(9000, lambda: self.update_note.text() == text and self.update_state == ""
+                                 and self.update_note.hide())
+
+    def update_offer(self, version):
+        """Bei GitHub liegt eine neuere Fassung. Ein Klick lädt nur, was sich geändert hat, und richtet sie ein."""
+        if self.update_state in ("loading", "ready"):
+            return
+        self.update_version = version
+        self._update_show("available", "update", "down", "#C6FF3D", f"Update {version}", "Ein Klick, du arbeitest weiter.",
+                          f"Fassung {version} ist da, hier läuft {__version__}. Ein Klick lädt nur die geänderten Dateien "
+                          "und richtet die neue Fassung neben der laufenden ein. Einstellungen, Wörterbuch, Verlauf und "
+                          "Sprachmodell bleiben.")
+
+    def update_loading(self, text):
+        self._update_show("loading", "update", "down", "#9AA0A6", text, "Du kannst weiterarbeiten.", "", enabled=False)
+
+    def update_failed(self, error):
+        if self.update_state != "loading":
+            return
+        self._update_show("available", "update", "down", "#C6FF3D", f"Update {self.update_version}",
+                          "Hat nicht geklappt. Ein Klick versucht es noch einmal.", error)
+
+    def _update_click(self):
+        if self.update_state == "ready":
+            self.ctl.restart_new()
+        elif self.update_state == "available":
+            self.settings.start_update()
+        elif self.update_state == "":
+            self._update_show("asking", "updateIdle", "down", "#8A9096", f"Fassung {__version__}", "Frage bei GitHub nach …",
+                              "", enabled=False)
+            self.settings._check()
+
     def offer_restart(self, version):
         """Eine neuere Fassung ist eingerichtet (hier oder von einem anderen Rechner am selben Ordner)."""
         self.news_since, self.news_version = __version__, version
-        self.news_text.setText(f"LocalScribe {version} ist eingerichtet. Hier läuft noch {__version__}; die neue "
-                               "Fassung startet beim nächsten Start von selbst.")
-        self.news_go.show()
-        self.news_wrap.show()
+        self.update_version = version
+        self._update_show("ready", "updateGo", "turn", "#0B0B0B", "Neu starten", f"Fassung {version} ist eingerichtet.",
+                          f"LocalScribe {version} ist eingerichtet, hier läuft noch {__version__}. Ein Klick startet neu; "
+                          "sonst gilt die neue Fassung ab dem nächsten Start.")
 
     def announce(self, before):
         """Erster Start nach einem Update."""
@@ -3396,6 +3529,8 @@ class Hub(QtWidgets.QWidget):
 
     def news_note(self, text):
         self.news_text.setText(text)
+        if self.update_state:
+            self.update_note.setText(text)
 
     def _news_notes(self):
         show_notes(self, pflege.notes(self.news_since, self.news_version), self.news_version or __version__)

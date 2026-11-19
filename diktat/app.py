@@ -95,6 +95,10 @@ class Diktat(QtCore.QObject):
         self.offered = ""                    # Nummer der neueren Fassung, auf die das Fenster schon hinweist
         self._watch = QTimer(self, interval=600_000, timeout=self.watch_update)
         self._watch.start()
+        self.asked = 0.0                     # wann zuletzt bei GitHub nach einer neueren Fassung gefragt wurde
+        self._ask = QTimer(self, interval=3 * 3600_000, timeout=self.ask_update)
+        self._ask.start()
+        QTimer.singleShot(25_000, self.ask_update)
         QTimer.singleShot(1500, self.after_start)
 
     # ---------- Schnittstelle für das App-Fenster ----------
@@ -139,6 +143,17 @@ class Diktat(QtCore.QObject):
             self.offered = version
             self.restart_action.setText(f"Fassung {version} starten")
             self.hub.offer_restart(version)
+
+    def ask_update(self):
+        """Nur wenn in den Einstellungen eingeschaltet: einmal am Tag still bei GitHub nach einer neueren Fassung
+        fragen. Gibt es eine, leuchtet unten links im Fenster der Update-Knopf. Gesendet wird nur die Anfrage."""
+        from . import pflege
+        if not self.cfg.get("update_check") or self.offered or not pflege.program():
+            return
+        if time.time() - self.asked < 23 * 3600:
+            return
+        self.asked = time.time()
+        self.hub.settings._check(quiet=True)
 
     def restart_new(self):
         from . import pflege

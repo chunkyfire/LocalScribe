@@ -101,6 +101,7 @@ DEFAULTS = {
     "learned": [],                # gelernte Fachwörter (aus Diktaten und eingelesenen Texten)
     "mic_warm": False,            # Mikrofon dauerhaft offen halten: kein Startverzug, erste Silbe bleibt
     "speakers": True,             # Sprecher trennen bei Aufnahme und Datei (bei nur einer Stimme bleibt der Text, wie er ist)
+    "update_check": False,        # einmal am Tag still bei GitHub nach einer neueren Fassung fragen; ab Werk nur auf Klick
     "training_keep": True,        # Stimmtraining: vorgelesene (erfundene) Sätze als Ton aufheben, für ein Nachtraining
     "field": "",                  # Fachrichtung für die Sätze im Stimmtraining; leer = Grundstock
     "training_scores": [],        # Messungen mit Prüfsätzen: Zeitpunkt, Fachrichtung, Wortfehler, Trainingsminuten

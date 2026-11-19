@@ -43,7 +43,7 @@ Wenige Sprecher, ruhige Umgebung; Dialekt und Lärm sind nicht gemessen.
    Sperrt das Netz den Download, nennt das Fenster den Grund; dann das Komplettpaket nehmen.
 5. Verknüpfungen für Desktop und Startmenü: im Fenster unter **Einstellungen**.
 
-Aktualisieren: in der App unter **Einstellungen → Nach Updates suchen**; die App zeigt, was neu ist, und lädt nur, was sich geändert hat. Ein Update richtet die neue Fassung neben der laufenden ein, auch während LocalScribe läuft und auch auf einem gemeinsamen Laufwerk, aus dem viele Rechner arbeiten.
+Aktualisieren: Unten links im Fenster steht die laufende Fassung. Ein Klick fragt bei GitHub nach einer neueren; gibt es eine, lädt der nächste Klick nur, was sich geändert hat, und danach steht dort „Neu starten“. Dasselbe unter **Einstellungen → Nach Updates suchen**, dort steht auch, was neu ist. Ein Update richtet die neue Fassung neben der laufenden ein, auch während LocalScribe läuft und auch auf einem gemeinsamen Laufwerk, aus dem viele Rechner arbeiten.
 Erreicht der Rechner GitHub nicht: neue ZIP an einem anderen Rechner laden (das kleine Paket genügt) und unter
 **Aus ZIP-Datei aktualisieren** auswählen. Entfernen: **Einstellungen → LocalScribe entfernen**; von Hand: App beenden, Ordner
 löschen, dazu `%LOCALAPPDATA%\LocalScribe` (Einstellungen, Verlauf, Sprachmodelle).
@@ -139,7 +139,7 @@ Einstellungen in den Programmordner (Ordner `daten`). Die Sprachmodelle können 
   Cloud-Zwischenablage ausgenommen.
 - **Netz.** Die App geht nur ins Internet, um ein Modell zu laden: beim ersten Start das Sprachmodell,
   beim Wechsel des Sprachmodells und beim ersten Einschalten von „Sprecher trennen“ (jeweils feste
-  Fassung, Hugging Face). Nach einer neuen Fassung fragt sie nur auf Klick („Nach Updates suchen“). Sonst arbeitet sie offline. Die KI-Nachbearbeitung ist ab Werk aus;
+  Fassung, Hugging Face). Nach einer neuen Fassung fragt sie nur auf Klick (unten links im Fenster oder „Nach Updates suchen“), es sei denn, die tägliche Nachfrage ist in den Einstellungen eingeschaltet (ab Werk aus). Sonst arbeitet sie offline. Die KI-Nachbearbeitung ist ab Werk aus;
   ist dort eine Adresse außerhalb des eigenen Netzes eingetragen, zeigt die App das an.
 - **Schutz vor dem Versand.** Geht Text an ein Sprachmodell außerhalb des Rechners (OpenRouter, IONOS …),
   ersetzt LocalScribe vorher auf dem Rechner Namen, Geburts- und andere Daten, Telefonnummern, E-Mail-Adressen,

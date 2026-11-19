@@ -244,6 +244,7 @@ with tempfile.TemporaryDirectory() as tmp:
     check("Zähler stimmt", training.kept() == (2, 3.0), str(training.kept()))
     check("Löschen entfernt alles", training.clear() == 2 and training.kept() == (0, 0.0) and not list(training.store().glob("*")))
     check("Aufheben ist seit 1.6.0 ab Werk an (nur die erfundenen Übungssätze)", config.DEFAULTS.get("training_keep") is True)
+    check("Von selbst fragt die App ab Werk nicht im Netz nach Updates", config.DEFAULTS.get("update_check") is False)
     config.DIR = old
 # Aus Aufnahme mit Transkript lernen: Ton wird nur gelesen
 with tempfile.TemporaryDirectory() as tmp:

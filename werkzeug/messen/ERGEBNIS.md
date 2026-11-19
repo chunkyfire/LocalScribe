@@ -534,3 +534,27 @@ Maßstab für die Wirkung des Trainings taugen sie nicht. Seit 1.6.0 sind die Ü
 (`werkzeug/lesetexte/`, Grundstock und je Fachrichtung gut 30 Minuten) und von allen Messungen getrennt: Je
 Fachrichtung liegen Prüfsätze bei, die das Training nie zeigt („Messen …“ im Stimmtraining). Ob die neuen Sätze sich
 mit den Messdiktaten decken, prüft `tests\_cem\ueberlapp2.py` auf dem Rechner, auf dem die Diktate liegen.
+
+## Nachtraining auf eine Stimme: Probelauf mit einer künstlichen Stimme (19.11.2026)
+
+Werkzeug: `werkzeug/training/stimme.py` (trainiert Decoder und Joint, der Hörteil bleibt) und `stimme_messen.py`
+(misst über den Weg der App). Eingabe ist der Ordner, den das Stimmtraining der App anlegt. Weil noch keine echte
+Stimme 40 Minuten gelesen hat, las eine künstliche (Piper, karlsson-low, mit leichtem Rauschen) Grundstock und
+Notfallmedizin: 374 Übungssätze, 45,5 Minuten; dazu die 40 Prüfsätze. Lauf auf einer RTX 4070 Ti, alles lokal.
+
+Zieltexte: 304 von 374 Sätzen waren brauchbar. 18 verstand das Ausgangsmodell zu schlecht, 52 enthielten eine Zahl
+oder Einheit, die es anders hörte als sie dasteht; die gehen nicht ins Training. Anker: 304 echte Aufnahmen anderer
+Stimmen (MLS, MultiMed) mit den Texten des Ausgangsmodells. 760 Schritte, Lernrate 1e-4, 6 min 48 s.
+
+| gemessen über den Weg der App | vorher | nach 46 min dieser Stimme |
+|---|---|---|
+| Prüfsätze derselben Stimme, roh | 21,2 % | 20,0 % |
+| Prüfsätze derselben Stimme, mit Nachbearbeitung | 19,6 % | 17,9 % |
+| fünf freie Diktate einer anderen, echten Stimme, mit Nachbearbeitung | 8,3 % | 9,7 % |
+
+Lesart: Das Werkzeug läuft durch, der Schreibteil lässt sich einzeln als ONNX-Datei ausgeben (69 MB) und über den
+Weg der App messen. Der Gewinn auf der trainierten Stimme ist klein (1,7 Punkte), und für eine andere Stimme wird
+das Modell etwas schlechter. Ein auf eine Person trainierter Schreibteil darf also nur für diese Person gelten,
+nicht für Aufnahmen mit mehreren Sprechern. Über echte Stimmen sagt der Lauf wenig: Die künstliche Stimme macht
+andere Fehler (verschluckte Laute) als ein Mensch am Mikrofon. Ob es sich lohnt, entscheidet die Messung an einer
+echten Stimme mit ihren eigenen Prüfsätzen und freien Diktaten. Nicht eingebaut.

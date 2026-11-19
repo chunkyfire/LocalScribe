@@ -34,8 +34,10 @@ Liegt neben LocalScribe.exe ein Ordner "daten", liegen sie stattdessen dort
 
 Aktualisieren und entfernen
 ---------------------------
-Beides im Fenster unter Einstellungen, ganz unten. "Nach Updates suchen" fragt
-bei GitHub nach, zeigt, was neu ist, und lädt nur, was sich geändert hat.
+Unten links im Fenster steht die laufende Fassung. Ein Klick fragt bei GitHub
+nach einer neueren; gibt es eine, lädt der nächste Klick nur, was sich geändert
+hat, und danach steht dort "Neu starten". Dasselbe und das Entfernen unter
+Einstellungen, ganz unten; dort steht auch, was neu ist.
 Erreicht der Rechner GitHub nicht: die ZIP-Datei der neuen Fassung an einem
 anderen Rechner laden (das kleine Paket genügt) und dort auswählen.
 

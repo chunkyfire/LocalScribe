@@ -1,3 +1,17 @@
+## LocalScribe 1.6.1
+
+- **Update unten links im Fenster.** Dort steht jetzt die laufende Fassung. Ein Klick fragt bei GitHub nach einer
+  neueren. Gibt es eine, steht dort „Update“ mit der Nummer: Ein Klick lädt nur die geänderten Dateien und richtet
+  die neue Fassung neben der laufenden ein, danach steht dort „Neu starten“. Hat jemand an einem anderen Rechner
+  am selben Ordner aktualisiert, erscheint „Neu starten“ von selbst. Der Weg über Einstellungen bleibt; dort steht
+  weiter, was neu ist.
+- **Tägliche Nachfrage, wenn gewünscht.** Neu in den Einstellungen: „Einmal am Tag von selbst nach Updates fragen“.
+  Ab Werk aus: Ohne diesen Schalter fragt die App wie bisher nur auf Klick im Netz nach.
+- Werkzeug für das Nachtraining auf die eigene Stimme (`werkzeug/training/stimme.py`, `stimme_messen.py`): liest
+  die Aufnahmen des Stimmtrainings, trainiert auf der eigenen Grafikkarte nur den kleinen Schreibteil des
+  Sprachmodells und misst mit den Prüfsätzen, was 5, 10, 20, 40 Minuten bringen. Noch nicht Teil der App; der
+  Probelauf mit einer künstlichen Stimme steht im Messprotokoll.
+
 ## LocalScribe 1.6.0
 
 - **Stimmtraining mit neuen Sätzen und Fachrichtung.** Die Übungssätze sind neu geschrieben. Zuerst kommt ein
