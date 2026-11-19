@@ -48,11 +48,11 @@ LOG = DIR / "diktat.log"
 DB = DIR / "verlauf.sqlite"
 ICON = DIR / "diktat.ico"
 
-GERMAN = ("de", "genau")      # Modelle, bei denen die deutsche Nachbearbeitung gilt
+GERMAN = ("de",)              # Modelle, bei denen die deutsche Nachbearbeitung gilt
 
 # Sprachmodelle zur Auswahl. Die Fassung ist festgeschrieben: Es wird nie stillschweigend eine andere geladen.
 MODELS = {
-    "de": {"label": "Deutsch (primeline-Parakeet)",
+    "de": {"label": "Deutsch (Parakeet, auf Deutsch nachtrainiert)",
            "repo": "OpenVoiceOS/primeline-parakeet-onnx", "revision": "411093fba73540a11c451841a8e7922c13b0fb00",
            # Dieselben Gewichte, schonender auf 8 Bit gekürzt (werkzeug/modell/kuerzen.py): so genau wie die
            # vollen 2,5 GB, so schnell wie bisher. Dateiname: [Größe, SHA-256].
@@ -63,9 +63,7 @@ MODELS = {
                            "vocab.txt": [93939, "d58544679ea4bc6ac563d1f545eb7d474bd6cfa467f0a6e2c1dc1c7d37e3c35d"],
                            "decoder_joint-model.int8.onnx": [72520894, "e713d02c73176e629de49948f755a8e855b4850d4341124088d69adcfbc833c1"],
                            "encoder-model.int8.onnx": [881780860, "d3183080403232b0db42ba461ec4dc917996811fe689de42492747dc723a10d2"]}}},
-    "genau": {"label": "Deutsch, genauer und langsamer (NVIDIA Canary 1B v2)", "type": "nemo-canary-1b-v2", "language": "de",
-              "repo": "istupakov/canary-1b-v2-onnx", "revision": "5ebc1520cef7b6b318b3526ad17adbfe00bc1bfc"},
-    "multi": {"label": "Mehrsprachig: 25 europäische Sprachen (NVIDIA Parakeet v3)",
+    "multi": {"label": "Mehrsprachig (Parakeet v3, 25 europäische Sprachen)",
               "repo": "istupakov/parakeet-tdt-0.6b-v3-onnx", "revision": "8f23f0c03c8761650bdb5b40aaf3e40d2c15f1ce"},
 }
 
@@ -102,18 +100,19 @@ DEFAULTS = {
     "learn_terms": True,          # Fachwörter aus den eigenen Diktaten in den Wortschatz aufnehmen (nur Lexikonwörter)
     "learned": [],                # gelernte Fachwörter (aus Diktaten und eingelesenen Texten)
     "mic_warm": False,            # Mikrofon dauerhaft offen halten: kein Startverzug, erste Silbe bleibt
-    "speakers": False,            # Sprecher trennen bei Aufnahme und Datei
+    "speakers": True,             # Sprecher trennen bei Aufnahme und Datei (bei nur einer Stimme bleibt der Text, wie er ist)
     "training_keep": False,       # Stimmtraining: vorgelesene (erfundene) Sätze als Ton aufheben, für ein Nachtraining
     "live_preview": True,         # Aufnahme: laufende Äußerung schon beim Sprechen vorläufig anzeigen
     "model_dir": "",              # eigener Ordner mit Sprachmodellen (z. B. ein gemeinsames Netzlaufwerk); leer = keiner
+    "handover_frame": "zna",      # Übergabe: zuletzt gewählter Rahmen (zna, station, its); gilt für den nächsten Fall
     "visite_prompt": "",          # Visite & Übergabe: eigene Anweisung an das Sprachmodell; leer = die mitgelieferte
-    "visite_model": "",           # Modell für den Arztbrief; leer = Gemini 3.1 Pro bei OpenRouter, sonst das LLM-Modell
+    "visite_model": "",           # Modell für den Arztbrief; leer = visite.WRITER bei OpenRouter, sonst das LLM-Modell
     "visite_jev": "",             # Jev-Modell für die Ersteinschätzung; leer = ~typesafe/jev-latest
     "seen_version": "",           # zuletzt gesehene Fassung: Nach einem Update zeigt das Fenster einmal, was neu ist
     "visite_rules": "",           # Hausregeln (Schockraum, Labor, Zuständigkeiten), die Jev mitbekommt; leer = keine
     "training_done": [],          # Stimmtraining: schon gelesene Sätze
     "phone": {"enabled": False, "port": 8765, "token": ""},   # Handy als Mikrofon (Webseite im eigenen Netz)
-    "config_version": 5,
+    "config_version": 6,
     "quantization": "int8",
     "provider": "CPUExecutionProvider",
     "threads": 0,
@@ -240,6 +239,13 @@ def load() -> dict:
                     if p.get("text") == OLD_V4.get(p.get("name")):
                         p["text"] = {"Zusammenfassung": SUMMARY, "Meeting-Protokoll": MEETING}[p["name"]]
                 cfg["config_version"] = 5
+            if int(stored.get("config_version") or 1) < 6:
+                # 1.5.0: Sprecher trennen ist ab Werk an (einmal umstellen, bleibt abschaltbar). Das zweite deutsche
+                # Sprachmodell (Canary) gibt es nicht mehr: seit der neuen Nachbearbeitung nicht genauer, aber langsamer.
+                cfg["speakers"] = True
+                if cfg.get("model_choice") == "genau":
+                    cfg["model_choice"] = "de"
+                cfg["config_version"] = 6
             cfg.pop("model", None)
             cfg.pop("model_revision", None)
         except Exception:

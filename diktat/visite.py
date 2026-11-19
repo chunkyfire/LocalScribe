@@ -44,6 +44,7 @@ WICHTIG:
    - Identifiziere Risiken (z.B. Antikoagulation + Trauma)
    - Formuliere "context" als kurze Überschrift (z.B. "Medikation & Blutung")
    - Formuliere "suggestion" als konkrete deutsche Handlungsempfehlung
+   - Der Text stammt oft aus Spracherkennung. Klingt ein Arzneimittel, eine Dosis, eine Einheit oder ein Vorzeichen nach einem Hörfehler oder passt nicht zum Zusammenhang, melde das als Safety Alert und nenne den gehörten Wortlaut; korrigiere nicht stillschweigend.
 
 4. **Gezielte Rückfragen** (EXAKT 3 entscheidende Weichensteller):
    - Erzeuge zunächst intern mehrere mögliche Rückfragen und wähle anschließend ausschließlich die drei mit dem höchsten erwarteten Informationsgewinn aus.
@@ -83,13 +84,113 @@ GIB GENAU DIESES JSON-SCHEMA ZURÜCK:
   }
 }"""
 
+# ---- Station und Intensiv: derselbe Aufbau, anderer Blick ----
+_HEAD = PROMPT[PROMPT.index("WICHTIG:"):PROMPT.index("1. **Strukturierte")]
+_SCHEMA = PROMPT[PROMPT.index("GIB GENAU DIESES JSON-SCHEMA ZURÜCK"):]
+_ASKS = """   - Erzeuge zunächst intern mehrere mögliche Rückfragen und wähle anschließend ausschließlich die drei mit dem höchsten erwarteten Informationsgewinn aus.
+   - Nutze ausschließlich Informationen, die im Text noch NICHT beantwortet sind. Keine Wiederholungen, keine Routinefragen und keine Fragen ohne direkte Konsequenz.
+   - Die drei Fragen müssen unterschiedliche Entscheidungen betreffen und nach Einfluss absteigend sortiert sein.
+   - Formuliere jeweils eine kurze, direkt stellbare Frage ohne Doppelfrage. Die Rationale benennt knapp, welche Entscheidung von der Antwort abhängt.
+   - Priorisiere: "critical" (unmittelbar entscheidungs- oder sicherheitsrelevant), "high" (relevanter Richtungswechsel), "medium" nur wenn keine dritte höherwertige Frage existiert."""
+_HEARD = ("   - Der Text stammt oft aus Spracherkennung. Klingt ein Arzneimittel, eine Dosis, eine Einheit oder ein Vorzeichen nach "
+          "einem Hörfehler oder passt nicht zum Zusammenhang, melde das als Safety Alert und nenne den gehörten Wortlaut; "
+          "korrigiere nicht stillschweigend.")
+_SAID = ("   - procedere: NUR das von der Ärztin/dem Arzt im Text AUSDRÜCKLICH genannte weitere Vorgehen, möglichst wörtlich. "
+         "KEINE eigenen Ergänzungen oder Empfehlungen. Leerer String, wenn kein Vorgehen genannt wurde.")
+STATION = f"""Du bist eine erfahrene Stationsärztin auf Oberarzt-Niveau und unterstützt bei Visite, Verlauf und Übergabe auf einer Normalstation. Du erkennst früh, wenn ein Verlauf kippt, und weißt, was eine Entlassung aufhält. Der Text kann ein Visitengespräch mit Sprecherzeilen, ein Diktat oder eine Übergabe sein. Analysiere ihn und erstelle:
+
+{_HEAD}1. **Strukturierte Dokumentation** (Visiten- und Verlaufseintrag) für das KIS:
+   - anamnese: Verlauf seit der letzten Visite und aktuelles Befinden (Beschwerden, Nacht, Besonderheiten). Präzise, ohne Wertung.
+   - befund: Aktuelle Befunde: Vitalwerte, Untersuchung, Labor mit Verlauf (Wert und Richtung), Bildgebung, Mikrobiologie. Nur was genannt ist.
+   - prozedere: Beurteilung: Wo steht der Patient heute, was ist das führende Problem, was folgt daraus. Problemorientiert, je Problem eine Zeile.
+{_SAID}
+   - vorerkrankungen: Aufnahmegrund, aktuelle Diagnosen und Vorerkrankungen, soweit genannt.
+   - vormedikation: Aktuelle Medikation mit Dosis und Schema. Was heute neu, abgesetzt oder umgestellt wurde, ausdrücklich so kennzeichnen. Antiinfektiva mit Therapietag und geplanter Dauer, wenn genannt.
+
+2. **ICD-10-GM & OPS Codes** für den stationären Aufenthalt:
+   - Hauptdiagnose zuerst, dann Nebendiagnosen; kodiere nur, was der Text trägt
+   - Markiere PCCL-relevante Nebendiagnosen als revenueRelevant
+   - OPS nur für genannte Prozeduren
+
+3. **Safety Alerts** (Stationsblick) - ALLE AUF DEUTSCH:
+   - Medikation gegen Nierenfunktion, Kalium, QT-Zeit, Alter und Wechselwirkungen prüfen
+   - Pausierte oder fehlende Dauermedikation (Antikoagulation, Thromboseprophylaxe, Insulin) und Allergien gegen Verordnungen
+   - Zeichen einer drohenden Verschlechterung, die im Plan nicht vorkommen
+   - Was vor einer Entlassung noch fehlt (ausstehende Befunde, Kontrolle, Versorgung zu Hause)
+   - Formuliere "context" als kurze Überschrift und "suggestion" als konkrete Handlungsempfehlung
+{_HEARD}
+
+4. **Gezielte Rückfragen** (EXAKT 3):
+   - Eine Frage ist nur dann geeignet, wenn ihre Antwort den heutigen Plan, den Entlasszeitpunkt oder eine Eskalation konkret verändern könnte.
+{_ASKS}
+
+5. **Patienteninfo** auf Grundschul-Niveau (5. Klasse Lesbarkeit): Was ist los, was passiert heute, wie geht es weiter, worauf soll ich achten.
+
+{_SCHEMA}"""
+ITS = f"""Du bist ein erfahrener Intensivmediziner auf Oberarzt-Niveau und unterstützt bei Visite und Schichtübergabe auf einer Intensivstation. Du denkst in Organsystemen, Trends und Tageszielen. Der Text ist ein Diktat oder eine mündliche Übergabe. Analysiere ihn und erstelle:
+
+{_HEAD}1. **Strukturierte Dokumentation** (Übergabe nach Organsystemen):
+   - anamnese: Kurzvorstellung: Alter, Aufnahmegrund, Behandlungstag, Verlauf der letzten 24 Stunden, aktuelle Hauptprobleme.
+   - befund: Status nach Organsystemen, je System eine Zeile mit dem Systemnamen vorweg, nur was genannt ist: Neurologie und Sedierung (RASS, Analgosedierung), Atmung (Beatmungsform, FiO2, PEEP, Horovitz, Blutgase), Kreislauf (Katecholamine mit Rate, Blutdruck, Laktat mit Verlauf), Niere und Bilanz (Ausscheidung, Kreatinin, Nierenersatz, Bilanz), Abdomen und Ernährung, Infektiologie (Fokus, Erreger, Antiinfektiva mit Therapietag, Entzündungswerte mit Verlauf), Gerinnung und Blut, Zugänge und Katheter (mit Liegedauer). Systeme ohne Angabe weglassen.
+   - prozedere: Beurteilung und Tagesziele: je Organsystem, was in dieser Schicht erreicht werden soll, soweit es sich aus dem Text ergibt.
+{_SAID}
+   - vorerkrankungen: Diagnosen und Vorerkrankungen, soweit genannt.
+   - vormedikation: Laufende Medikation: Perfusoren mit Rate, Antiinfektiva mit Therapietag, Prophylaxen, Ernährung. Zahlen und Einheiten genau wie genannt; nichts umrechnen.
+
+2. **ICD-10-GM & OPS Codes**:
+   - Hauptdiagnose zuerst, dann Nebendiagnosen; kodiere nur, was der Text trägt
+   - OPS für genannte Prozeduren (Beatmung, Nierenersatz, Katheteranlagen)
+   - Markiere erlösrelevante Codes als revenueRelevant
+
+3. **Safety Alerts** (Intensivblick) - ALLE AUF DEUTSCH:
+   - Dosis- und Ratenangaben auf Plausibilität prüfen (Zehnerpotenz, Einheit, je Kilogramm, je Minute oder Stunde)
+   - Ähnlich klingende Arzneimittel (z. B. Adrenalin und Noradrenalin, Sufentanil, Fentanyl und Remifentanil) und fehlende Vorzeichen (z. B. beim Bilanzziel) ausdrücklich melden
+   - Widerspruch zwischen Verlauf und Plan (z. B. geplante, aber nicht umgesetzte Deeskalation)
+   - Fehlende Tagesroutine, soweit erkennbar: Thromboseprophylaxe, Ulkusprophylaxe, Ernährung, Sedierungsziel, Liegedauer von Kathetern, Dauer der Antiinfektiva
+   - Dosisanpassung bei Nierenversagen oder Nierenersatz
+   - Formuliere "context" als kurze Überschrift und "suggestion" als konkrete Handlungsempfehlung
+{_HEARD}
+
+4. **Gezielte Rückfragen** (EXAKT 3):
+   - Eine Frage ist nur dann geeignet, wenn ihre Antwort eine Entscheidung dieser Schicht konkret verändern könnte: Eskalation, Entwöhnung von der Beatmung, Deeskalation, Therapieziel.
+{_ASKS}
+
+5. **Information für Angehörige** im Feld patientHandout, in einfacher Sprache (5. Klasse Lesbarkeit): title "Für Angehörige"; content: wie es der Patientin oder dem Patienten heute geht, wobei die Geräte und Medikamente helfen und was als Nächstes geplant ist. Ehrlich, ohne Fachwörter, ohne Prognose zu versprechen.
+
+{_SCHEMA}"""
+PROMPTS = {"station": STATION, "its": ITS}
+NAMES = {      # was die Blöcke im jeweiligen Rahmen heißen
+    "zna": {"jev": "Ersteinschätzung", "brief": "Arztbrief", "info": "Patienteninfo"},
+    "station": {"jev": "Tages-Check", "brief": "Visiteneintrag", "info": "Patienteninfo"},
+    "its": {"jev": "Tages-Check", "brief": "Übergabe", "info": "Für Angehörige"},
+}
+_TITLES = {
+    "station": {"anamnese": "Verlauf", "prozedere": "Beurteilung", "vorerkrankungen": "Diagnosen", "vormedikation": "Medikation"},
+    "its": {"anamnese": "Kurzvorstellung und Verlauf", "befund": "Status nach Organsystemen", "prozedere": "Beurteilung und Tagesziele",
+            "vorerkrankungen": "Diagnosen", "vormedikation": "Laufende Medikation"},
+}
+
 SHIELD_NOTE = ("\n\nPlatzhalter in eckigen Klammern wie [NAME_1] oder [DATUM_1] stehen für geschützte Angaben. "
                "Übernimm sie unverändert an der passenden Stelle.")
 SECTIONS = (("anamnese", "Anamnese"), ("befund", "Befund"), ("prozedere", "Beurteilung und Plan"),
             ("procedere", "Procedere"), ("vorerkrankungen", "Vorerkrankungen"), ("vormedikation", "Vormedikation"))
 
 
-def prompt(cfg: dict) -> str:
+def frame_of(value) -> str:
+    return value if value in dict(jev.FRAMES) else "zna"
+
+
+def sections(frame="zna") -> tuple:
+    """Die Abschnitte der Dokumentation mit den Überschriften des Rahmens."""
+    own = _TITLES.get(frame_of(frame), {})
+    return tuple((key, own.get(key, title)) for key, title in SECTIONS)
+
+
+def prompt(cfg: dict, frame="zna") -> str:
+    """Der Auftrag an das Sprachmodell. Ein eigener Auftrag aus den Einstellungen gilt für die Notaufnahme."""
+    frame = frame_of(frame)
+    if frame != "zna":
+        return PROMPTS[frame]
     return (cfg.get("visite_prompt") or "").strip() or PROMPT
 
 
@@ -124,12 +225,18 @@ def _restore(value, shield):
     return value
 
 
-WRITER = "google/gemini-3.1-pro-preview"      # schreibt den Arztbrief, wenn der Server OpenRouter ist
+# Wer bei OpenRouter den Arztbrief schreibt. Gemessen am 19.11.2026 an drei erfundenen Fällen mit Hörfehlern
+# (werkzeug/messen/ERGEBNIS.md): Gemini 3.8 Flash mit wenig Nachdenken braucht rund 15 s statt 45 s und meldet dieselben
+# Hörfehler wie Gemini 3.1 Pro. Gemini 3.6 Flash ist noch schneller, setzt aber eher ein geratenes Vorzeichen ein.
+WRITER = "google/gemini-3.8-flash@low"
+WRITERS = (("Standard: bei OpenRouter Gemini 3.8 Flash (etwa 15 Sekunden), sonst das Modell von oben", ""),
+           ("Gründlich: Gemini 3.1 Pro, etwa 45 Sekunden (OpenRouter)", "google/gemini-3.1-pro-preview"),
+           ("Schnell: Gemini 3.6 Flash, etwa 8 Sekunden, rät eher (OpenRouter)", "google/gemini-3.6-flash@low"))
 
 
 def writer(cfg: dict) -> dict:
     """Server und Modell für den Arztbrief. Eigene Angabe in den Einstellungen gewinnt; sonst bei OpenRouter das
-    Modell aus WacheNG, bei jedem anderen Server (Ollama im Haus, IONOS …) das unter LLM gewählte Modell."""
+    gemessene Standardmodell, bei jedem anderen Server (Ollama im Haus, IONOS …) das unter LLM gewählte Modell."""
     server = dict(cfg.get("llm") or {})
     own = (cfg.get("visite_model") or "").strip()
     if own:
@@ -140,7 +247,7 @@ def writer(cfg: dict) -> dict:
     return server
 
 
-def triage(cfg: dict, text: str, request=None) -> dict:
+def triage(cfg: dict, text: str, request=None, frame="zna") -> dict:
     """Ersteinschätzung durch Jev. request ersetzt in Tests den Netzaufruf."""
     server = dict(cfg.get("llm") or {})
     if not jev.available(server):
@@ -149,16 +256,17 @@ def triage(cfg: dict, text: str, request=None) -> dict:
         raise llm.LlmError(schutz.MISSING)
     if request is None and schutz.needed(server):
         text = schutz.Mask().hide(text)          # Jev antwortet nur mit Zahlen: nichts zurückzusetzen
-    return jev.ask(server, text, cfg.get("visite_rules") or "", cfg.get("visite_jev") or "", request)
+    return jev.ask(server, text, cfg.get("visite_rules") or "", cfg.get("visite_jev") or "", request, frame_of(frame))
 
 
-def analyse(cfg: dict, text: str, ask=None) -> dict:
+def analyse(cfg: dict, text: str, ask=None, frame="zna") -> dict:
     """Arztbrief-Entwurf, Sicherheitsnetz, Rückfragen. ask(system, user) ersetzt in Tests den Aufruf des Sprachmodells."""
     server = writer(cfg)
     if ask is None and schutz.blocked(server):
         raise llm.LlmError(schutz.MISSING)
     shield = schutz.Mask() if ask is None and schutz.needed(server) else None
-    system = prompt(cfg)
+    frame = frame_of(frame)
+    system = prompt(cfg, frame)
     if shield:
         text = shield.hide(text)
         if shield.back:
@@ -170,13 +278,15 @@ def analyse(cfg: dict, text: str, ask=None) -> dict:
         raise llm.LlmError("Das Modell hat kein auswertbares Ergebnis geliefert.")
     if isinstance(result.get("followUpQuestions"), list):
         result["followUpQuestions"] = result["followUpQuestions"][:3]
+    result["frame"] = frame
     return _restore(result, shield) if shield else result
 
 
 def letter(result: dict) -> str:
     """Der Arztbrief-Entwurf als Text zum Einfügen."""
     doc = result.get("documentation") or {}
-    return "\n\n".join(f"{title}:\n{str(doc[key]).strip()}" for key, title in SECTIONS if str(doc.get(key) or "").strip())
+    return "\n\n".join(f"{title}:\n{str(doc[key]).strip()}" for key, title in sections(result.get("frame"))
+                         if str(doc.get(key) or "").strip())
 
 
 # ---- Ablage: eine Datei, Löschen ist zuerst nur der Papierkorb ----

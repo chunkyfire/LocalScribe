@@ -1,6 +1,6 @@
 # LocalScribe – Technische Dokumentation
 
-Stand: Version 1.4.0. Für Betrieb, IT und alle, die den Code lesen oder prüfen wollen. Die Bedienung steht im
+Stand: Version 1.5.0. Für Betrieb, IT und alle, die den Code lesen oder prüfen wollen. Die Bedienung steht im
 [Handbuch](LocalScribe-Handbuch.pdf), die Messwerte mit Methode in [`werkzeug/messen/ERGEBNIS.md`](../werkzeug/messen/ERGEBNIS.md).
 
 ## 1. Was die App ist
@@ -139,7 +139,7 @@ Gepackt mit PyInstaller zu einem Ordner mit `LocalScribe.exe`; `build.ps1` strei
 | `diktat/fach.py` | Fachbegriffe am Klang reparieren (Lexikon mit 39.600 Begriffen, Wirkstoffendungen) |
 | `diktat/training.py` | Lernen aus vorgelesenen Sätzen und aus Aufnahmen mit Transkript |
 | `diktat/visite.py` | Visite & Übergabe: Fall auswerten lassen (Arztbrief-Entwurf, Sicherheitsnetz, Rückfragen), Fallablage mit Papierkorb |
-| `diktat/jev.py` | Ersteinschätzung durch Jev (TypeSafe): 17 feste Fragen aus WacheNG in einer Anfrage, Antworten als Wahrscheinlichkeiten |
+| `diktat/jev.py` | Jev (TypeSafe): je Rahmen ein fester Fragesatz in einer Anfrage, Antworten als Wahrscheinlichkeiten. Notaufnahme: 17 Fragen aus WacheNG (Ersteinschätzung). Station: 17, Intensiv: 19 Fragen (Tages-Check: Lage und „heute prüfen“) |
 | `diktat/sprecher.py` | Sprecher trennen: pyannote-Segmentierung und WeSpeaker-Stimmabdrücke (ONNX, CPU) |
 | `diktat/vad.py` | Sprache oder Stille (Silero VAD) |
 | `diktat/longform.py` | lange Aufnahmen und Tondateien stückweise |
@@ -283,16 +283,17 @@ zufälligen Schlüssel aus dem QR-Code. Ab Werk aus.
 | Schlüssel | Bedeutung | ab Werk |
 |---|---|---|
 | `hotkey_hold`, `hotkey_lock`, `hotkey_paste_last`, `hotkey_target`, `hotkey_next_field` | Tasten | Strg+Win, Leertaste, Umschalt+F7, F9, F8 |
-| `model_choice` | `de` (primeline-Parakeet), `genau` (NVIDIA Canary 1B v2, genauer und langsamer; ohne Wortschatz-Bonus) oder `multi` (Parakeet v3, 25 Sprachen) | `de` |
+| `model_choice` | `de` (primeline-Parakeet) oder `multi` (Parakeet v3, 25 Sprachen). Das frühere `genau` (NVIDIA Canary 1B v2) wird beim Laden zu `de` | `de` |
 | `beam` (nur Datei) | Zahl der Lesarten beim Dekodieren; 0 schaltet den Wortschatz-Bonus ab | 8 |
 | `learn_terms`, `learned` | Wortschatz aus Diktaten mitlernen; die gelernten Wörter | an, leer |
 | `vocabulary`, `dictionary` | eigene Begriffe (im Wörterbuch als „(am Klang)“); Wörterbuch „falsch → richtig“ | leer |
 | `base_dictionary` | mitgeliefertes medizinisches Wörterbuch und Lexikon anwenden | an |
-| `speakers` | Sprecher trennen bei Aufnahme und Datei | aus |
+| `speakers` | Sprecher trennen bei Aufnahme, Datei und Übergabe; bei nur einer Stimme bleibt der Text unverändert | an (seit 1.5.0, einmal umgestellt) |
+| `handover_frame` | zuletzt gewählter Rahmen der Übergabe: `zna`, `station` oder `its` | `zna` |
 | `spoken_punctuation` | „Punkt“, „Komma“, „neue Zeile“ als Zeichen schreiben | aus |
 | `llm`, `llm_fix` | Sprachmodell-Server und Fachkorrektur | aus |
-| `visite_prompt` | eigene Anweisung für „Visite & Übergabe“; leer = die mitgelieferte | leer |
-| `visite_model`, `visite_jev`, `visite_rules` | Modell für den Arztbrief (leer: bei OpenRouter `google/gemini-3.1-pro-preview`, sonst das LLM-Modell), Jev-Modell (leer: `~typesafe/jev-latest`), Hausregeln für Jev | leer |
+| `visite_prompt` | eigene Anweisung für den Rahmen Notaufnahme; leer = die mitgelieferte. Station und Intensiv haben feste Aufträge (`visite.STATION`, `visite.ITS`) | leer |
+| `visite_model`, `visite_jev`, `visite_rules` | Modell für Arztbrief, Visiteneintrag und Übergabe (leer: bei OpenRouter `google/gemini-3.8-flash@low`, sonst das LLM-Modell; der Zusatz `@low` geht bei OpenRouter als `reasoning.effort` hinaus, `llm.model_of`), Jev-Modell (leer: `~typesafe/jev-latest`), Hausregeln für Jev | leer |
 | `training_keep` | vorgelesene Sätze als Ton aufheben | aus |
 | `phone` | Handy als Mikrofon | aus |
 | `model_dir` | eigener Ordner mit den Sprachmodellen, zum Beispiel ein Netzlaufwerk | leer |
@@ -349,8 +350,10 @@ Modellgröße: Der Encoder mit 8 Bit je Kanal hat 841 MB. Geprüft und verworfen
 - Ein Nachtraining des Sprachmodells auf die eigene Stimme ist nicht eingebaut und nicht gemessen; die App kann nur
   das Material dafür sammeln. Versuche mit künstlichen Stimmen brachten an echten Stimmen keinen Gewinn.
 - „Visite & Übergabe“ ist so gut wie die Modelle dahinter. Die Ausgaben sind ungeprüfte Entwürfe, die Werte von Jev
-  Wahrscheinlichkeiten ohne Begründung. Gemessen an einem erfundenen Fall: Jev antwortet in 0,4 bis 4 Sekunden, der
-  Arztbrief mit Gemini 3.1 Pro braucht rund 36 Sekunden. Eine Auswertung der Treffsicherheit gibt es nicht.
+  Wahrscheinlichkeiten ohne Begründung. Gemessen an erfundenen Fällen: Jev antwortet in 0,4 bis 4 Sekunden, der
+  Arztbrief mit dem Standardmodell (Gemini 3.8 Flash, wenig Nachdenken) braucht 10 bis 24 Sekunden. Die Fragesätze für
+  Station und Intensiv sind an sechs erfundenen Fällen auf Plausibilität angesehen, nicht ausgewertet. Eine Auswertung
+  der Treffsicherheit gibt es nicht.
 - Echte Wörter, die das Sprachmodell für einen Fachbegriff setzt („Disney“ für „Dyspnoe“ bei einem Sprecher), fängt die
   Klangsuche nicht, weil es das Wort gibt. `fach.MISHEARD` ersetzt solche Wörter nur im klinischen Satz; aufgenommen
   ist bisher dieses eine beobachtete Paar. An den neun Diktaten echter Sprecher (Corti) wurde „Dyspnoe“ richtig erkannt.

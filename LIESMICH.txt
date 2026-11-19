@@ -56,5 +56,5 @@ Online:                  https://chunkyfire.github.io/LocalScribe/
 Technische Dokumentation: https://chunkyfire.github.io/LocalScribe/technik.html
 Lizenzen:                LICENSE.txt, THIRD_PARTY.txt
 
-Kein Medizinprodukt. "Visite & Übergabe" ist ein experimenteller Modus nur für
+Kein Medizinprodukt. Der Bereich "Übergabe" ist ein experimenteller Modus nur für
 Forschung, Lehre und den Vergleich von Modellen.

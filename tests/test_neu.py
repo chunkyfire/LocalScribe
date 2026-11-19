@@ -441,9 +441,66 @@ try:
     check("Jev: leere Antwort ist ein Fehler", False)
 except llm.LlmError:
     check("Jev: leere Antwort ist ein Fehler", True)
-check("Visite: Arztbrief bei OpenRouter mit Gemini 3.1 Pro, sonst mit dem LLM-Modell, eigene Angabe gewinnt",
+check("Visite: Arztbrief bei OpenRouter mit dem gemessenen Standardmodell, sonst mit dem LLM-Modell, eigene Angabe gewinnt",
       visite.writer(_or)["model"] == visite.WRITER and visite.writer({"llm": {"model": "llama", "base_url": "http://localhost:11434/v1"}})["model"] == "llama"
       and visite.writer(dict(_or, visite_model="mein/modell"))["model"] == "mein/modell" and visite.writer(_or)["timeout"] >= 180)
+# Denkaufwand: „modell@low“ geht bei OpenRouter als reasoning.effort hinaus, anderswo nur der Modellname
+_bodies = []
+_keep = llm._request
+llm._request = lambda server, path, body=None, key=None: _bodies.append(body) or {"choices": [{"message": {"content": "ok"}}]}
+try:
+    llm.chat({"base_url": "https://openrouter.ai/api/v1", "model": "google/gemini-3.8-flash@low"}, "s", "u", json_mode=True, key="k")
+    llm.chat({"base_url": "http://localhost:11434/v1", "model": "qwen3.5:9b@low"}, "s", "u", key="")
+    llm.chat({"base_url": "https://openrouter.ai/api/v1", "model": "vertex/modell@2024"}, "s", "u", key="k")
+    llm.run({"base_url": "https://openrouter.ai/api/v1", "model": "a/b@high", "protect": False}, "Glätte", "Text", key="k")
+finally:
+    llm._request = _keep
+check("Denkaufwand: OpenRouter bekommt Modell und reasoning, JSON-Modus bleibt",
+      _bodies[0]["model"] == "google/gemini-3.8-flash" and _bodies[0]["reasoning"] == {"effort": "low"}
+      and _bodies[0]["response_format"] == {"type": "json_object"} and _bodies[0]["temperature"] == 0, _bodies[0])
+check("Denkaufwand: anderer Server bekommt nur den Modellnamen", _bodies[1]["model"] == "qwen3.5:9b" and "reasoning" not in _bodies[1])
+check("Denkaufwand: unbekannter Zusatz bleibt Teil des Namens", _bodies[2]["model"] == "vertex/modell@2024" and "reasoning" not in _bodies[2])
+check("Denkaufwand: gilt auch für Aufträge", _bodies[3]["model"] == "a/b" and _bodies[3]["reasoning"] == {"effort": "high"}
+      and _bodies[3]["temperature"] == 0.2 and _bodies[3]["stream"] is False)
+check("Visite: Standardmodell ist eines der angebotenen, das erste Angebot heißt Standard",
+      visite.WRITERS[0][1] == "" and llm.model_of({"model": visite.WRITER}) == ("google/gemini-3.8-flash", "low")
+      and all(llm.model_of({"model": m})[0] for _, m in visite.WRITERS[1:]))
+# Rahmen Station und Intensiv: eigene Fragen an Jev, eigener Auftrag, eigene Überschriften
+def _fake_frame(server, path, body):
+    _sent.update(body=body)
+    return {"answers": {k: {"type": "noul", "noul": 0.9 if k in ("escalation", "abx_review", "deterioration", "img_echo") else 0.2}
+                        for k in body["questions"]}}
+_di = visite.triage(_or, "Übergabe Bett 3, septischer Schock.", request=_fake_frame, frame="its")
+check("Jev Intensiv: eigene Fragen, eigener Kontext, Rahmen im Ergebnis",
+      set(_sent["body"]["questions"]) == set(_jev.ITS) and "Intensivstation" in _sent["body"]["state"]["fall"]["kontext"]
+      and "placement" not in _sent["body"]["questions"] and _di["frame"] == "its"
+      and _sent["body"]["questions"]["sat_sbt"]["instructions"].endswith(_jev.RULE_HINT))
+_vi = _jev.view(_di)
+check("Jev Intensiv: Lage und „heute prüfen“", _vi["title"] == "Tages-Check" and _vi["flags"][0] == ("Eskalation droht", 0.9, "chipRed")
+      and ("Antiinfektiva prüfen", 0.9, "") in _vi["measures"] and ("Echo", 0.9, "") in _vi["imaging"]
+      and all(n != "MRT" for n, _, _ in _vi["imaging"]), _vi)
+check("Jev Intensiv: Text zum Kopieren", _jev.export(_di).startswith("JEV-TAGES-CHECK INTENSIV") and "Eskalation droht: 90 %" in _jev.export(_di))
+_ds = visite.triage(_or, "Visite Zimmer 12.", request=_fake_frame, frame="station")
+check("Jev Station: eigene Fragen", set(_sent["body"]["questions"]) == set(_jev.STATION) and _ds["frame"] == "station"
+      and _jev.view(_ds)["flags"][0][0] == "Verschlechterung droht" and "Normalstation" in _sent["body"]["state"]["fall"]["kontext"])
+check("Jev: unbekannter Rahmen heißt Notaufnahme", visite.triage(_or, "x", request=_fake_jev, frame="quatsch")["frame"] == "zna"
+      and set(_sent["body"]["questions"]) == set(_jev.QUESTIONS))
+check("Jev: jede Frage der Ansichten gibt es im Fragesatz",
+      all(k in _jev.SETS[f] for f, (_, flags, checks) in _jev.LAYOUT.items() for k in [x[0] for x in flags] + [x[0] for x in checks]))
+_own = {"visite_prompt": "MEIN AUFTRAG"}
+check("Visite: Auftrag je Rahmen, eigener Auftrag gilt für die Notaufnahme",
+      visite.prompt(_own) == "MEIN AUFTRAG" and visite.prompt(_own, "its") == visite.ITS and visite.prompt({}, "station") == visite.STATION
+      and "Organsystemen" in visite.ITS and "Entlass" in visite.STATION and visite.prompt({}, "quatsch") == visite.PROMPT)
+check("Visite: alle Aufträge enden mit demselben Schema und warnen vor Hörfehlern",
+      all(p.endswith(visite._SCHEMA) and "Hörfehler" in p and '"followUpQuestions"' in p for p in (visite.PROMPT, visite.STATION, visite.ITS)))
+_ri = visite.analyse({"llm": {"base_url": "http://localhost:1/v1", "model": "m"}}, "Übergabe Bett 3", frame="its",
+                     ask=lambda system, user: _seen.update(system=system) or
+                     '{"documentation": {"anamnese": "72 J.", "befund": "Atmung: FiO2 0,45"}, "followUpQuestions": []}')
+check("Visite Intensiv: eigener Auftrag, Rahmen im Ergebnis, eigene Überschriften",
+      _seen["system"] == visite.ITS and _ri["frame"] == "its"
+      and visite.letter(_ri) == "Kurzvorstellung und Verlauf:\n72 J.\n\nStatus nach Organsystemen:\nAtmung: FiO2 0,45", visite.letter(_ri))
+check("Visite: Namen der Blöcke je Rahmen", visite.NAMES["its"]["info"] == "Für Angehörige" and visite.NAMES["station"]["brief"] == "Visiteneintrag"
+      and dict(visite.sections("zna")) == dict(visite.SECTIONS) and visite.frame_of(None) == "zna")
 check("Visite: keine englische Zusammenfassung mehr in der Anweisung", "case_summary_en" not in visite.PROMPT and "ENGLISCH" not in visite.PROMPT)
 # echte Wörter, die für einen Fachbegriff stehen: nur im klinischen Satz ersetzen
 _base = dict(config.DEFAULTS)
@@ -632,7 +689,7 @@ try:
     _c = config.load()
     _names = [p["name"] for p in _c["prompts"]]
     check("Aufträge: neue kommen einmal dazu, der eigene bleibt", _names == ["Arztbrief", "Zusammenfassung", "Meeting-Protokoll"]
-          and _c["prompts"][0]["text"] == "mein eigener" and _c["config_version"] == 5, _names)
+          and _c["prompts"][0]["text"] == "mein eigener" and _c["config_version"] == 6, _names)
     check("Aufträge: Aufnahme zeigt ab Werk Zusammenfassung und Protokoll, den eigenen Arztbrief nicht",
           [p["record"] for p in _c["prompts"]] == [False, True, True])
     config.FILE.write_text(json.dumps({"config_version": 4, "hotkey_hold": ["ctrl", "win"], "prompts": [
@@ -649,6 +706,23 @@ try:
     config.save(_c)
     check("Aufträge: gelöschte kommen nicht wieder", [p["name"] for p in config.load()["prompts"]] == ["Arztbrief"])
     check("Aufträge: neue Installation hat alle sechs", len(config.DEFAULTS["prompts"]) == 6)
+    # 1.5.0: Sprecher trennen einmal an, das zweite deutsche Sprachmodell gibt es nicht mehr
+    config.FILE.write_text(json.dumps({"config_version": 5, "hotkey_hold": ["ctrl", "win"], "speakers": False,
+                                       "model_choice": "genau"}), encoding="utf-8")
+    _c6 = config.load()
+    check("1.5.0: Sprecher trennen an, Canary wird Deutsch", _c6["speakers"] is True and _c6["model_choice"] == "de"
+          and _c6["config_version"] == 6 and set(config.MODELS) == {"de", "multi"} and _c6["handover_frame"] == "zna", _c6.get("model_choice"))
+    config.FILE.write_text(json.dumps({"config_version": 6, "hotkey_hold": ["ctrl", "win"], "speakers": False,
+                                       "model_choice": "multi", "handover_frame": "its"}), encoding="utf-8")
+    _c6 = config.load()
+    check("1.5.0: wer danach abschaltet, bleibt abgeschaltet", _c6["speakers"] is False and _c6["model_choice"] == "multi"
+          and _c6["handover_frame"] == "its")
+    config.FILE.write_text(json.dumps({"config_version": 3, "hotkey_hold": ["ctrl", "win"], "vocabulary": ["RIVA"],
+                                       "llm": {"model": "mein-modell"},
+                                       "prompts": [{"name": "Arztbrief", "hotkey": [], "text": "mein eigener"}]}), encoding="utf-8")
+    _c = config.load()
+    _c["prompts"] = _c["prompts"][:1]
+    config.save(_c)
     _b = config.backup("vor-9.9.9")
     check("Sicherung: Kopie mit Inhalt im Datenordner", _b is not None and _b.parent == config.DIR / config.BACKUPS
           and json.loads(_b.read_text(encoding="utf-8"))["vocabulary"] == ["RIVA"])

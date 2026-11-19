@@ -75,6 +75,9 @@ QPushButton:hover { border-color: rgba(255, 255, 255, 0.34); background: rgba(25
 QPushButton#tab, QFrame#card QPushButton#tab { border-radius: 12px; padding: 6px 16px; color: #B9BEC4; }
 QPushButton#tab:checked, QFrame#card QPushButton#tab:checked { color: #C6FF3D; background: rgba(198, 255, 61, 0.10);
                                                               border-color: rgba(198, 255, 61, 0.45); }
+QPushButton#seg { border-radius: 10px; padding: 4px 12px; color: #9AA0A6; background: transparent;
+                  border: 1px solid rgba(255, 255, 255, 0.10); font-size: 12px; }
+QPushButton#seg:checked { color: #0B0B0B; background: #C6FF3D; border-color: #C6FF3D; }
 QPushButton:disabled { color: #5A5A5A; }
 QPushButton#primary, QFrame#card QPushButton#primary { background: #C6FF3D; color: #0B0B0B;
                                                        border: none; font-weight: 600; }
@@ -155,7 +158,19 @@ PRESETS = [("Ollama (lokal)", "http://localhost:11434/v1"),
            ("LM Studio (lokal)", "http://localhost:1234/v1"),
            ("OpenRouter", "https://openrouter.ai/api/v1"),
            ("IONOS AI Model Hub", "https://openai.inference.de-txl.ionos.com/v1"),
+           ("STACKIT AI Model Serving", "https://api.openai-compat.model-serving.eu01.onstackit.cloud/v1"),
            ("Eigene Adresse", "")]
+# Welches Modell wofür: gemessen am 19.11.2026 an erfundenen Fällen (werkzeug/messen/ERGEBNIS.md)
+ADVICE = (("openrouter.ai", "Empfehlung: google/gemini-3.1-flash-lite für die kurzen Aufträge (1 bis 3 Sekunden). Arztbrief und "
+                            "Übergabe schreibt ein eigenes Modell, siehe „Übergabe“ weiter unten."),
+          ("ionos", "Empfehlung bei IONOS: gpt-oss-120b („Modelle abrufen“, dann auswählen). In der Messung 10 bis 17 Sekunden "
+                    "je Arztbrief; verhörte Arzneimittelnamen bemerkt es seltener als das Standardmodell bei OpenRouter."),
+          ("stackit", "Empfehlung bei STACKIT: gpt-oss-120b oder Gemma 4 31b („Modelle abrufen“, dann auswählen). Beide schreiben "
+                      "einen Arztbrief in 6 bis 17 Sekunden; verhörte Arzneimittelnamen bemerken sie seltener als das "
+                      "Standardmodell bei OpenRouter."))
+ADVICE_LOCAL = ("Auf dem eigenen Rechner: Für Glätten und Zusammenfassen genügt ein Modell um 9 Milliarden Parameter (etwa "
+                "Qwen3.5 9B, braucht rund 8 GB Grafikspeicher). Für Arztbrief und Übergabe sind so kleine Modelle zu ungenau: "
+                "In der Messung übernahmen sie Hörfehler oder setzten Werte ein, die niemand gesagt hatte.")
 
 
 def restyle(widget, name):
@@ -1060,6 +1075,20 @@ class VisitPage(Page):
     PRIORITY = {"critical": ("entscheidend", "chipRed"), "high": ("wichtig", "chipWarn"), "medium": ("ergänzend", "chipOff")}
 
     SHOWN = ("Glätten", "Zusammenfassung", "Meeting-Protokoll")     # ab Werk auf der Seite Aufnahme
+    voice_asked = False
+    FRAME_TIPS = {
+        "zna": "Notaufnahme: Ersteinschätzung (wohin, welche Abteilung, Bett, Schockraum, erste Maßnahmen) und Arztbrief.",
+        "station": "Station: Tages-Check (Verschlechterung, Entlassung, was heute zu prüfen ist) und Visiteneintrag.",
+        "its": "Intensiv: Tages-Check (Eskalation, Verlegung, Aufwachversuch, Tagesroutine) und Übergabe nach Organsystemen.",
+    }
+    FRAME_HINTS = {
+        "zna": "Diktat oder Text zum Fall: Anamnese, Befund, Verlauf, Vormedikation, geplantes Vorgehen. Mehrere Teile "
+               "nacheinander kommen über „Zur Ablage legen“ zusammen.",
+        "station": "Visite oder Verlauf: Befinden, Befunde, Labor mit Verlauf, Medikation und was heute geändert wird, Plan. "
+                   "Ein mitgeschnittenes Visitengespräch geht auch.",
+        "its": "Übergabe oder Visite: Kurzvorstellung, dann nach Organsystemen. Perfusoren mit Rate, Antiinfektiva mit Tag, "
+               "Katheter, offene Punkte.",
+    }
 
     def __init__(self, ctl, mode="record"):
         self.mode = mode
@@ -1088,6 +1117,21 @@ class VisitPage(Page):
             self.tabs.addButton(b, i)
             row.addWidget(b)
         row.addStretch(1)
+        # Übergabe: der Rahmen bestimmt, was gefragt und geschrieben wird (Notaufnahme, Station, Intensiv)
+        self.frames = QtWidgets.QButtonGroup(self)
+        self.frame_bar = QtWidgets.QWidget()
+        if handover:
+            fl = QtWidgets.QHBoxLayout(self.frame_bar)
+            fl.setContentsMargins(0, 0, 0, 0)
+            fl.setSpacing(4)
+            for i, (key, name) in enumerate(jev.FRAMES):
+                b = QtWidgets.QPushButton(name, checkable=True, objectName="seg")
+                b.setCursor(Qt.PointingHandCursor)
+                b.setToolTip(self.FRAME_TIPS[key])
+                self.frames.addButton(b, i)
+                fl.addWidget(b)
+            self.frames.idClicked.connect(self._frame_picked)
+            row.addWidget(self.frame_bar)
         self.body.addLayout(row)
         self.stack = QtWidgets.QStackedWidget()
         self.body.addWidget(self.stack, 1)
@@ -1155,8 +1199,6 @@ class VisitPage(Page):
             self.task_row.addWidget(self.go)
             self.task_row.addWidget(self.put)
             self.name.setPlaceholderText("Fallbezeichnung, z. B. Zimmer 4 oder Kürzel (kein Klarname nötig)")
-            self.text.setPlaceholderText("Diktat oder Text zum Fall: Anamnese, Befund, Verlauf, Vormedikation, geplantes "
-                                         "Vorgehen. Mehrere Teile nacheinander kommen über „Zur Ablage legen“ zusammen.")
         else:
             self.tray.hide()
             self.go.hide()
@@ -1223,14 +1265,47 @@ class VisitPage(Page):
         self.sig_done.connect(self._done)
         self.sig_jev.connect(self._jev)
         self.sig_text.connect(self._text_done)
+        self._set_frame(ctl.cfg.get("handover_frame"))
         self._tab(0)
         self._show(None)
+
+    # ----- Übergabe: Rahmen
+    def frame(self) -> str:
+        i = self.frames.checkedId()
+        return jev.FRAMES[i][0] if self.handover and 0 <= i < len(jev.FRAMES) else "zna"
+
+    def _set_frame(self, key):
+        if not self.handover:
+            return
+        key = visite.frame_of(key)
+        self.frames.button([k for k, _ in jev.FRAMES].index(key)).setChecked(True)
+        names = visite.NAMES[key]
+        self.text.setPlaceholderText(self.FRAME_HINTS[key])
+        self.go.setToolTip(f"{names['jev']}, {names['brief']}, Sicherheitsnetz und Rückfragen aus dem Text und der Ablage.")
+
+    def _frame_picked(self, i):
+        key = jev.FRAMES[i][0]
+        self._set_frame(key)
+        if key != self.ctl.cfg.get("handover_frame", "zna"):
+            self.ctl.cfg["handover_frame"] = key            # gilt auch für den nächsten Fall
+            config.save(self.ctl.cfg)
+        shown = (self.result or {}).get("frame") or "zna"
+        if self.case is not None and not self.waiting:      # beim Fall merken, auch wenn noch nichts ausgewertet ist
+            row = self.store.get(self.case)
+            if row:
+                self.store.save(self.case, row[0], row[1], {**(row[2] or {}), "frame_next": key})
+        if (self.result or {}).get("visit") and key != shown:
+            restyle(self.note, "muted")
+            self.note.setText(f"Rahmen {dict(jev.FRAMES)[key]} gewählt. „Neu erzeugen“ wertet den Fall so aus.")
 
     def refresh(self):
         self._fill()
         self.split.blockSignals(True)
         self.split.setChecked(bool(self.ctl.cfg.get("speakers")))
         self.split.blockSignals(False)
+        if self.ctl.cfg.get("speakers") and not VisitPage.voice_asked and not sprecher.ready():
+            VisitPage.voice_asked = True             # Stimmmodell fehlt noch: einmal je Programmlauf im Hintergrund holen
+            LongPage._split(self, True)
         self._tasks()
         current = self.job.wav_path if self.job.running else None
         rest = [p for p in config.leftover_recordings() if p != current]
@@ -1461,6 +1536,7 @@ class VisitPage(Page):
     def _tab(self, i):
         self.tabs.button(i).setChecked(True)
         self.stack.setCurrentIndex(i)
+        self.frame_bar.setVisible(self.handover and i == 0)
         self._fill()
 
     def _fill(self):
@@ -1526,6 +1602,7 @@ class VisitPage(Page):
             w.blockSignals(False)
         self.note.setText("")
         self.info("Aufnehmen oder in das Feld tippen.")
+        self._set_frame(self.ctl.cfg.get("handover_frame"))
         self._show(None)
         self._tab(0)
 
@@ -1541,6 +1618,7 @@ class VisitPage(Page):
         self.text.blockSignals(False)
         self.items = [dict(i) for i in ((row[2] or {}).get("items") or []) if isinstance(i, dict)]
         self._tray()
+        self._set_frame((row[2] or {}).get("frame_next") or (row[2] or {}).get("frame"))
         self._show(row[2])
 
     # ----- Aufnahme
@@ -1645,18 +1723,18 @@ class VisitPage(Page):
             return
         restyle(self.note, "muted")
         self.note.setText("Läuft …")
-        case = self.case
+        case, frame = self.case, self.frame()
         keep = {k: (self.result or {})[k] for k in ("texts", "items") if (self.result or {}).get(k)}
         if self.items:
             keep["items"] = self.items
-        self.result = {**keep, "visit": True}
+        self.result = {**keep, "visit": True, "frame": frame}
         self.errors = {k: v for k, v in self.errors.items() if k == "text_errors"}
         self.waiting |= {"brief"} | ({"jev"} if jev.available(server) else set())
         self._show(self.result)
 
         def run(call, signal):
             try:
-                signal.emit(call(cfg, text), "", case)
+                signal.emit(call(cfg, text, frame=frame), "", case)
             except Exception as e:
                 log.warning("Visite: %s fehlgeschlagen: %s", call.__name__, type(e).__name__)
                 signal.emit(None, str(e) or type(e).__name__, case)
@@ -1671,8 +1749,13 @@ class VisitPage(Page):
             merged = dict(row[2] or {})
             if part == "jev":
                 merged["jev"] = result
+                if "documentation" not in merged:
+                    merged["frame"] = result.get("frame") or "zna"
             else:
                 merged = {**result, **{k: merged[k] for k in ("jev", "texts", "items") if merged.get(k)}}
+                if (merged.get("jev") or {}).get("frame", "zna") != merged.get("frame", "zna"):
+                    merged.pop("jev")                # Ersteinschätzung aus einem anderen Rahmen passt nicht mehr dazu
+            merged.pop("frame_next", None)
             merged["visit"] = True
             self.store.save(case, row[0], row[1], merged)
         if case != self.case:
@@ -1737,7 +1820,11 @@ class VisitPage(Page):
             self.text_boxes.append(box)
         if not structured:
             return
-        made = {"jev": self._jev_box(result["jev"]) if result.get("jev") else None, **self._letter_boxes(result)}
+        # Was gerade neu erzeugt wird, zeigt den Wartetext statt der alten Fassung
+        made = {"jev": self._jev_box(result["jev"]) if result.get("jev") and "jev" not in self.waiting else None,
+                **({} if "brief" in self.waiting else self._letter_boxes(result))}
+        pending = self.frame() if self.waiting & {"brief", "jev"} else result.get("frame")
+        titles = {**self.TITLES, **visite.NAMES[visite.frame_of(pending)]}
         for key in self.ORDER:
             box = made.get(key)
             if box is None:
@@ -1746,7 +1833,7 @@ class VisitPage(Page):
                 text = (f"Nicht geklappt: {error}" if error else
                         ("Jev bewertet den Fall …" if key == "jev" else "Das Sprachmodell schreibt …") if part in self.waiting else
                         "Nur über OpenRouter (Einstellungen, LLM)." if key == "jev" else "Keine Angabe.")
-                box = Box(self.TITLES[key])
+                box = Box(titles[key])
                 box.add(label(text, "bad" if error else "muted", wrap=True))
             box.setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Preferred)   # Spalten gleich breit
             self.boxes[key] = box
@@ -1781,6 +1868,24 @@ class VisitPage(Page):
     @staticmethod
     def _jev_box(d):
         v = jev.view(d)
+        if v.get("frame") in jev.LAYOUT:             # Station und Intensiv: Lage als Kärtchen, darunter „heute prüfen“
+            box = Box(v["title"], "Jev", copy=lambda: jev.export(d))
+            chips = Flow(gap=6)
+            for text, p, kind in v["flags"]:
+                if p is not None:
+                    chips.addWidget(chip(f"{text} · {jev.pct(p)}", kind if p >= jev.HIGH else "chipOff"))
+            box.add(chips)
+            rows = [(n, p) for n, p, _ in v["measures"] + v["imaging"] if p is not None]
+            yes, no = [r for r in rows if r[1] >= jev.HIGH], [r for r in rows if r[1] < jev.HIGH]
+            if yes:
+                box.add(label("HEUTE PRÜFEN", "kicker"))
+                line = Flow(gap=6)
+                for name, p in sorted(yes, key=lambda r: -r[1]):
+                    line.addWidget(chip(f"{name} {jev.pct(p)}", "chipLine"))
+                box.add(line)
+            if no:
+                box.add(label("Unter 70 %: " + ", ".join(f"{n} {jev.pct(p).replace(' ', '')}" for n, p in no), "muted", wrap=True))
+            return box
         box = Box("Ersteinschätzung", "Jev", copy=lambda: jev.export(d))
         chips = Flow(gap=6)
         if v["shock"]:
@@ -1812,10 +1917,12 @@ class VisitPage(Page):
 
     def _letter_boxes(self, result):
         boxes = {}
+        names = visite.NAMES[visite.frame_of(result.get("frame"))]
         doc = result.get("documentation") or {}
-        parts = [(title, str(doc[key]).strip()) for key, title in visite.SECTIONS if str(doc.get(key) or "").strip()]
+        parts = [(title, str(doc[key]).strip()) for key, title in visite.sections(result.get("frame"))
+                 if str(doc.get(key) or "").strip()]
         if parts:
-            box = Box("Arztbrief", "Entwurf", copy=lambda: visite.letter(result))
+            box = Box(names["brief"], "Entwurf", copy=lambda: visite.letter(result))
             folds = [box.add(Fold(title, text, opened=(i == 0))) for i, (title, text) in enumerate(parts)]
             more = button("Alle öffnen", name="ghost")
             more.clicked.connect(lambda: [f.flip(to=True) for f in folds])
@@ -1872,7 +1979,7 @@ class VisitPage(Page):
             boxes["codes"] = box
         info = result.get("patientHandout") or {}
         if str(info.get("content") or "").strip():
-            box = Box("Patienteninfo", folded=True,
+            box = Box(names["info"], folded=True,
                       copy=lambda: f"{info.get('title', '')}\n{info.get('content', '')}".strip())
             box.add(label(str(info.get("title") or ""), "strong", wrap=True))
             text = label(str(info.get("content") or ""), wrap=True)
@@ -2129,7 +2236,7 @@ class LlmPage(Page):
     def __init__(self, ctl):
         super().__init__("LLM",
                          "Das Sprachmodell für die KI-Nachbearbeitung (Transkript mit einem deiner Prompts überarbeiten), "
-                         "die Fachkorrektur und „Visite & Übergabe“. Funktioniert mit jedem Server, der die "
+                         "die Fachkorrektur und die Übergabe. Funktioniert mit jedem Server, der die "
                          "OpenAI-Schnittstelle spricht – auf diesem Rechner oder bei einem Anbieter deiner Wahl.")
         self.ctl = ctl
         self.prompts, self.current = [], -1
@@ -2156,6 +2263,8 @@ class LlmPage(Page):
         self.url.textEdited.connect(lambda: self.preset.setCurrentIndex(len(PRESETS) - 1))
         self.url.textChanged.connect(self._where)
         self.where = label("", "muted", wrap=True)
+        self.advice = label("", "muted", wrap=True)
+        self.advice.hide()
         self.key = QtWidgets.QLineEdit()
         self.key.setEchoMode(QtWidgets.QLineEdit.Password)
         self.model = QtWidgets.QComboBox(editable=True)
@@ -2175,7 +2284,7 @@ class LlmPage(Page):
                  ("Server", hbox(self.preset, (self.url, 1))),
                  ("API-Schlüssel", hbox((self.key, 1), button("Entfernen", self.drop_key, "ghost"))),
                  ("Modell", hbox((self.model, 1), self.fetch))),
-            self.where, self.status,
+            self.where, self.advice, self.status,
             self.protect, hbox((self.shield, 1), self.shield_btn)))
 
         # Prompts
@@ -2204,18 +2313,23 @@ class LlmPage(Page):
         self.v_prompt = QtWidgets.QPlainTextEdit()
         self.v_prompt.setMinimumHeight(170)
         self.v_note = label("", "muted")
-        self.v_writer = QtWidgets.QLineEdit(placeholderText=f"leer: {visite.WRITER} bei OpenRouter, sonst das Modell von oben")
+        self.v_writer = QtWidgets.QComboBox(editable=True)
+        for name, model in visite.WRITERS:
+            self.v_writer.addItem(name, model)
+        self.v_writer.setToolTip("Auswählen oder einen eigenen Modellnamen eintippen. Der Zusatz @low hinter dem Namen lässt "
+                                 "ein denkendes Modell bei OpenRouter weniger nachdenken; das macht es deutlich schneller.")
         self.v_rules = QtWidgets.QPlainTextEdit(placeholderText="Optional: Hausregeln für die Ersteinschätzung, zum Beispiel "
                                                 "Schockraum-Kriterien, Laborprofile, Zuständigkeiten. Jev entscheidet danach, wo sie eine Regel enthalten.")
         self.v_rules.setFixedHeight(84)
         self.body.addWidget(card(
-            label("Visite & Übergabe", "h2"),
-            label("Die Ersteinschätzung kommt von Jev (TypeSafe, nur über OpenRouter), den Arztbrief schreibt ein "
-                  "Sprachmodell über den Server von oben.", "muted", wrap=True),
-            form(("Modell für den Arztbrief", self.v_writer), ("Hausregeln für Jev", self.v_rules)),
-            label("Prompt für den Arztbrief: bestimmt, was aus einem Fall erzeugt wird (Arztbrief-Entwurf, "
+            label("Übergabe", "h2"),
+            label("Ersteinschätzung und Tages-Check kommen von Jev (TypeSafe, nur über OpenRouter). Arztbrief, "
+                  "Visiteneintrag und Übergabe schreibt ein Sprachmodell über den Server von oben.", "muted", wrap=True),
+            form(("Modell für Brief und Übergabe", self.v_writer), ("Hausregeln für Jev", self.v_rules)),
+            label("Prompt für den Rahmen Notaufnahme: bestimmt, was aus einem Fall erzeugt wird (Arztbrief-Entwurf, "
                   "Sicherheitsnetz, Rückfragen, Kodierung, Patienteninfo). Die Namen der Felder im JSON-Schema am Ende "
-                  "müssen bleiben, sonst kann LocalScribe das Ergebnis nicht anzeigen.", "muted", wrap=True),
+                  "müssen bleiben, sonst kann LocalScribe das Ergebnis nicht anzeigen. Station und Intensiv haben "
+                  "eigene, fest eingebaute Aufträge.", "muted", wrap=True),
             self.v_prompt,
             hbox(button("Speichern", self._visit_save, name="primary"),
                  button("Standard wiederherstellen", self._visit_reset), None, self.v_note)))
@@ -2241,10 +2355,16 @@ class LlmPage(Page):
     def _visit_save(self):
         text = self.v_prompt.toPlainText().strip()
         self.ctl.cfg["visite_prompt"] = "" if text == visite.PROMPT.strip() else text
-        self.ctl.cfg["visite_model"] = self.v_writer.text().strip()
+        self.ctl.cfg["visite_model"] = self._writer_value()
         self.ctl.cfg["visite_rules"] = self.v_rules.toPlainText().strip()
         self.ctl.apply_cfg()
         self.saved(self.v_note)
+
+    def _writer_value(self) -> str:
+        """Gewähltes Modell für Brief und Übergabe: der Wert des Eintrags oder der eingetippte Name."""
+        text = self.v_writer.currentText().strip()
+        i = self.v_writer.findText(text)
+        return self.v_writer.itemData(i) if i >= 0 else text
 
     def _visit_reset(self):
         self.v_prompt.setPlainText(visite.PROMPT)
@@ -2372,7 +2492,12 @@ class LlmPage(Page):
         self._migrate()
         cfg = self.ctl.cfg
         self.v_prompt.setPlainText(visite.prompt(cfg))
-        self.v_writer.setText(cfg.get("visite_model") or "")
+        chosen = cfg.get("visite_model") or ""
+        i = self.v_writer.findData(chosen)
+        if i >= 0:
+            self.v_writer.setCurrentIndex(i)
+        else:
+            self.v_writer.setEditText(chosen)
         self.v_rules.setPlainText(cfg.get("visite_rules") or "")
         l = cfg["llm"]
         self.active = l.get("profile") or ""
@@ -2446,6 +2571,9 @@ class LlmPage(Page):
 
     def _where(self, url):
         url = url.strip()
+        tip = ADVICE_LOCAL if url and llm._is_local(url) else next((text for part, text in ADVICE if part in url.lower()), "")
+        self.advice.setText(tip)
+        self.advice.setVisible(bool(tip))
         if not url:
             return self.where.setText("")
         if llm._is_local(url):
@@ -2604,10 +2732,9 @@ class SettingsPage(Page):
         self.model_dir = QtWidgets.QLineEdit(placeholderText="leer: Modelle liegen beim Programm oder in deinem Konto")
         self.body.addWidget(card(
             label("Sprachmodell", "h2"), form(("Modell", self.model)),
-            label("Deutsch ist das schnellste Modell. Das genauere deutsche Modell macht bei medizinischen Diktaten "
-                  "weniger Fehler, braucht aber etwa doppelt so lange und beim ersten Wechsel einmalig 1 GB. "
-                  "Mehrsprachig erkennt die gesprochene Sprache selbst, darunter Englisch, Französisch und "
-                  "Spanisch (670 MB). Das medizinische Basiswörterbuch gilt für beide deutschen Modelle.",
+            label("Deutsch ist für Diktate und Gespräche auf Deutsch gedacht; dafür gelten das medizinische "
+                  "Basiswörterbuch und die deutsche Nachbearbeitung. Mehrsprachig erkennt die gesprochene Sprache "
+                  "selbst, darunter Englisch, Französisch und Spanisch (einmalig 670 MB).",
                   "muted", wrap=True),
             form(("Modellordner", hbox(self.model_dir, button("Ordner wählen …", self._pick_models)))),
             label("Optional: ein gemeinsamer Ordner mit den Sprachmodellen, zum Beispiel auf einem Netzlaufwerk. "

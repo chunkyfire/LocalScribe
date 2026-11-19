@@ -110,12 +110,30 @@ def release(llm: dict) -> None:
         pass                                   # kein Ollama oder schon entladen
 
 
+EFFORTS = ("none", "minimal", "low", "medium", "high")
+
+
+def model_of(llm: dict) -> tuple:
+    """(Modell, Denkaufwand). „modell@low“ heißt: dieses Modell, aber mit wenig Nachdenken, das macht denkende Modelle
+    deutlich schneller. Ohne gültigen Zusatz bleibt der Name, wie er ist."""
+    name = (llm.get("model") or "").strip()
+    model, _, effort = name.rpartition("@")
+    return (model, effort) if model and effort in EFFORTS else (name, "")
+
+
+def _body(llm: dict, messages: list, **more) -> dict:
+    model, effort = model_of(llm)
+    body = {"model": model, "messages": messages, "stream": False, **more}
+    if effort and "openrouter.ai" in (llm.get("base_url") or "").lower():
+        body["reasoning"] = {"effort": effort}        # nur OpenRouter kennt diese Angabe für alle Anbieter
+    return body
+
+
 def chat(llm: dict, system: str, user: str, json_mode: bool = False, key=None) -> str:
     """Eine einzelne Anfrage ohne den Nachbearbeitungs-Rahmen; für die Fachkorrektur."""
     if not (llm.get("model") or "").strip():
         raise LlmError("Kein Modell ausgewählt.")
-    body = {"model": llm["model"].strip(), "temperature": 0, "stream": False,
-            "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}]}
+    body = _body(llm, [{"role": "system", "content": system}, {"role": "user", "content": user}], temperature=0)
     if json_mode:
         body["response_format"] = {"type": "json_object"}
     data = _request(llm, "/chat/completions", body, key=key)
@@ -139,13 +157,8 @@ def run(llm: dict, instruction: str, transcript: str, key=None) -> str:
         if shield.back:
             system += ("\n\nPlatzhalter in eckigen Klammern wie [NAME_1] oder [DATUM_1] stehen für geschützte Angaben. "
                        "Übernimm sie unverändert an der passenden Stelle.")
-    body = {
-        "model": llm["model"].strip(),
-        "messages": [{"role": "system", "content": system},
-                     {"role": "user", "content": transcript.strip()}],
-        "temperature": float(llm.get("temperature", 0.2)),
-        "stream": False,
-    }
+    body = _body(llm, [{"role": "system", "content": system}, {"role": "user", "content": transcript.strip()}],
+                 temperature=float(llm.get("temperature", 0.2)))
     data = _request(llm, "/chat/completions", body, key=key)
     try:
         text = data["choices"][0]["message"]["content"] or ""

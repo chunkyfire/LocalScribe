@@ -172,7 +172,7 @@
 <body>
 <h1 id="localscribe--technische-dokumentation">LocalScribe – Technische
 Dokumentation</h1>
-<p>Stand: Version 1.4.0. Für Betrieb, IT und alle, die den Code lesen
+<p>Stand: Version 1.5.0. Für Betrieb, IT und alle, die den Code lesen
 oder prüfen wollen. Die Bedienung steht im <a
 href="https://chunkyfire.github.io/LocalScribe/">Handbuch</a>, die Messwerte mit Methode
 in <a
@@ -418,8 +418,10 @@ Sicherheitsnetz, Rückfragen), Fallablage mit Papierkorb</td>
 </tr>
 <tr class="odd">
 <td><code>diktat/jev.py</code></td>
-<td>Ersteinschätzung durch Jev (TypeSafe): 17 feste Fragen aus WacheNG
-in einer Anfrage, Antworten als Wahrscheinlichkeiten</td>
+<td>Jev (TypeSafe): je Rahmen ein fester Fragesatz in einer Anfrage,
+Antworten als Wahrscheinlichkeiten. Notaufnahme: 17 Fragen aus WacheNG
+(Ersteinschätzung). Station: 17, Intensiv: 19 Fragen (Tages-Check: Lage
+und „heute prüfen“)</td>
 </tr>
 <tr class="even">
 <td><code>diktat/sprecher.py</code></td>
@@ -759,9 +761,9 @@ Oberfläche erreichbar, außer den markierten):</p>
 </tr>
 <tr class="even">
 <td><code>model_choice</code></td>
-<td><code>de</code> (primeline-Parakeet), <code>genau</code> (NVIDIA
-Canary 1B v2, genauer und langsamer; ohne Wortschatz-Bonus) oder
-<code>multi</code> (Parakeet v3, 25 Sprachen)</td>
+<td><code>de</code> (primeline-Parakeet) oder <code>multi</code>
+(Parakeet v3, 25 Sprachen). Das frühere <code>genau</code> (NVIDIA
+Canary 1B v2) wird beim Laden zu <code>de</code></td>
 <td><code>de</code></td>
 </tr>
 <tr class="odd">
@@ -788,56 +790,66 @@ ab</td>
 </tr>
 <tr class="odd">
 <td><code>speakers</code></td>
-<td>Sprecher trennen bei Aufnahme und Datei</td>
-<td>aus</td>
+<td>Sprecher trennen bei Aufnahme, Datei und Übergabe; bei nur einer
+Stimme bleibt der Text unverändert</td>
+<td>an (seit 1.5.0, einmal umgestellt)</td>
 </tr>
 <tr class="even">
+<td><code>handover_frame</code></td>
+<td>zuletzt gewählter Rahmen der Übergabe: <code>zna</code>,
+<code>station</code> oder <code>its</code></td>
+<td><code>zna</code></td>
+</tr>
+<tr class="odd">
 <td><code>spoken_punctuation</code></td>
 <td>„Punkt“, „Komma“, „neue Zeile“ als Zeichen schreiben</td>
 <td>aus</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>llm</code>, <code>llm_fix</code></td>
 <td>Sprachmodell-Server und Fachkorrektur</td>
 <td>aus</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>visite_prompt</code></td>
-<td>eigene Anweisung für „Visite &amp; Übergabe“; leer = die
-mitgelieferte</td>
+<td>eigene Anweisung für den Rahmen Notaufnahme; leer = die
+mitgelieferte. Station und Intensiv haben feste Aufträge
+(<code>visite.STATION</code>, <code>visite.ITS</code>)</td>
 <td>leer</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>visite_model</code>, <code>visite_jev</code>,
 <code>visite_rules</code></td>
-<td>Modell für den Arztbrief (leer: bei OpenRouter
-<code>google/gemini-3.1-pro-preview</code>, sonst das LLM-Modell),
+<td>Modell für Arztbrief, Visiteneintrag und Übergabe (leer: bei
+OpenRouter <code>google/gemini-3.8-flash@low</code>, sonst das
+LLM-Modell; der Zusatz <code>@low</code> geht bei OpenRouter als
+<code>reasoning.effort</code> hinaus, <code>llm.model_of</code>),
 Jev-Modell (leer: <code>~typesafe/jev-latest</code>), Hausregeln für
 Jev</td>
 <td>leer</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>training_keep</code></td>
 <td>vorgelesene Sätze als Ton aufheben</td>
 <td>aus</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>phone</code></td>
 <td>Handy als Mikrofon</td>
 <td>aus</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>model_dir</code></td>
 <td>eigener Ordner mit den Sprachmodellen, zum Beispiel ein
 Netzlaufwerk</td>
 <td>leer</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>live_preview</code> (nur Datei)</td>
 <td>Vorschau auf die laufende Äußerung in der Aufnahme</td>
 <td>an</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>threads</code> (nur Datei)</td>
 <td>Zahl der Rechen-Threads; 0 überlässt es der Laufzeit</td>
 <td>0</td>
@@ -971,10 +983,12 @@ sammeln. Versuche mit künstlichen Stimmen brachten an echten Stimmen
 keinen Gewinn.</li>
 <li>„Visite &amp; Übergabe“ ist so gut wie die Modelle dahinter. Die
 Ausgaben sind ungeprüfte Entwürfe, die Werte von Jev
-Wahrscheinlichkeiten ohne Begründung. Gemessen an einem erfundenen Fall:
-Jev antwortet in 0,4 bis 4 Sekunden, der Arztbrief mit Gemini 3.1 Pro
-braucht rund 36 Sekunden. Eine Auswertung der Treffsicherheit gibt es
-nicht.</li>
+Wahrscheinlichkeiten ohne Begründung. Gemessen an erfundenen Fällen: Jev
+antwortet in 0,4 bis 4 Sekunden, der Arztbrief mit dem Standardmodell
+(Gemini 3.8 Flash, wenig Nachdenken) braucht 10 bis 24 Sekunden. Die
+Fragesätze für Station und Intensiv sind an sechs erfundenen Fällen auf
+Plausibilität angesehen, nicht ausgewertet. Eine Auswertung der
+Treffsicherheit gibt es nicht.</li>
 <li>Echte Wörter, die das Sprachmodell für einen Fachbegriff setzt
 („Disney“ für „Dyspnoe“ bei einem Sprecher), fängt die Klangsuche nicht,
 weil es das Wort gibt. <code>fach.MISHEARD</code> ersetzt solche Wörter

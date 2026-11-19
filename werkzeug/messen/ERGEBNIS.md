@@ -446,3 +446,78 @@ derselben Stelle dasselbe anders schreiben als das Original, gilt ihre Lesart (`
 Knapp ein Prozentpunkt, also etwa so viel wie die Suche mit der Kernliste (15,77 %), aber für die dreifache Rechenzeit
 des Encoders, der ohnehin den größten Teil der Wartezeit ausmacht. Ob sich der Gewinn zur Suche mit Wortschatz
 addiert, ist nicht gemessen. Nicht eingebaut: Die Wartezeit ist für diese App wichtiger als ein Punkt.
+
+## Welches Sprachmodell schreibt Arztbrief und Übergabe (19.11.2026)
+
+Drei erfundene Fälle (Notaufnahme: Thoraxschmerz; Station: Visitengespräch bei Pneumonie; Intensiv: Übergabe bei
+septischem Schock), von der Windows-Stimme vorgelesen und von der App erkannt, also mit echten Hörfehlern: aus
+„Noradrenalin“ wurde „nur Adrenalin“, „Bilanzziel minus 1000“ verlor das Vorzeichen, „Propofol und Sufentanil“ wurde
+unleserlich. Jedes Modell bekam je Fall den Auftrag des passenden Rahmens (`visite.analyse`), alle über OpenRouter.
+Geprüft: gültiges Ergebnis, Sekunden bis zur Antwort, ob die Zahlen des Falls im Ergebnis stehen, und im Intensivfall,
+ob das Modell den Katecholamin-Hörfehler und das fehlende Vorzeichen meldet (`tests\_cem\modelle.py`, zwei Läufe).
+
+| Modell | Sekunden je Fall | gültig | Katecholamin gemeldet | Vorzeichen gemeldet | Bemerkung |
+|---|---|---|---|---|---|
+| Gemini 3.1 Pro (bisher Standard) | 43–55 | 3/3 | ja | ja | |
+| Gemini 3.8 Flash | 28–40 | 3/3 | ja | ja | |
+| Claude Sonnet 5.5 | 45–82 | 3/3 | ja | ja | 7 bis 9 Hinweise je Fall |
+| Claude Haiku 5.5 | 30–40 | 3/3 | ja | ja | 7 bis 8 Hinweise je Fall |
+| GPT-5.6 Luna | 17–29 | 3/3 | ja | ja | lässt den gehörten Wortlaut stehen; mit weniger Nachdenken nicht schneller |
+| Gemini 3.6 Flash | 9–35 | 3/3 | ja | ja | |
+| GPT-5.4 mini | 6–12 | 3/3 | nein | ja | |
+| Gemini 3.1 Flash-Lite | 4–6 | 3/3 | nein | ja | schreibt trotzdem „-1000 ml“ in den Befund |
+| Mistral Medium 3.5 | 6–11 | 3/3 | nein | ja | schreibt „+1000 ml“ in den Befund |
+| Mistral Small (2603) | 8–13 | 3/3 | nein | ja | |
+| Mistral Large 4.0 | 102–181 | 3/3 | nein | ja | |
+| gpt-oss-120b | 8–17 | 3/3 | nein | ja | in zwei Fällen fehlt ein Abschnitt |
+| Gemma 4 31B | 5–16 | 3/3 | nein | ja | |
+| Gemma 4 26B (A4B) | 6–15 | 3/3 | nein | ja | |
+| Qwen3.5 397B | 24–143 | 3/3 | Dosis als auffällig gemeldet | ja | schreibt „-1000 ml“ in den Befund |
+| Llama 3.3 70B | 9–25 | 3/3 | nein | nein | ein Hinweis je Fall |
+| Mistral Small 3.2 24B | 15–43 | 3/3 | nein | nein | |
+| Qwen3.5 9B | 4–11 | 3/3 | nein | nein | übernimmt Hörfehler wörtlich; ein Aufruf hing über zehn Minuten |
+| Qwen3.8 27B | 20–300 | 1/3 | – | – | zwei von drei Antworten nicht auswertbar |
+| Gemma 3 12B | 1–45 | 1/3 | – | – | zweimal leere Dokumentation |
+| gpt-oss-20b | 46–150 | 2/3 | nein | ja | |
+| Gemini 3.5 Flash-Lite | 5–19 | 1/3 | nein | ja | im zweiten Lauf zwei von drei Antworten nicht auswertbar |
+
+Auf dem eigenen Rechner (RTX 4070 Ti, Ollama, die beiden dort schon liegenden Modelle): Gemma 3 4B 9 bis 24 Sekunden,
+Llama 3.1 8B 10 bis 15 Sekunden. Beide liefern die verlangte Form, aber falschen Inhalt: Gemma 3 4B schrieb im
+Intensivfall „FiO2 0,8, PEEP 5, RASS 2“ (gesagt waren 0,45, 10 und minus 3), Llama 3.1 8B „RASS 3“.
+
+Endrunde mit weniger Nachdenken (bei OpenRouter `reasoning.effort`; in der App der Zusatz `@low`), je Modell neun
+Aufrufe (drei Fälle, dreimal):
+
+| Modell | Sekunden, Median (Spanne) | Katecholamin gemeldet | Vorzeichen gemeldet | im Befund |
+|---|---|---|---|---|
+| Gemini 3.6 Flash, wenig Nachdenken | 7,9 (5,2–10,2) | 3/3 | 3/3 | dreimal „-1000 ml“ eingesetzt |
+| Gemini 3.8 Flash, wenig Nachdenken | 14,7 (9,8–24,0) | 3/3 | 3/3 | „1000 ml (Vorzeichen unklar)“ |
+| Gemini 3.6 Flash | 18,4 (8,6–35,1) | 3/3 | 3/3 | „1000 ml (Vorzeichen unklar)“ |
+| Gemini 3.1 Pro, wenig Nachdenken | 22,8 (16,3–30,4) | 3/3 | 3/3 | „1000 ml“ |
+| Gemini 3.7 Flash | 25,4 (12,0–42,6) | 3/3 | 3/3 | „1000 ml (Vorzeichen unklar)“ |
+
+Folge: Standard für Arztbrief, Visiteneintrag und Übergabe bei OpenRouter ist ab 1.5.0 Gemini 3.8 Flash mit wenig
+Nachdenken (`visite.WRITER`), rund dreimal so schnell wie Gemini 3.1 Pro bei denselben Meldungen. Gemini 3.6 Flash ist
+als „Schnell“ wählbar, weil es das geratene Vorzeichen in den Befund schreibt, auch wenn es das fehlende Vorzeichen
+meldet. Von den offenen Modellen, die IONOS und STACKIT anbieten, war gpt-oss-120b das verlässlichste; den
+Katecholamin-Hörfehler bemerkte keines.
+
+Grenzen: drei Fälle, eine künstliche Stimme, wenige Aufrufe je Modell, Zeiten über OpenRouter (bei offenen Modellen
+je nach Unteranbieter stark verschieden und nicht auf IONOS oder STACKIT übertragbar). „Gemeldet“ ist per Stichwort
+ausgewertet und bei den vorderen Modellen nachgelesen.
+
+## Jev mit eigenen Fragen für Station und Intensiv (19.11.2026)
+
+Jev beantwortet beliebige Ja/Nein- und Auswahlfragen zu einem Fall; für Station und Intensiv stehen eigene Fragesätze
+in `jev.py` (17 und 19 Fragen). Sechs erfundene Fälle, Antwortzeit 0,4 bis 0,5 Sekunden. Was über 70 % lag:
+
+| Fall | Lage | heute prüfen |
+|---|---|---|
+| Station: Pneumonie, bessert sich, noch 2 l Sauerstoff, Kalium 3,4 | Entlassung in 48 h 69 % | Laborkontrolle 92 %, Medikation 79 % |
+| Station: 84 Jahre, Harnwegsinfekt Tag 6, neu verwirrt, Fieber, Kreatinin und Kalium steigen | Verschlechterung 95 %, Sepsis-Screening 93 % | Delir und Sturz 98 %, Medikation 97 %, Laborkontrolle 94 %, Katheter 88 %, Thromboseprophylaxe 86 %, Therapieziel 86 %, Sozialdienst 73 %, Mobilisation 71 % |
+| Station: Tag 3 nach Gallenblasenentfernung, beschwerdefrei, Venenzugang liegt noch | Entlassung in 48 h 88 % | Zugänge 88 % |
+| Intensiv: septischer Schock Tag 4, beatmet, Dialyse, Deeskalation geplant, Angehörigengespräch offen | Eskalation 31 %, Verlegung 4 % | Antiinfektiva 96 %, Therapieziel 96 %, Nierenersatz 90 %, Thromboseprophylaxe 87 %, Ernährung 86 %, Ulkusprophylaxe 85 %, Delir 78 %, Sedierung 73 % |
+| Intensiv: Tag 9, wach, Spontanatemversuch bestanden, kein Noradrenalin, Katheter seit 9 Tagen | Extubation 80 %, Aufwach- und Atemversuch 73 % | Antiinfektiva 89 %, Katheter 77 %, Delir 73 %, Frühmobilisation 72 % |
+| Notaufnahme: Thoraxschmerz mit ST-Senkungen (bisheriger Fragesatz) | Notaufnahme 100 %, Kardiologie, Aufnahme 87 % | EKG 96 %, Labor 97 % (Thoraxlabor), Monitoring 95 %, Zugang 94 % |
+
+Das ist eine Durchsicht auf Plausibilität an sechs Fällen, keine Auswertung der Treffsicherheit.

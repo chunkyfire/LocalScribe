@@ -3,8 +3,7 @@
 Lokales Diktieren per Tastenkürzel für Windows: Taste halten, sprechen, loslassen – der Text
 landet im gerade aktiven Textfeld. Die Spracherkennung läuft vollständig auf dem eigenen Rechner
 (primeline-Parakeet, 600 Mio. Parameter, int8-ONNX, nur CPU, rund 850 MB Arbeitsspeicher).
-In den Einstellungen stehen zwei weitere Modelle zur Wahl: ein genaueres, langsameres deutsches
-(NVIDIA Canary 1B v2) und ein mehrsprachiges (NVIDIA Parakeet v3, 25 europäische Sprachen).
+In den Einstellungen steht daneben ein mehrsprachiges Modell zur Wahl (NVIDIA Parakeet v3, 25 europäische Sprachen).
 
 **Download:** [aktuelle Version](https://github.com/chunkyfire/LocalScribe/releases/latest) – `…-windows-komplett.zip`
 (rund 1,3 GB, alle Modelle liegen bei, kein Internet nötig) oder `…-windows.zip` (rund 100 MB, lädt das Sprachmodell
@@ -74,9 +73,9 @@ beendet sie nicht; sie bleibt im Infobereich (Rechtsklick → Beenden).
 - **Aufnahme** – einmal drücken startet, noch einmal drücken beendet, auch nach einer Stunde.
   Der Text läuft live mit: beim Sprechen grau als Vorschau, nach jeder Sprechpause als gültiger Text.
 - **Datei** – Audio- oder Videodatei hineinziehen (MP3, M4A, WAV, FLAC, OGG, MP4 …).
-- **Sprecher trennen** (Häkchen bei Aufnahme und Datei) – für Gespräche: Der Text bekommt Zeilen
-  „Sprecher 1: …“, „Sprecher 2: …“. Läuft auf der CPU dieses Rechners; beim ersten Einschalten wird einmalig
-  ein Stimmmodell geladen (26 MB). Siehe „Sprecher trennen“ unten.
+- **Sprecher trennen** (Häkchen bei Aufnahme und Datei, ab Werk an) – für Gespräche: Der Text bekommt Zeilen
+  „Sprecher 1: …“, „Sprecher 2: …“; bei nur einer Stimme bleibt er, wie er ist. Läuft auf der CPU dieses Rechners;
+  einmalig wird ein Stimmmodell geladen (26 MB). Siehe „Sprecher trennen“ unten.
 - **Wortschatz beim Erkennen** – die Erkennung verfolgt acht Lesarten gleichzeitig und bevorzugt die, die auf ein
   Fachwort aus deinem Wortschatz hinausläuft (Kernliste, eigene Begriffe, gelernte Wörter). LocalScribe lernt die
   Fachwörter aus deinen Diktaten mit; über **Aus eigenen Texten lernen** (Wortschatz, Reiter Stimmtraining) liest es sie aus eigenen
@@ -87,10 +86,15 @@ beendet sie nicht; sie bleibt im Infobereich (Rechtsklick → Beenden).
   Prompts lassen sich dazuschalten. Die Erkennung läuft lokal; Aufträge gehen an das eingestellte Sprachmodell.
 - **Übergabe** – eigener Bereich für Visite und Übergabe, mit einer Ablage je Fall, direkt beantwortbaren Rückfragen
   und „Neu erzeugen“.
-  Jev (TypeSafe, über OpenRouter) gibt in etwa einer Sekunde eine Ersteinschätzung als Wahrscheinlichkeiten:
-  Notaufnahme oder Notdienstpraxis, Schockraum, fallführende Abteilung, Bett, EKG, Zugang, Labor, Bildgebung. Ein
-  Sprachmodell schreibt Arztbrief-Entwurf, Sicherheitsnetz, gezielte Rückfragen, Kodiervorschlag und Patienteninfo,
-  jeweils als eigener Block zum Auf- und Zuklappen und Kopieren; alles liegt unter „Fälle“ (umbenennen, Papierkorb).
+  Drei Rahmen, oben rechts wählbar: **Notaufnahme**, **Station**, **Intensiv**.
+  Jev (TypeSafe, über OpenRouter) antwortet in etwa einer halben Sekunde mit Wahrscheinlichkeiten. In der Notaufnahme
+  als Ersteinschätzung: Notaufnahme oder Notdienstpraxis, Schockraum, fallführende Abteilung, Bett, EKG, Zugang, Labor,
+  Bildgebung. Auf Station und Intensiv als Tages-Check: droht eine Verschlechterung oder Eskalation, ist Entlassung
+  oder Verlegung realistisch, und was heute zu prüfen ist (Antibiotika, Medikation, Katheter, Prophylaxen,
+  Aufwachversuch, Therapieziel …). Ein Sprachmodell schreibt je nach Rahmen Arztbrief, Visiteneintrag oder Übergabe
+  nach Organsystemen, dazu Sicherheitsnetz, gezielte Rückfragen, Kodiervorschlag und Patienteninfo (auf Intensiv:
+  Text für Angehörige), jeweils als eigener Block zum Auf- und Zuklappen und Kopieren; alles liegt unter „Fälle“
+  (umbenennen, Papierkorb). Verhörte Arzneimittel, Dosen und fehlende Vorzeichen meldet das Sicherheitsnetz.
   Nur für Forschung, Lehre und den Vergleich von Modellen, kein Medizinprodukt. Die Anweisung ist unter Einstellungen
   änderbar.
 - **Wörterbuch** – falsch Erkanntes automatisch ersetzen. Mit **Hinzufügen** und nur der rechten Spalte reicht die richtige Schreibweise
@@ -252,7 +256,7 @@ Wortfehlerrate nach Angleichen von Schreib- und Sprechform:
 | Modell | roh | mit Nachbearbeitung |
 |---|---|---|
 | primeline-Parakeet (Standard) | 27,7 % | 23,3 % |
-| NVIDIA Canary 1B v2 („genauer“) | 23,8 % | 20,6 % |
+| NVIDIA Canary 1B v2 (bis 1.4.0 als „genauer“ wählbar) | 23,8 % | 20,6 % |
 | Whisper large-v3-turbo German (primeline), zum Vergleich extern gemessen | 17,7 % | – |
 
 Einige Einträge des Wörterbuchs stammen aus genau diesen Diktaten; die Werte mit Nachbearbeitung

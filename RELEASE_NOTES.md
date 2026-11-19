@@ -1,3 +1,35 @@
+## LocalScribe 1.5.0
+
+- **Übergabe in drei Rahmen: Notaufnahme, Station, Intensiv.** Oben rechts wählbar; Notaufnahme ist die Vorgabe, die
+  letzte Wahl gilt für den nächsten Fall. Jeder Rahmen stellt Jev eigene Fragen und gibt dem Sprachmodell einen eigenen
+  Auftrag:
+  - **Station:** Tages-Check statt Ersteinschätzung. Droht eine Verschlechterung, ist eine Entlassung in 48 Stunden
+    realistisch, Sepsis-Screening; darunter „heute prüfen“: Laborkontrolle, Antibiotika, Medikation,
+    Thromboseprophylaxe, Zugänge und Katheter, Mobilisation, Delir und Sturz, Sozialdienst, Konsil, Therapieziel.
+    Das Sprachmodell schreibt einen Visiteneintrag (Verlauf, Befund, Beurteilung, Procedere, Diagnosen, Medikation
+    mit dem, was heute geändert wurde).
+  - **Intensiv:** Droht eine Eskalation, verlegbar in 24 Stunden, Aufwach- und Atemversuch, Extubation absehbar;
+    „heute prüfen“: Sedierung, Antiinfektiva, Nierenersatz, Negativbilanz, Ernährung, Thromboseprophylaxe,
+    Ulkusprophylaxe, Katheter, Frühmobilisation, Delir-Screening, Therapieziel und Angehörige. Das Sprachmodell
+    schreibt eine Übergabe nach Organsystemen mit Tageszielen und statt der Patienteninfo einen Text für Angehörige.
+  - Sicherheitsnetz und Rückfragen richten sich nach dem Rahmen: auf Station nach Medikation, Entlassung und
+    Verschlechterung, auf Intensiv nach Dosen, Raten, Vorzeichen und Tagesroutine.
+- **Hörfehler werden gemeldet statt übernommen.** Alle drei Aufträge weisen das Sprachmodell an, verhörte Arzneimittel,
+  Dosen, Einheiten und fehlende Vorzeichen im Sicherheitsnetz zu nennen und nicht stillschweigend zu korrigieren.
+- **Arztbrief dreimal so schnell.** Bei OpenRouter schreibt jetzt Gemini 3.8 Flash mit wenig Nachdenken: rund 15
+  statt 45 Sekunden, in der Messung mit denselben gemeldeten Hörfehlern wie bisher Gemini 3.1 Pro. Unter
+  Einstellungen, LLM, „Modell für Brief und Übergabe“ stehen Standard, Gründlich (Gemini 3.1 Pro) und Schnell
+  (Gemini 3.6 Flash) zur Wahl; ein eigener Modellname geht weiter. Neu: Der Zusatz `@low` hinter einem Modellnamen
+  lässt ein denkendes Modell bei OpenRouter weniger nachdenken.
+- **Rat zum Modell je Anbieter.** Unter der Server-Adresse steht, welches Modell sich dort bewährt hat (OpenRouter,
+  IONOS, STACKIT, eigener Rechner). STACKIT AI Model Serving ist als Anbieter vorbelegt.
+- **Sprachmodell: nur noch Deutsch und Mehrsprachig.** Das zweite deutsche Modell („genauer und langsamer“) ist
+  entfernt: Seit der neuen Nachbearbeitung war es auf den eigenen Diktaten nicht mehr genauer (18,7 % gegenüber
+  18,0 % Wortfehler), aber etwa halb so schnell. Wer es gewählt hatte, steht jetzt auf Deutsch.
+- **Sprecher trennen ist ab Werk an** (Aufnahme, Datei, Übergabe). Bei nur einer Stimme bleibt der Text, wie er ist.
+  Das Häkchen schaltet es ab. Fehlt das Stimmmodell (26 MB), wird es beim ersten Öffnen der Seite geholt.
+- Beim „Neu erzeugen“ zeigen die Blöcke den Wartetext statt der alten Fassung.
+
 ## LocalScribe 1.4.0
 
 - **Übergabe ist wieder ein eigener Menüpunkt** (vorher „Visite & Übergabe“ als Auftrag auf der Seite Aufnahme), jetzt
