@@ -1111,7 +1111,7 @@ class VisitPage(Page):
     sig_text = Signal(str, str, str, int)        # Name des Auftrags, Ergebnis, Fehler, Fall
     PRIORITY = {"critical": ("entscheidend", "chipRed"), "high": ("wichtig", "chipWarn"), "medium": ("ergänzend", "chipOff")}
 
-    SHOWN = ("Glätten", "Zusammenfassung", "Meeting-Protokoll")     # ab Werk auf der Seite Aufnahme
+    SHOWN = config.ON_RECORD     # ab Werk auf der Seite Aufnahme: Visite, Meeting-Protokoll, Arztbrief, Pflegebericht
     voice_asked = False
     FRAME_TIPS = {
         "zna": "Notaufnahme: Ersteinschätzung (wohin, welche Abteilung, Bett, Schockraum, erste Maßnahmen) und Arztbrief.",
@@ -1140,7 +1140,7 @@ class VisitPage(Page):
         else:
             super().__init__("Aufnahme",
                              "Aufnehmen oder eine Datei laden. Das Transkript wird gespeichert; danach macht ein Klick "
-                             "daraus eine geglättete Fassung, eine Zusammenfassung oder ein Protokoll.", scroll=False)
+                             "daraus einen Visiteneintrag, ein Protokoll, einen Arztbrief oder einen Pflegebericht.", scroll=False)
         self.ctl = ctl
         self.tab_names = ("Fall", "Fälle", "Papierkorb") if handover else ("Aufnahme", "Gespeichert", "Papierkorb")
         self.store = visite.Store(config.DIR / ("visite.sqlite" if handover else "aufnahme.sqlite"))
@@ -1363,6 +1363,8 @@ class VisitPage(Page):
             return
         names = [p.get("name", "") for p in self.ctl.cfg.get("prompts") or []
                  if (p.get("text") or "").strip() and p.get("record", p.get("name") in self.SHOWN)]
+        first = {n: i for i, n in enumerate(self.SHOWN)}
+        names.sort(key=lambda n: first.get(n, len(first)))      # die vier ab Werk vorn, in fester Reihenfolge
         if getattr(self, "task_names", None) == names:
             return
         self.task_names = names

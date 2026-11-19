@@ -727,10 +727,11 @@ try:
                                        "prompts": [{"name": "Arztbrief", "hotkey": [], "text": "mein eigener"}]}), encoding="utf-8")
     _c = config.load()
     _names = [p["name"] for p in _c["prompts"]]
-    check("Aufträge: neue kommen einmal dazu, der eigene bleibt", _names == ["Arztbrief", "Zusammenfassung", "Meeting-Protokoll"]
-          and _c["prompts"][0]["text"] == "mein eigener" and _c["config_version"] == 7, _names)
-    check("Aufträge: Aufnahme zeigt ab Werk Zusammenfassung und Protokoll, den eigenen Arztbrief nicht",
-          [p["record"] for p in _c["prompts"]] == [False, True, True])
+    check("Aufträge: neue kommen einmal dazu, der eigene bleibt",
+          _names == ["Arztbrief", "Zusammenfassung", "Meeting-Protokoll", "Visite", "Pflegebericht"]
+          and _c["prompts"][0]["text"] == "mein eigener" and _c["config_version"] == 8, _names)
+    check("Aufträge: Aufnahme zeigt Visite, Protokoll, Arztbrief (den eigenen) und Pflegebericht, die Zusammenfassung nicht mehr",
+          [p["record"] for p in _c["prompts"]] == [True, False, True, True, True], [p["record"] for p in _c["prompts"]])
     config.FILE.write_text(json.dumps({"config_version": 4, "hotkey_hold": ["ctrl", "win"], "prompts": [
         {"name": "Zusammenfassung", "hotkey": [], "text": config.OLD_V4["Zusammenfassung"]},
         {"name": "Meeting-Protokoll", "hotkey": [], "text": "mein Protokoll", "record": False}]}), encoding="utf-8")
@@ -744,13 +745,49 @@ try:
     _c["prompts"] = _c["prompts"][:1]
     config.save(_c)
     check("Aufträge: gelöschte kommen nicht wieder", [p["name"] for p in config.load()["prompts"]] == ["Arztbrief"])
-    check("Aufträge: neue Installation hat alle sechs", len(config.DEFAULTS["prompts"]) == 6)
+    check("Aufträge: neue Installation hat alle acht", len(config.DEFAULTS["prompts"]) == 8)
+    # 1.7.1: Visite (SOAP) und Pflegebericht; die Zeile auf der Seite Aufnahme
+    _row = lambda c: [p["name"] for p in c["prompts"] if p.get("record")]
+    check("Aufnahme ab Werk: Visite, Meeting-Protokoll, Arztbrief, Pflegebericht",
+          sorted(_row(config.DEFAULTS)) == sorted(config.ON_RECORD) and config.ON_RECORD[0] == "Visite", _row(config.DEFAULTS))
+    _old = lambda **rec: [{"name": n, "hotkey": ["f8"] if n == "Glätten" else [], "text": "x", **({"record": rec[k]} if (k := n.replace("-", "_").replace("ä", "ae")) in rec else {})}
+                          for n in ("Glätten", "E-Mail", "Stichpunkte", "Arztbrief", "Zusammenfassung", "Meeting-Protokoll")]
+    config.FILE.write_text(json.dumps({"config_version": 7, "hotkey_hold": ["ctrl", "win"], "prompts": _old(
+        Glaetten=True, E_Mail=False, Stichpunkte=False, Arztbrief=False, Zusammenfassung=True, Meeting_Protokoll=True)}), encoding="utf-8")
+    _c = config.load()
+    check("1.7.0 -> 1.7.1, Auswahl nie geändert: neue Zeile, nichts gelöscht",
+          sorted(_row(_c)) == sorted(config.ON_RECORD) and len(_c["prompts"]) == 8 and _c["config_version"] == 8, _row(_c))
+    check("Glätten bleibt als Auftrag mit seiner Taste", config.prompt_by_name(_c, "Glätten")["hotkey"] == ["f8"] and config.prompt_by_name(_c, "Glätten")["record"] is False)
+    config.save(_c); _again = config.load()
+    check("Die Umstellung läuft nur einmal", _again["prompts"] == _c["prompts"])
+    config.FILE.write_text(json.dumps({"config_version": 7, "hotkey_hold": ["ctrl", "win"], "prompts": _old(
+        Glaetten=True, E_Mail=True, Stichpunkte=False, Arztbrief=False, Zusammenfassung=False, Meeting_Protokoll=True)}), encoding="utf-8")
+    _c = config.load()
+    check("1.7.0 -> 1.7.1, Auswahl selbst geändert: bleibt, die zwei neuen kommen dazu",
+          _row(_c) == ["Glätten", "E-Mail", "Meeting-Protokoll", "Visite", "Pflegebericht"], _row(_c))
+    _c["prompts"] = [p for p in _c["prompts"] if p["name"] != "Pflegebericht"]; config.save(_c)
+    check("Gelöschter Pflegebericht kommt nicht wieder", config.prompt_by_name(config.load(), "Pflegebericht") is None)
+    check("Visite folgt dem SOAP-Schema und erfindet nichts", all(k in config.SOAP for k in ("S – Subjektiv", "O – Objektiv", "A – Beurteilung", "P – Plan", "erfinde nichts")))
+    check("Pflegebericht: wertfrei, keine Vorschläge, Zusatzblätter", all(k in config.NURSING for k in ("ohne Wertung", "Schlage keine Pflegediagnosen", "Beobachtung:", "Maßnahme:", "Wirkung:", "Weitergabe:", "Sturzprotokoll", "[unklar: …]")))
+    check("Beide Aufträge ergänzen keine Einheit, Dosis oder Häufigkeit", config.AS_SAID in config.SOAP and config.AS_SAID in config.NURSING and "keine Einheit" in config.AS_SAID)
+    # ein Platzhalter, den das Modell erfindet, darf nicht im Ergebnis stehen bleiben
+    _M, _rq, _rd, _seen = schutz.Mask, llm._request, schutz.ready, {}
+    def _req(server, path, body=None, key=None):
+        _seen["system"], _seen["user"] = body["messages"][0]["content"], body["messages"][1]["content"]
+        return {"choices": [{"message": {"content": "[NAME_1] am [DATUM_1] informiert."}}]}
+    schutz.Mask, llm._request, schutz.ready = (lambda: _M(model=False)), _req, (lambda: True)
+    try:
+        _out = llm.run({"base_url": "https://openrouter.ai/api/v1", "model": "m"}, "x", "Herr Meier kam.")
+    finally:
+        schutz.Mask, llm._request, schutz.ready = _M, _rq, _rd
+    check("Erfundener Platzhalter wird zur sichtbaren Lücke, der echte zurückübersetzt", _out == "Meier am [?] informiert.", _out)
+    check("Der Hinweis nennt nur Platzhalter, die es gibt", "[NAME_1]" in _seen["system"] and "DATUM" not in _seen["system"] and "Meier" not in _seen["user"], _seen)
     # 1.6.0: Übungssätze werden ohne Haken aufgehoben; Profil mit Stimmaufnahmen sichern und zurückholen
     config.FILE.write_text(json.dumps({"config_version": 6, "hotkey_hold": ["ctrl", "win"], "training_keep": False,
                                        "dictionary": {"Riba": "RIVA"}}), encoding="utf-8")
     _c7 = config.load()
     check("1.6.0: Übungssätze werden aufgehoben, Fachrichtung leer", _c7["training_keep"] is True and _c7["field"] == ""
-          and _c7["config_version"] == 7 and _c7["training_scores"] == [])
+          and _c7["config_version"] == 8 and _c7["training_scores"] == [])
     import numpy as _np
     training.keep(_np.zeros(16000, dtype=_np.float32), "Erster Übungssatz.")
     training.keep(_np.zeros(8000, dtype=_np.float32), "Ein Prüfsatz.", test=True)
@@ -773,7 +810,7 @@ try:
                                        "model_choice": "genau"}), encoding="utf-8")
     _c6 = config.load()
     check("1.5.0: Sprecher trennen an, Canary wird Deutsch", _c6["speakers"] is True and _c6["model_choice"] == "de"
-          and _c6["config_version"] == 7 and set(config.MODELS) == {"de", "multi"} and _c6["handover_frame"] == "zna", _c6.get("model_choice"))
+          and _c6["config_version"] == 8 and set(config.MODELS) == {"de", "multi"} and _c6["handover_frame"] == "zna", _c6.get("model_choice"))
     config.FILE.write_text(json.dumps({"config_version": 6, "hotkey_hold": ["ctrl", "win"], "speakers": False,
                                        "model_choice": "multi", "handover_frame": "its"}), encoding="utf-8")
     _c6 = config.load()

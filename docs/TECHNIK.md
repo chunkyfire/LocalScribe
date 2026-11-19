@@ -1,6 +1,6 @@
 # LocalScribe – Technische Dokumentation
 
-Stand: Version 1.7.0. Für Betrieb, IT und alle, die den Code lesen oder prüfen wollen. Die Bedienung steht im
+Stand: Version 1.7.1. Für Betrieb, IT und alle, die den Code lesen oder prüfen wollen. Die Bedienung steht im
 [Handbuch](LocalScribe-Handbuch.pdf), die Messwerte mit Methode in [`werkzeug/messen/ERGEBNIS.md`](../werkzeug/messen/ERGEBNIS.md).
 
 ## 1. Was die App ist
@@ -340,6 +340,7 @@ zufälligen Schlüssel aus dem QR-Code. Ab Werk aus.
 | `handover_frame` | zuletzt gewählter Rahmen der Übergabe: `zna`, `station` oder `its` | `zna` |
 | `spoken_punctuation` | „Punkt“, „Komma“, „neue Zeile“ als Zeichen schreiben | aus |
 | `llm`, `llm_fix` | Sprachmodell-Server und Fachkorrektur | aus |
+| `prompts` | Aufträge an das Sprachmodell: Name, Anweisung, Taste, und `record` (als Knopf auf der Seite Aufnahme). Mitgeliefert: Glätten, E-Mail, Stichpunkte, Arztbrief, Zusammenfassung, Meeting-Protokoll, Visite (SOAP), Pflegebericht. Beim Wechsel auf 1.7.1 kommen die zwei neuen einmal dazu; die Zeile der Aufnahme wird nur umgestellt, wenn sie noch der Vorgabe entsprach (`config._prompts_v8`) | Aufnahme zeigt Visite, Meeting-Protokoll, Arztbrief, Pflegebericht |
 | `visite_prompt` | eigene Anweisung für den Rahmen Notaufnahme; leer = die mitgelieferte. Station und Intensiv haben feste Aufträge (`visite.STATION`, `visite.ITS`) | leer |
 | `visite_model`, `visite_jev`, `visite_rules` | Modell für Arztbrief, Visiteneintrag und Übergabe (leer: bei OpenRouter `google/gemini-3.8-flash@low`, sonst das LLM-Modell; der Zusatz `@low` geht bei OpenRouter als `reasoning.effort` hinaus, `llm.model_of`), Jev-Modell (leer: `~typesafe/jev-latest`), Hausregeln für Jev | leer |
 | `update_check` | einmal am Tag von selbst bei GitHub nach einer neueren Fassung fragen | aus |

@@ -1,3 +1,21 @@
+## LocalScribe 1.7.1
+
+- **Seite Aufnahme: vier Aufträge für die Klinik.** Unter dem Transkript stehen jetzt **Visite**, **Meeting-Protokoll**,
+  **Arztbrief** und **Pflegebericht**, in dieser Reihenfolge. Glätten und Zusammenfassung stehen dort nicht mehr. Als
+  Aufträge bleiben beide erhalten (Glätten behält die Taste F8) und lassen sich unter Einstellungen, LLM, wieder
+  ankreuzen. Wer seine Auswahl schon selbst geändert hatte, behält sie und bekommt die zwei neuen dazu.
+- **Visite** schreibt aus dem Gesagten einen Visiteneintrag nach dem SOAP-Schema: Subjektiv (was die Patientin oder
+  der Patient schildert), Objektiv (Befund und Werte), Beurteilung (wie gesagt), Plan (Anordnungen als Liste).
+- **Pflegebericht** schreibt einen Eintrag für den Verlaufsbericht der Pflege: je Vorgang Beobachtung, Maßnahme,
+  Wirkung und Weitergabe, sachlich und ohne Wertung, Aussagen wörtlich in Anführungszeichen. Routine ohne
+  Besonderheit und Floskeln wie „o. B.“ fallen weg. Bei Sturz, Wunde, Schmerz, Fixierung oder Medikationsfehler
+  steht am Ende, welches Blatt zusätzlich auszufüllen ist. Pflegediagnosen, Ziele und Maßnahmen schlägt der Auftrag
+  nicht vor: Die Einschätzung bleibt bei der Pflegefachperson.
+- Beide übernehmen nur, was gesagt wurde, und kennzeichnen mögliche Hörfehler bei Arzneimitteln, Zahlen und
+  Einheiten mit `[unklar: …]`, statt sie stillschweigend zu ändern. Die Ergebnisse sind Entwürfe und vor jeder
+  Verwendung zu prüfen.
+- Messprotokoll: Zeit vom Ende des Diktats bis zum Text für 5 bis 60 Sekunden Ton (`werkzeug/messen/latenz.py`).
+
 ## LocalScribe 1.7.0
 
 - **Profile für mehrere Personen an einem Programmordner.** Liegt LocalScribe auf einem Netzlaufwerk, steht unten

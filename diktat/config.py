@@ -78,7 +78,43 @@ OLD_V4 = {"Zusammenfassung": "Fasse den Text in fünf bis acht Sätzen zusammen,
           "Meeting-Protokoll": "Schreibe ein Protokoll mit den Abschnitten Teilnehmende, Besprochenes, Entscheidungen und "
                                "Aufgaben (wer, was, bis wann). Übernimm nur, was gesagt wurde; was nicht genannt wurde, "
                                "weglassen."}
-ON_RECORD = ("Glätten", "Zusammenfassung", "Meeting-Protokoll")       # ab Werk als Knopf auf der Seite Aufnahme
+OLD_ROW = ("Glätten", "Zusammenfassung", "Meeting-Protokoll")         # bis 1.7.0 ab Werk auf der Seite Aufnahme
+ON_RECORD = ("Visite", "Meeting-Protokoll", "Arztbrief", "Pflegebericht")   # ab Werk als Knöpfe auf der Seite Aufnahme, in dieser Reihenfolge
+UNCLEAR = ("Wörter, die nach einem Hörfehler aussehen (Arzneimittel, Zahlen, Einheiten), nicht stillschweigend berichtigen: "
+           "das Gehörte stehen lassen und so kennzeichnen: [unklar: …].")
+AS_SAID = ("Übernimm nur, was gesagt wurde, und erfinde nichts: keine Einheit, keine Dosis, keine Häufigkeit und kein Datum "
+           "ergänzen, auch wenn sie üblich wären. Eine Zahl ohne Einheit bleibt ohne Einheit („Kreatinin 1,9“ bleibt "
+           "„Kreatinin 1,9“, „Blutdruck 128 zu 76“ wird „RR 128/76“). Lass nichts weg, was zur Sache gehört: Jede genannte "
+           "Beobachtung, jeder Wert, jede Maßnahme und jede Uhrzeit kommt vor.")
+SOAP = ("Schreibe aus dem Text einen Visiteneintrag nach dem SOAP-Schema. " + AS_SAID + " Abschnitte, zu denen nichts "
+        "gesagt wurde, weglassen.\n"
+        "S – Subjektiv: Befinden und Beschwerden, wie die Patientin oder der Patient sie schildert; Angaben von "
+        "Angehörigen und Pflege.\n"
+        "O – Objektiv: Untersuchungsbefund, Vitalwerte, Labor, Bildgebung, Bilanz, Zugänge und Drainagen.\n"
+        "A – Beurteilung: die Einschätzung, wie sie gesagt wurde (Verlauf, Arbeitsdiagnose, offene Fragen). Keine eigene "
+        "Beurteilung hinzufügen.\n"
+        "P – Plan: Anordnungen und nächste Schritte als kurze Liste: Diagnostik, Therapie und Medikation, Konsile, "
+        "Entlassplanung, wer was bis wann.\n"
+        "Knapp, in Stichsätzen. " + UNCLEAR)
+NURSING = ("Schreibe aus dem Text einen Eintrag für den Pflegebericht, den Verlaufsbericht der Pflege. " + AS_SAID + " "
+           "Schlage keine Pflegediagnosen, Ziele oder Maßnahmen vor: Die Einschätzung bleibt bei der Pflegefachperson.\n"
+           "So schreibt man einen Pflegebericht: sachlich und ohne Wertung; was zu sehen, zu hören und zu messen war, "
+           "mit Uhrzeit, Häufigkeit und Ausmaß, soweit genannt. Aussagen der Patientin oder des Patienten wörtlich in "
+           "Anführungszeichen. Steht im Text nur eine Wertung (etwa „aggressiv“, „unkooperativ“), übernimm sie nicht als "
+           "Tatsache, sondern schreibe [Wertung, bitte Verhalten beschreiben]. Eine fachliche Einschätzung der sprechenden "
+           "Person kennzeichne mit „Einschätzung:“. Routine ohne Besonderheit und Floskeln wie „o. B.“ oder „keine "
+           "Besonderheiten“ weglassen. Nennt der Text nur solche Routine, antworte nur: „Nur Routine ohne Besonderheit "
+           "genannt. Dafür reicht in der Regel der Durchführungsnachweis.“\n"
+           "Gliedere jeden Vorgang so; je Vorgang jede Zeile höchstens einmal, Zeilen ohne Inhalt weglassen:\n"
+           "Beobachtung: …\nMaßnahme: … (was, durch wen)\nWirkung: … (Reaktion, Ergebnis)\n"
+           "Weitergabe: … (wer wurde wann informiert, was hat die Ärztin oder der Arzt angeordnet)\n"
+           "Danach, nur wenn genannt: „Werte:“ (Vitalzeichen, Schmerz, Blutzucker, Ein- und Ausfuhr) und „Offen für die "
+           "nächste Schicht:“. Dorthin gehört auch, worum die sprechende Person Kolleginnen und Kollegen bittet; das ist "
+           "keine Anordnung.\n"
+           "Geht es um einen Sturz, eine Wunde oder einen Dekubitus, Schmerzen, eine freiheitsentziehende Maßnahme oder "
+           "einen Medikationsfehler, ende mit der Zeile „Zusätzlich dokumentieren:“ und dem passenden Blatt "
+           "(Sturzprotokoll, Wunddokumentation, Schmerzerfassung, Fixierungsprotokoll, Fehlermeldung).\n"
+           "Kurze ganze Sätze. " + UNCLEAR)
 
 DEFAULTS = {
     # Tasten gedrückt halten = aufnehmen, loslassen = einfügen
@@ -116,7 +152,7 @@ DEFAULTS = {
     "visite_rules": "",           # Hausregeln (Schockraum, Labor, Zuständigkeiten), die Jev mitbekommt; leer = keine
     "training_done": [],          # Stimmtraining: schon gelesene Sätze
     "phone": {"enabled": False, "port": 8765, "token": ""},   # Handy als Mikrofon (Webseite im eigenen Netz)
-    "config_version": 7,
+    "config_version": 8,
     "quantization": "int8",
     "provider": "CPUExecutionProvider",
     "threads": 0,
@@ -172,11 +208,30 @@ DEFAULTS = {
          "text": SUMMARY},
         {"name": "Meeting-Protokoll", "hotkey": [],
          "text": MEETING},
+        {"name": "Visite", "hotkey": [],
+         "text": SOAP},
+        {"name": "Pflegebericht", "hotkey": [],
+         "text": NURSING},
     )],
 }
 for _p in DEFAULTS["prompts"]:
     _p["record"] = _p["name"] in ON_RECORD
 ADDED_V4 = ("Arztbrief", "Zusammenfassung", "Meeting-Protokoll")     # kamen mit 1.3.0 dazu
+ADDED_V8 = ("Visite", "Pflegebericht")                               # kamen mit 1.7.1 dazu
+
+
+def _prompts_v8(prompts) -> list:
+    """1.7.1: Visite (SOAP) und Pflegebericht kommen dazu. Wer die Auswahl für die Seite Aufnahme nie geändert hat,
+    sieht dort jetzt Visite, Meeting-Protokoll, Arztbrief und Pflegebericht; wer sie geändert hat, behält seine und
+    bekommt die beiden neuen dazu. Gelöscht wird nichts: Glätten und Zusammenfassung bleiben unter Einstellungen."""
+    prompts = [dict(p) for p in prompts or [] if isinstance(p, dict)]
+    names = {p.get("name") for p in prompts}
+    shown = {p.get("name") for p in prompts if p.get("record", p.get("name") in OLD_ROW)}
+    prompts += [copy.deepcopy(p) for p in DEFAULTS["prompts"] if p["name"] in ADDED_V8 and p["name"] not in names]
+    if shown == set(OLD_ROW) & names:
+        for p in prompts:
+            p["record"] = p.get("name") in ON_RECORD
+    return prompts
 
 
 def migrate() -> None:
@@ -234,12 +289,13 @@ def load() -> dict:
                 # Die drei neuen Aufträge einmal nachtragen; wer einen gleichnamigen hat, behält seinen.
                 names = {p.get("name") for p in cfg.get("prompts") or []}
                 cfg["prompts"] = list(cfg.get("prompts") or []) + [
-                    copy.deepcopy(p) for p in DEFAULTS["prompts"] if p["name"] in ADDED_V4 and p["name"] not in names]
+                    {**copy.deepcopy(p), "record": p["name"] in OLD_ROW}
+                    for p in DEFAULTS["prompts"] if p["name"] in ADDED_V4 and p["name"] not in names]
                 cfg["config_version"] = 4
             if int(stored.get("config_version") or 1) < 5:
                 # 1.4.0: Welche Aufträge die Seite Aufnahme zeigt; die beiden Texte von 1.3.0 nachziehen, wenn unverändert.
                 for p in cfg.get("prompts") or []:
-                    p.setdefault("record", p.get("name") in ON_RECORD)
+                    p.setdefault("record", p.get("name") in OLD_ROW)
                     if p.get("text") == OLD_V4.get(p.get("name")):
                         p["text"] = {"Zusammenfassung": SUMMARY, "Meeting-Protokoll": MEETING}[p["name"]]
                 cfg["config_version"] = 5
@@ -255,6 +311,9 @@ def load() -> dict:
                 # werden ohne eigenen Haken aufgehoben.
                 cfg["training_keep"] = True
                 cfg["config_version"] = 7
+            if int(stored.get("config_version") or 1) < 8:
+                cfg["prompts"] = _prompts_v8(cfg.get("prompts"))
+                cfg["config_version"] = 8
             cfg.pop("model", None)
             cfg.pop("model_revision", None)
         except Exception:
@@ -461,14 +520,23 @@ def _profile_load(name: str):
     theirs = _read(root / name / PROFILE_FILE)
     if theirs is None:
         return None
+    version = int(theirs.get("config_version") or 7)
     theirs = {k: theirs[k] for k in PERSONAL if k in theirs}
     OFFLINE = False
+    if version < 8 and "prompts" in theirs:   # Profil aus einer älteren Fassung: dieselben Schritte wie bei config.json
+        theirs["prompts"] = _prompts_v8(theirs["prompts"])
+        if kept.get("pending") and "prompts" in (kept.get("data") or {}):
+            kept["data"]["prompts"] = _prompts_v8(kept["data"]["prompts"])
+        try:
+            _write(root / name / PROFILE_FILE, {**theirs, "config_version": DEFAULTS["config_version"]})
+        except OSError:
+            pass
     if kept.get("pending"):                 # hier wurde ohne Programmordner weitergearbeitet: jetzt zusammenführen
         base, mine = kept.get("base") or {}, kept.get("data") or {}
         merged = {k: _merge(base.get(k, _GONE), mine.get(k, _GONE), theirs.get(k, _GONE)) for k in PERSONAL}
         theirs = {k: v for k, v in merged.items() if v is not _GONE}
         try:
-            _write(root / name / PROFILE_FILE, theirs)
+            _write(root / name / PROFILE_FILE, {**theirs, "config_version": DEFAULTS["config_version"]})
         except OSError:
             OFFLINE = True
     _base = copy.deepcopy(theirs)
@@ -495,7 +563,7 @@ def _profile_save(cfg: dict) -> None:
         if theirs is not None:
             merged = {k: v for k, v in ((k, _merge(_base.get(k, _GONE), mine.get(k, _GONE), theirs.get(k, _GONE)))
                                         for k in PERSONAL) if v is not _GONE}
-        _write(path, merged)
+        _write(path, {**merged, "config_version": DEFAULTS["config_version"]})
         OFFLINE = False
         _base = copy.deepcopy(merged)
         for k, v in merged.items():
@@ -520,7 +588,8 @@ def profile_create(name: str, cfg=None) -> str:
     if name.lower() in (n.lower() for n in profile_names()):
         raise ValueError(f"Das Profil „{name}“ gibt es schon.")
     try:
-        _write(root / name / PROFILE_FILE, _personal(cfg if cfg is not None else DEFAULTS))
+        _write(root / name / PROFILE_FILE, {**_personal(cfg if cfg is not None else DEFAULTS),
+                                            "config_version": DEFAULTS["config_version"]})
     except OSError as e:
         raise ValueError(f"Der Programmordner lässt sich nicht beschreiben ({e}).") from e
     return name
@@ -691,7 +760,10 @@ def restore(path) -> dict:
     _write(FILE, on_disk)
     cfg = load()
     if active and ACTIVE == active:
-        cfg.update({k: copy.deepcopy(stored[k]) for k in PERSONAL if k in stored})
+        mine = {k: copy.deepcopy(stored[k]) for k in PERSONAL if k in stored}
+        if int(stored.get("config_version") or 1) < 8 and "prompts" in mine:      # Sicherung aus einer älteren Fassung
+            mine["prompts"] = _prompts_v8(mine["prompts"])
+        cfg.update(mine)
         save(cfg)
     if profile is not None:
         with profile:

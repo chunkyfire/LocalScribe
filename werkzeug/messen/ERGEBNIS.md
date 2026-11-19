@@ -558,3 +558,17 @@ das Modell etwas schlechter. Ein auf eine Person trainierter Schreibteil darf al
 nicht für Aufnahmen mit mehreren Sprechern. Über echte Stimmen sagt der Lauf wenig: Die künstliche Stimme macht
 andere Fehler (verschluckte Laute) als ein Mensch am Mikrofon. Ob es sich lohnt, entscheidet die Messung an einer
 echten Stimme mit ihren eigenen Prüfsätzen und freien Diktaten. Nicht eingebaut.
+
+## Wie lange bis zum Text (19.11.2026)
+
+`werkzeug/messen/latenz.py`: Zeit vom Ende des Diktats bis zum fertigen Text über den Weg der App (8-Bit-Modell,
+Dekodieren mit Wortschatz, Nachbearbeitung), Median aus drei Läufen, künstlich gesprochene Sätze. Rechner:
+i7-13700KF. Die Zeilen mit 4 und 2 Rechenfäden begrenzen die App auf so viele Kerne, wie ein einfacher Bürorechner
+hat; dessen Kerne sind aber langsamer, an einem Kliniklaptop ist also mit etwa dem Doppelten zu rechnen. Eine
+Messung am Zielgerät steht aus.
+
+| Rechenfäden | 5 s Ton | 15 s Ton | 30 s Ton | 60 s Ton |
+|---|---|---|---|---|
+| alle Kerne | 0,27 s | 0,71 s | 1,31 s | 2,67 s |
+| 4 | 0,34 s | 0,91 s | 1,76 s | 3,60 s |
+| 2 | 0,51 s | 1,37 s | 2,85 s | 5,43 s |

@@ -172,7 +172,7 @@
 <body>
 <h1 id="localscribe--technische-dokumentation">LocalScribe – Technische
 Dokumentation</h1>
-<p>Stand: Version 1.7.0. Für Betrieb, IT und alle, die den Code lesen
+<p>Stand: Version 1.7.1. Für Betrieb, IT und alle, die den Code lesen
 oder prüfen wollen. Die Bedienung steht im <a
 href="https://chunkyfire.github.io/LocalScribe/LocalScribe-Handbuch.pdf">Handbuch</a>, die Messwerte mit Methode
 in <a
@@ -902,13 +902,25 @@ Stimme bleibt der Text unverändert</td>
 <td>aus</td>
 </tr>
 <tr class="odd">
+<td><code>prompts</code></td>
+<td>Aufträge an das Sprachmodell: Name, Anweisung, Taste, und
+<code>record</code> (als Knopf auf der Seite Aufnahme). Mitgeliefert:
+Glätten, E-Mail, Stichpunkte, Arztbrief, Zusammenfassung,
+Meeting-Protokoll, Visite (SOAP), Pflegebericht. Beim Wechsel auf 1.7.1
+kommen die zwei neuen einmal dazu; die Zeile der Aufnahme wird nur
+umgestellt, wenn sie noch der Vorgabe entsprach
+(<code>config._prompts_v8</code>)</td>
+<td>Aufnahme zeigt Visite, Meeting-Protokoll, Arztbrief,
+Pflegebericht</td>
+</tr>
+<tr class="even">
 <td><code>visite_prompt</code></td>
 <td>eigene Anweisung für den Rahmen Notaufnahme; leer = die
 mitgelieferte. Station und Intensiv haben feste Aufträge
 (<code>visite.STATION</code>, <code>visite.ITS</code>)</td>
 <td>leer</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>visite_model</code>, <code>visite_jev</code>,
 <code>visite_rules</code></td>
 <td>Modell für Arztbrief, Visiteneintrag und Übergabe (leer: bei
@@ -919,47 +931,47 @@ Jev-Modell (leer: <code>~typesafe/jev-latest</code>), Hausregeln für
 Jev</td>
 <td>leer</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>update_check</code></td>
 <td>einmal am Tag von selbst bei GitHub nach einer neueren Fassung
 fragen</td>
 <td>aus</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>profile_name</code></td>
 <td>gewähltes Profil am Programmordner; leer = die Daten dieses
 Rechners</td>
 <td>leer</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>training_keep</code></td>
 <td>vorgelesene Übungs- und Prüfsätze als Ton aufheben (kein Schalter im
 Fenster; für eine zentrale Vorgabe)</td>
 <td>an (seit 1.6.0)</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>field</code>, <code>training_scores</code></td>
 <td>Fachrichtung im Stimmtraining; Messungen mit Prüfsätzen (Zeitpunkt,
 Wortfehler, Trainingsminuten)</td>
 <td>leer</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>phone</code></td>
 <td>Handy als Mikrofon</td>
 <td>aus</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>model_dir</code></td>
 <td>eigener Ordner mit den Sprachmodellen, zum Beispiel ein
 Netzlaufwerk</td>
 <td>leer</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>live_preview</code> (nur Datei)</td>
 <td>Vorschau auf die laufende Äußerung in der Aufnahme</td>
 <td>an</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>threads</code> (nur Datei)</td>
 <td>Zahl der Rechen-Threads; 0 überlässt es der Laufzeit</td>
 <td>0</td>

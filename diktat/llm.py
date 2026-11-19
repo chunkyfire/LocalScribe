@@ -155,8 +155,9 @@ def run(llm: dict, instruction: str, transcript: str, key=None) -> str:
     if shield:
         transcript = shield.hide(transcript)
         if shield.back:
-            system += ("\n\nPlatzhalter in eckigen Klammern wie [NAME_1] oder [DATUM_1] stehen für geschützte Angaben. "
-                       "Übernimm sie unverändert an der passenden Stelle.")
+            system += ("\n\nPlatzhalter in eckigen Klammern (hier: " + ", ".join(list(shield.back)[:8]) + ") stehen für "
+                       "geschützte Angaben. Übernimm sie unverändert an der passenden Stelle. Verwende keine anderen "
+                       "Platzhalter und erfinde keine neuen.")
     body = _body(llm, [{"role": "system", "content": system}, {"role": "user", "content": transcript.strip()}],
                  temperature=float(llm.get("temperature", 0.2)))
     data = _request(llm, "/chat/completions", body, key=key)
@@ -168,4 +169,7 @@ def run(llm: dict, instruction: str, transcript: str, key=None) -> str:
     text = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL | re.IGNORECASE).strip()
     if not text:
         raise LlmError("Das Modell hat keinen Text geliefert.")
-    return shield.show(text) if shield else text
+    if shield:
+        text = shield.show(text)
+        text = re.sub(r"\[[A-ZÄÖÜ]{3,}_\d+\]", "[?]", text)      # ein Platzhalter, den es nie gab: sichtbar als Lücke
+    return text

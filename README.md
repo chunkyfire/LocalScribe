@@ -82,8 +82,9 @@ beendet sie nicht; sie bleibt im Infobereich (Rechtsklick → Beenden).
   Briefen und Befunden, nur einzelne Lexikonwörter, keine Sätze, keine Namen. An echten Arztdiktaten mit passendem
   Wortschatz: 16,6 → 11,1 % Wortfehler.
 - **Aufnahme mit Aufträgen** – aufnehmen oder eine Datei laden; das Transkript wird gespeichert. Darunter ein Klick auf
-  Glätten, Zusammenfassung (bei Patientengesprächen als klinische Dokumentation) oder Meeting-Protokoll; eigene
-  Prompts lassen sich dazuschalten. Die Erkennung läuft lokal; Aufträge gehen an das eingestellte Sprachmodell.
+  Visite (Eintrag nach dem SOAP-Schema), Meeting-Protokoll, Arztbrief oder Pflegebericht (Beobachtung, Maßnahme,
+  Wirkung, Weitergabe; sachlich, ohne Wertung). Alle übernehmen nur, was gesagt wurde. Glätten, Zusammenfassung und
+  eigene Prompts lassen sich dazuschalten. Die Erkennung läuft lokal; Aufträge gehen an das eingestellte Sprachmodell.
 - **Übergabe** – eigener Bereich für Visite und Übergabe, mit einer Ablage je Fall, direkt beantwortbaren Rückfragen
   und „Neu erzeugen“.
   Drei Rahmen, oben rechts wählbar: **Notaufnahme**, **Station**, **Intensiv**.
