@@ -1,3 +1,24 @@
+## LocalScribe 1.4.0
+
+- **Übergabe ist wieder ein eigener Menüpunkt** (vorher „Visite & Übergabe“ als Auftrag auf der Seite Aufnahme), jetzt
+  mit einer **Ablage** für den Fall. Jede beantwortete Rückfrage und jeder Text, den du mit „Zur Ablage legen“
+  beiseitelegst, ist ein Eintrag; ein Klick zeigt, ändert oder entfernt ihn. Ausgewertet wird immer alles zusammen.
+- **Rückfragen direkt beantworten.** Unter jeder Rückfrage des Modells steht ein Feld: Antwort eintragen, „Ablegen“.
+  Der Knopf „Auswerten“ heißt danach „Neu erzeugen“ und berücksichtigt Antworten und neue Einträge.
+- **Aufnahme aufgeräumt.** Leer zeigt die Seite nur einen großen Aufnahmeknopf und „Datei laden“. Nach der Aufnahme
+  steht das gespeicherte Transkript da, darunter drei Aufträge: Glätten, Zusammenfassung, Meeting-Protokoll. Welche
+  Aufträge dort stehen, bestimmt ein Haken je Auftrag unter Einstellungen, LLM.
+- **Zusammenfassung** schreibt bei einem Patientengespräch eine knappe klinische Dokumentation (Anlass, Anamnese,
+  Befunde, Beurteilung, Vorgehen), sonst fünf bis acht Sätze. **Meeting-Protokoll** ist auf Besprechungen zugeschnitten.
+  Wer die beiden Texte nicht geändert hat, bekommt die neuen.
+- **Wörterbuch: eine Liste statt zwei.** Das Feld „Meine Begriffe“ ist weg. Wer nur die richtige Schreibweise kennt,
+  klickt „Hinzufügen“ und füllt nur die rechte Spalte aus; links steht dann „(am Klang)“. Vorhandene Begriffe stehen
+  als solche Zeilen in der Liste.
+- **Stimmtraining kompakter:** Vorlesen, aus eigenem Material lernen (Aufnahmen mit Transkript, eigene Texte),
+  Haken für das Nachtraining.
+- Fälle aus 1.3.0 liegen unter Übergabe, „Fälle“. Die Seite Aufnahme führt ab jetzt eine eigene Liste.
+- Behoben: Ergebnisblöcke konnten in kleinen Fenstern zusammengedrückt werden.
+
 ## LocalScribe 1.3.0
 
 - **Vier Menüpunkte statt acht.** Verlauf, Aufnahme, Wortschatz, Einstellungen. Wörterbuch, Stimmtraining und

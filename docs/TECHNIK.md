@@ -1,6 +1,6 @@
 # LocalScribe – Technische Dokumentation
 
-Stand: Version 1.3.0. Für Betrieb, IT und alle, die den Code lesen oder prüfen wollen. Die Bedienung steht im
+Stand: Version 1.4.0. Für Betrieb, IT und alle, die den Code lesen oder prüfen wollen. Die Bedienung steht im
 [Handbuch](LocalScribe-Handbuch.pdf), die Messwerte mit Methode in [`werkzeug/messen/ERGEBNIS.md`](../werkzeug/messen/ERGEBNIS.md).
 
 ## 1. Was die App ist
@@ -196,7 +196,7 @@ Nichts davon verändert das Sprachmodell; gelernt wird in Wörterbuch und Wortsc
 | Stimmtraining, Sätze vorlesen | Verhörer: „was die Erkennung schrieb“ → „was dastand“, wenn es ähnlich klingt und kein echtes Wort ist |
 | Stimmtraining, Aufnahme mit Transkript | beides: Verhörer aus dem Vergleich, Fachwörter aus dem Transkript |
 | Stimmtraining, eigene Texte | Fachwörter aus Briefen oder Befunden (docx, odt, txt, rtf, html) |
-| Wörterbuch, Wort einsprechen und Meine Begriffe | einzelne Begriffe von Hand |
+| Wörterbuch, Wort einsprechen und Einträge „(am Klang)“ | einzelne Begriffe von Hand |
 | Aus Korrektur lernen | Verhörer aus dem berichtigten letzten Diktat |
 
 In den Wortschatz kommen nur einzelne Wörter, die im mitgelieferten Lexikon stehen, höchstens 4.000. Sätze und
@@ -286,7 +286,7 @@ zufälligen Schlüssel aus dem QR-Code. Ab Werk aus.
 | `model_choice` | `de` (primeline-Parakeet), `genau` (NVIDIA Canary 1B v2, genauer und langsamer; ohne Wortschatz-Bonus) oder `multi` (Parakeet v3, 25 Sprachen) | `de` |
 | `beam` (nur Datei) | Zahl der Lesarten beim Dekodieren; 0 schaltet den Wortschatz-Bonus ab | 8 |
 | `learn_terms`, `learned` | Wortschatz aus Diktaten mitlernen; die gelernten Wörter | an, leer |
-| `vocabulary`, `dictionary` | Meine Begriffe; Wörterbuch „falsch → richtig“ | leer |
+| `vocabulary`, `dictionary` | eigene Begriffe (im Wörterbuch als „(am Klang)“); Wörterbuch „falsch → richtig“ | leer |
 | `base_dictionary` | mitgeliefertes medizinisches Wörterbuch und Lexikon anwenden | an |
 | `speakers` | Sprecher trennen bei Aufnahme und Datei | aus |
 | `spoken_punctuation` | „Punkt“, „Komma“, „neue Zeile“ als Zeichen schreiben | aus |

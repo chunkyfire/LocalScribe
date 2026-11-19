@@ -139,6 +139,9 @@ QFrame#box QLabel#chipLine { background: transparent; color: #C6FF3D; border: 1p
     padding: 2px 8px; font-weight: 600; }
 QPushButton#recPill { background: #C6FF3D; color: #0B0B0B; border: none; border-radius: 14px; padding: 9px 20px; font-weight: 700; }
 QPushButton#recPill:hover { background: #D4FF6A; }
+QPushButton#recBig { background: #C6FF3D; color: #0B0B0B; border: 8px solid rgba(198, 255, 61, 0.22); border-radius: 66px;
+                     font-size: 30pt; padding: 0; }
+QPushButton#recBig:hover { background: #D4FF6A; }
 QPushButton#recPillOn { background: #FF5A4D; color: #0B0B0B; border: none; border-radius: 14px; padding: 9px 20px; font-weight: 700; }
 QPushButton#recPill:disabled { background: #2A2A2A; color: #6A6A6A; }
 QScrollBar:vertical { background: transparent; width: 10px; margin: 2px; }
@@ -737,19 +740,11 @@ class MapPage(Page):
             self.speak = button("Halten und sprechen", name="primary")
             self.speak.pressed.connect(self._listen)
             self.speak.released.connect(self.ctl.listen_stop)
-            self.heard = label("Wort eintippen, Knopf halten und das Wort so sprechen wie im Diktat – am besten "
-                               "zwei- bis dreimal, auch in einem kurzen Satz. Was die Erkennung daraus macht, "
-                               "wird künftig durch die richtige Schreibweise ersetzt.", "muted", wrap=True)
+            self.heard = label("Wort eintippen, Knopf halten und es so sprechen wie im Diktat. Was die Erkennung daraus "
+                               "macht, wird künftig ersetzt. Ohne Einsprechen: unten „Hinzufügen“ und nur die rechte Spalte "
+                               "ausfüllen; LocalScribe erkennt den Begriff dann am Klang (Riba wird RIVA).", "muted", wrap=True)
             self.body.addWidget(card(label("Wort einsprechen", "h2"), hbox((self.word, 1), self.speak), self.heard))
             self.ctl.sig_heard.connect(self._heard)
-            self.terms = QtWidgets.QLineEdit(placeholderText="z. B. RIVA, Trimbow, Tresiba, Brinkkötter")
-            self.terms.editingFinished.connect(self._terms)
-            self.body.addWidget(card(
-                label("Meine Begriffe", "h2"), self.terms,
-                label("Nur die richtige Schreibweise eintragen, durch Komma getrennt: Medikamente, Abkürzungen, Namen. "
-                      "LocalScribe erkennt am Klang, wenn die Erkennung daraus etwas Ähnliches macht (Riba wird RIVA), "
-                      "und schreibt den Begriff so, wie er hier steht. Wörter, die es wirklich gibt, bleiben unberührt.",
-                      "muted", wrap=True)))
             self.base = QtWidgets.QCheckBox()
             self.base.toggled.connect(self._base)
             self.body.addWidget(self.base)
@@ -820,12 +815,6 @@ class MapPage(Page):
                          "entscheidet der Zusammenhang): " + ", ".join(f"„{w}“ → „{r}“" for w, r in open_) + ".")
         return " ".join(parts) or "Keine verhörten Wörter gefunden."
 
-    def _terms(self):
-        terms = [t.strip() for t in self.terms.text().split(",") if t.strip()]
-        if terms != list(self.ctl.cfg.get("vocabulary") or []):
-            self.ctl.cfg["vocabulary"] = terms
-            self.ctl.apply_cfg()
-
     def _base(self, on):
         if not self.loading and on != bool(self.ctl.cfg.get("base_dictionary", True)):
             self.ctl.cfg["base_dictionary"] = on
@@ -834,7 +823,6 @@ class MapPage(Page):
     def refresh(self):
         self.loading = True
         if hasattr(self, "base"):
-            self.terms.setText(", ".join(self.ctl.cfg.get("vocabulary") or []))
             n, m = len(engine.base_dictionary()), len(fach.load()[0])
             self.base.setText(f"Medizinisches Basiswörterbuch anwenden: {m:,} Fachbegriffe werden am Klang erkannt, "
                               f"dazu {n:,} bekannte Fehlschreibungen".replace(",", "."))
@@ -843,7 +831,12 @@ class MapPage(Page):
         self.table.setRowCount(0)
         for k, v in data.items():
             self._append(k, v.replace("\n", "\\n"))
+        if hasattr(self, "base"):                        # eigene Begriffe: nur die Schreibweise, erkannt wird am Klang
+            for term in self.ctl.cfg.get("vocabulary") or []:
+                self._append(self.BY_SOUND, term)
         self.loading = False
+
+    BY_SOUND = "(am Klang)"
 
     def _append(self, k, v):
         r = self.table.rowCount()
@@ -891,13 +884,22 @@ class MapPage(Page):
     def store(self, *_):
         if self.loading:
             return
-        data = {}
+        data, terms = {}, []
         for r in range(self.table.rowCount()):
             k = (self.table.item(r, 0).text() if self.table.item(r, 0) else "").strip()
             v = self.table.item(r, 1).text() if self.table.item(r, 1) else ""
-            if k:
+            if hasattr(self, "base") and k in ("", self.BY_SOUND):
+                if v.strip() and v.strip() not in terms:
+                    terms.append(v.strip())
+                    if not k:                            # eben eingetragen: zeigen, wie der Eintrag wirkt
+                        self.loading = True
+                        self.table.item(r, 0).setText(self.BY_SOUND)
+                        self.loading = False
+            elif k:
                 data[k] = v.replace("\\n", "\n")
         self.ctl.cfg[self.key] = data
+        if hasattr(self, "base"):
+            self.ctl.cfg["vocabulary"] = terms
         self.ctl.apply_cfg()
 
 
@@ -952,6 +954,21 @@ class Flow(QtWidgets.QLayout):
             x += hint.width() + self.gap
             row = max(row, hint.height())
         return y + row
+
+
+class Tall(QtWidgets.QWidget):
+    """Inhalt eines Rollbereichs, dessen Höhe von der Breite abhängt (umbrechender Text, Kärtchen).
+
+    Ein Rollbereich fragt seinen Inhalt nicht, wie hoch er bei der gegebenen Breite sein müsste; er drückt ihn auf die
+    sichtbare Höhe zusammen. Hier meldet der Inhalt seine nötige Höhe selbst, bei jeder Änderung von Breite oder Inhalt."""
+
+    def event(self, e):
+        if e.type() in (QtCore.QEvent.LayoutRequest, QtCore.QEvent.Resize):
+            lay = self.layout()
+            need = lay.heightForWidth(self.width()) if lay is not None and lay.hasHeightForWidth() else 0
+            if need != self.minimumHeight():
+                self.setMinimumHeight(need)
+        return super().event(e)
 
 
 def copy_button(get_text, text="Kopieren"):
@@ -1042,19 +1059,30 @@ class VisitPage(Page):
     sig_text = Signal(str, str, str, int)        # Name des Auftrags, Ergebnis, Fehler, Fall
     PRIORITY = {"critical": ("entscheidend", "chipRed"), "high": ("wichtig", "chipWarn"), "medium": ("ergänzend", "chipOff")}
 
-    def __init__(self, ctl):
-        super().__init__("Aufnahme",
-                         "Aufnehmen, eine Datei laden oder tippen. Danach auf einen Auftrag klicken: Das Ergebnis steht "
-                         "darunter und lässt sich kopieren. Die Erkennung läuft auf diesem Rechner; Aufträge gehen an das "
-                         "eingestellte Sprachmodell. Ergebnisse sind Entwürfe und vor jeder Verwendung zu prüfen.",
-                         scroll=False)
+    SHOWN = ("Glätten", "Zusammenfassung", "Meeting-Protokoll")     # ab Werk auf der Seite Aufnahme
+
+    def __init__(self, ctl, mode="record"):
+        self.mode = mode
+        self.handover = handover = mode == "handover"
+        self.items = []                                  # Übergabe: die Ablage des Falls
+        if handover:
+            super().__init__("Übergabe",
+                             "Für Visite und Übergabe: aufnehmen oder tippen, auswerten, Rückfragen beantworten, neu "
+                             "erzeugen. Experimentell, für Benchmarking, Forschung und Lehre. Kein Medizinprodukt: Die "
+                             "Ausgaben sind Entwürfe und Wahrscheinlichkeiten von Modellen und vor jeder Verwendung zu "
+                             "prüfen.", scroll=False)
+        else:
+            super().__init__("Aufnahme",
+                             "Aufnehmen oder eine Datei laden. Das Transkript wird gespeichert; danach macht ein Klick "
+                             "daraus eine geglättete Fassung, eine Zusammenfassung oder ein Protokoll.", scroll=False)
         self.ctl = ctl
-        self.store = visite.Store()
+        self.tab_names = ("Fall", "Fälle", "Papierkorb") if handover else ("Aufnahme", "Gespeichert", "Papierkorb")
+        self.store = visite.Store(config.DIR / ("visite.sqlite" if handover else "aufnahme.sqlite"))
         self.case, self.result, self.waiting, self.errors = None, None, set(), {}
         self.tabs = QtWidgets.QButtonGroup(self)
         row = QtWidgets.QHBoxLayout()
         row.setSpacing(6)
-        for i, name in enumerate(("Aufnahme", "Gespeichert", "Papierkorb")):
+        for i, name in enumerate(self.tab_names):
             b = QtWidgets.QPushButton(name, checkable=True, objectName="tab")
             b.setCursor(Qt.PointingHandCursor)
             self.tabs.addButton(b, i)
@@ -1074,15 +1102,37 @@ class VisitPage(Page):
         self.state = label("Aufnehmen oder in das Feld tippen.", "muted", wrap=True)
         self.text = QtWidgets.QPlainTextEdit(placeholderText="Hier steht nach der Aufnahme der Text zum Korrigieren. "
                                              "Tippen geht auch: Anamnese, Befund, Verlauf, Vormedikation, geplantes Vorgehen.")
-        self.go = button("Visite && Übergabe", self._analyse)
-        self.go.setToolTip("Ersteinschätzung, Arztbrief-Entwurf, Sicherheitsnetz und Rückfragen. Experimentell, für "
-                           "Benchmarking, Forschung und Lehre; kein Medizinprodukt.")
+        self.go = button("Auswerten", self._analyse, "primary")
+        self.go.setToolTip("Ersteinschätzung, Arztbrief-Entwurf, Sicherheitsnetz und Rückfragen aus dem Text und der Ablage.")
         self.note = label("", "muted")
         self.load = button("Datei …", self._file)
         self.load.setToolTip("Audio- oder Videodatei transkribieren. Sie verlässt diesen Rechner nicht.")
         self.tasks = QtWidgets.QWidget()                 # Zeile der Aufträge, wird aus den Einstellungen gefüllt
         self.task_row = Flow(gap=8)
         self.tasks.setLayout(self.task_row)
+        # Übergabe: die Ablage des Falls. Jedes Diktat, jeder Text und jede beantwortete Rückfrage ist ein Eintrag;
+        # ausgewertet wird immer alles zusammen.
+        self.tray = QtWidgets.QWidget()
+        self.tray_row = Flow(gap=6)
+        self.tray.setLayout(self.tray_row)
+        self.put = button("Zur Ablage legen", self._put)
+        self.put.setToolTip("Legt den Text aus dem Feld als Eintrag in die Ablage und macht das Feld frei für das nächste "
+                            "Diktat, etwa den Verlauf oder die Übergabe.")
+        # Aufnahme: leerer Zustand mit einem großen Knopf
+        self.rec_big = button("●", self._record, "recBig")
+        self.rec_big.setFixedSize(132, 132)
+        self.hero = QtWidgets.QWidget()
+        hl = QtWidgets.QVBoxLayout(self.hero)
+        hl.setSpacing(14)
+        hl.addStretch(2)
+        hl.addWidget(self.rec_big, 0, Qt.AlignHCenter)
+        hl.addWidget(label("Aufnehmen", "h2"), 0, Qt.AlignHCenter)
+        hl.addWidget(label("Klicken zum Starten, noch einmal zum Beenden. Der Text läuft mit und wird gespeichert.", "muted"),
+                     0, Qt.AlignHCenter)
+        hl.addLayout(hbox(None, button("Datei laden …", self._file), None))
+        self.hero_note = label("", "bad")
+        hl.addWidget(self.hero_note, 0, Qt.AlignHCenter)
+        hl.addStretch(3)
         # Aufnahme, die beim letzten Mal nicht fertig wurde (Absturz, Stromausfall, Fehler)
         self.left_text = label("", wrap=True)
         self.left_card = card(hbox((self.left_text, 1), button("Jetzt transkribieren", self.recover, "primary"),
@@ -1093,12 +1143,27 @@ class VisitPage(Page):
         top = QtWidgets.QVBoxLayout(new)
         top.setContentsMargins(0, 0, 0, 0)
         top.setSpacing(8)
-        top.addLayout(hbox(self.rec, self.load, self.split, (self.name, 1), button("Neu", self._new)))
+        self.bar = QtWidgets.QWidget()
+        self.bar.setLayout(hbox(self.rec, self.load, (self.name, 1), self.split, button("Neu", self._new)))
+        top.addWidget(self.bar)
         top.addWidget(self.left_card)
+        top.addWidget(self.hero, 1)
         top.addLayout(hbox((self.state, 1), self.note))
         top.addWidget(self.text, 1)
+        if handover:
+            top.addWidget(self.tray)
+            self.task_row.addWidget(self.go)
+            self.task_row.addWidget(self.put)
+            self.name.setPlaceholderText("Fallbezeichnung, z. B. Zimmer 4 oder Kürzel (kein Klarname nötig)")
+            self.text.setPlaceholderText("Diktat oder Text zum Fall: Anamnese, Befund, Verlauf, Vormedikation, geplantes "
+                                         "Vorgehen. Mehrere Teile nacheinander kommen über „Zur Ablage legen“ zusammen.")
+        else:
+            self.tray.hide()
+            self.go.hide()
+            self.name.setPlaceholderText("Titel, z. B. Besprechung Montag")
+            self.text.setPlaceholderText("Hier steht nach der Aufnahme das Transkript. Korrigieren und tippen geht auch.")
         top.addWidget(self.tasks)
-        inner = QtWidgets.QWidget()
+        inner = Tall()
         col = QtWidgets.QVBoxLayout(inner)
         col.setContentsMargins(0, 0, 8, 0)
         col.setSpacing(12)
@@ -1117,9 +1182,11 @@ class VisitPage(Page):
         top.addWidget(self.area, 4)
         self.boxes, self.columns = {}, 0
         self.stack.addWidget(new)
+        self.typing = False
         self.saver = QTimer(self, singleShot=True, interval=700)       # nichts geht verloren: jede Eingabe wird gesichert
         self.saver.timeout.connect(self._save)
         self.text.textChanged.connect(self.saver.start)
+        self.text.textChanged.connect(self._state)
         self.name.textEdited.connect(lambda _: self.saver.start())
 
         # Aufnahme wie auf der Seite „Aufnahme“: Ton wird nebenbei gesichert, der Text läuft live mit
@@ -1175,24 +1242,125 @@ class VisitPage(Page):
             self.left_text.setText(f"Eine Aufnahme vom {when} ({minutes:.0f} Minuten) wurde nicht fertig "
                                    f"transkribiert. Der Ton ist noch da.{more}")
         self.left_card.setVisible(bool(self.leftover) and not self.job.running)
+        self._tray()
+        self._state()
 
     def _tasks(self):
-        """Die Aufträge als Knöpfe: zuerst Visite & Übergabe, dann alle Aufträge aus den Einstellungen (LLM)."""
-        names = [p.get("name", "") for p in self.ctl.cfg.get("prompts") or [] if (p.get("text") or "").strip()]
+        """Aufnahme: die Aufträge als Knöpfe. Gezeigt wird, was in den Einstellungen (LLM) dafür angekreuzt ist."""
+        if self.handover:
+            return
+        names = [p.get("name", "") for p in self.ctl.cfg.get("prompts") or []
+                 if (p.get("text") or "").strip() and p.get("record", p.get("name") in self.SHOWN)]
         if getattr(self, "task_names", None) == names:
             return
         self.task_names = names
         while self.task_row.count():
             w = self.task_row.takeAt(0).widget()
-            if w is not self.go:
-                w.deleteLater()
-        hint = label("Daraus machen:", "muted")
-        self.task_row.addWidget(hint)
+            w.hide()
+            w.setParent(None)
+            w.deleteLater()
+        self.task_row.addWidget(label("Daraus machen:", "muted"))
         for name in names:
-            b = button(name.replace("&", "&&"), lambda _=False, n=name: self._task(n))
-            self.task_row.addWidget(b)
-        self.task_row.addWidget(self.go)
-        self.go.show()
+            self.task_row.addWidget(button(name.replace("&", "&&"), lambda _=False, n=name: self._task(n)))
+        if not names:
+            self.task_row.addWidget(label("Kein Auftrag angekreuzt (Einstellungen, LLM).", "muted"))
+
+    def _state(self):
+        """Aufnahme ohne Inhalt zeigt nur den großen Knopf; sobald aufgenommen oder getippt wird, Text und Aufträge."""
+        empty = (not self.handover and not self.recording and not self.job.running and self.result is None
+                 and not self.text.toPlainText().strip() and not self.typing)
+        self.hero.setVisible(empty)
+        for w in (self.bar, self.state, self.note, self.text, self.tasks):
+            w.setVisible(not empty)
+        if self.handover:
+            self.go.setText("Neu erzeugen" if (self.result or {}).get("visit") or (self.result or {}).get("documentation")
+                            else "Auswerten")
+
+    # ----- Übergabe: Ablage
+    def _input(self) -> str:
+        """Alles, was zum Fall gehört: die Einträge der Ablage und der Text im Feld."""
+        parts = [f"[{i.get('label', 'Eintrag')}]\n{i.get('content', '').strip()}" for i in self.items if i.get("content", "").strip()]
+        text = self.text.toPlainText().strip()
+        if text:
+            parts.append(f"[Aktueller Text]\n{text}" if parts else text)
+        return "\n\n".join(parts)
+
+    def _tray(self):
+        while self.tray_row.count():
+            w = self.tray_row.takeAt(0).widget()
+            w.hide()
+            w.setParent(None)
+            w.deleteLater()
+        self.tray.setVisible(self.handover and bool(self.items))
+        if not self.items:
+            return
+        self.tray_row.addWidget(label(f"Ablage ({len(self.items)}):", "muted"))
+        for n, item in enumerate(self.items):
+            words = " ".join((item.get("content") or "").split())
+            b = button(f"{item.get('label', 'Eintrag')} · {words[:34]}{'…' if len(words) > 34 else ''}".replace("&", "&&"),
+                       lambda _=False, i=n: self._item(i), "tab")
+            b.setToolTip("Ansehen, ändern oder aus der Ablage nehmen")
+            self.tray_row.addWidget(b)
+
+    def _items_changed(self, note):
+        """Ablage sichern. Das Ergebnis bleibt stehen, bis neu erzeugt wird."""
+        if self.case is None:
+            self.case = self.store.save(None, self.name.text().strip(), self.text.toPlainText())
+        row = self.store.get(self.case)
+        merged = dict((row[2] if row else None) or {})
+        merged["items"] = self.items
+        self.store.save(self.case, self.name.text().strip(), self.text.toPlainText(), merged)
+        self.result = {**(self.result or {}), "items": self.items} if self.result is not None else self.result
+        self._tray()
+        self._state()
+        restyle(self.note, "muted")
+        self.note.setText(note)
+
+    def _put(self, label_text=None, content=None):
+        text = (content if content is not None else self.text.toPlainText()).strip()
+        if not text:
+            restyle(self.note, "bad")
+            return self.note.setText("Das Feld ist leer.")
+        if self.recording or self.job.running:
+            return
+        kind = label_text or f"Eintrag {1 + sum(1 for i in self.items if i.get('label', '').startswith('Eintrag'))}"
+        self.items.append({"label": kind, "content": text})
+        if content is None:
+            self.text.blockSignals(True)
+            self.text.clear()
+            self.text.blockSignals(False)
+        had = bool((self.result or {}).get("visit") or (self.result or {}).get("documentation"))
+        self._items_changed("In der Ablage. „Neu erzeugen“ berücksichtigt den Eintrag." if had else "In der Ablage.")
+
+    def _item(self, index):
+        item = self.items[index]
+        box = QtWidgets.QDialog(self)
+        box.setWindowTitle(item.get("label", "Eintrag"))
+        box.setStyleSheet(STYLE)
+        box.resize(620, 420)
+        edit = QtWidgets.QPlainTextEdit(item.get("content", ""))
+        lay = QtWidgets.QVBoxLayout(box)
+        lay.setContentsMargins(18, 16, 18, 14)
+        lay.addWidget(edit, 1)
+        done = {}
+        lay.addLayout(hbox(button("Aus der Ablage nehmen", lambda: (done.update(drop=True), box.accept())), None,
+                           button("Abbrechen", box.reject), button("Speichern", box.accept, "primary")))
+        if not box.exec():
+            return
+        if done.get("drop"):
+            self.items.pop(index)
+            return self._items_changed("Aus der Ablage genommen.")
+        if edit.toPlainText().strip() != item.get("content", "").strip():
+            item["content"] = edit.toPlainText().strip()
+            self._items_changed("Eintrag geändert. „Neu erzeugen“ berücksichtigt ihn.")
+
+    def _answer(self, number, question, answer):
+        answer = answer.strip()
+        if not answer:
+            return
+        name = f"Rückfrage {number} · Antwort"
+        self.items = [i for i in self.items if not (i.get("label") == name and i.get("content", "").startswith(f"Frage: {question}"))]
+        self._put(name, f"Frage: {question}\nAntwort: {answer}")
 
     def _file(self):
         if self.recording or self.job.running or self.window().busy():
@@ -1230,6 +1398,8 @@ class VisitPage(Page):
         self.tasks.setEnabled(False)
         self.rec.setEnabled(False)
         self.info(text)
+        self.typing = True                               # Text und Fortschritt zeigen, nicht den großen Knopf
+        self._state()
         try:
             start()
         except Exception as e:
@@ -1286,6 +1456,7 @@ class VisitPage(Page):
     def info(self, text, bad=False):
         restyle(self.state, "bad" if bad else "muted")
         self.state.setText(text)
+        self.hero_note.setText(text if bad else "")
 
     def _tab(self, i):
         self.tabs.button(i).setChecked(True)
@@ -1302,7 +1473,7 @@ class VisitPage(Page):
                                                  f"{time.strftime('%d.%m.%Y %H:%M', time.localtime(created))}   ·   {first}")
                 item.setData(Qt.UserRole, case_id)
                 items.addItem(item)
-            self.tabs.button(1 + trash).setText(("Gespeichert", "Papierkorb")[trash] + (f" ({len(rows)})" if rows else ""))
+            self.tabs.button(1 + trash).setText(self.tab_names[1 + trash] + (f" ({len(rows)})" if rows else ""))
 
     def _each(self, which, action):
         for item in self.lists[which][1].selectedItems() or ([self.lists[which][1].currentItem()] if self.lists[which][1].currentItem() else []):
@@ -1347,7 +1518,8 @@ class VisitPage(Page):
             return self.info("Erst die Aufnahme beenden.", bad=True)
         self.saver.stop()
         self._save()
-        self.case, self.result, self.waiting = None, None, set()
+        self.case, self.result, self.waiting, self.items, self.typing = None, None, set(), [], False
+        self._tray()
         for w in (self.name, self.text):
             w.blockSignals(True)
             w.clear()
@@ -1367,6 +1539,8 @@ class VisitPage(Page):
         self.text.blockSignals(True)
         self.text.setPlainText(row[1] or "")
         self.text.blockSignals(False)
+        self.items = [dict(i) for i in ((row[2] or {}).get("items") or []) if isinstance(i, dict)]
+        self._tray()
         self._show(row[2])
 
     # ----- Aufnahme
@@ -1392,6 +1566,7 @@ class VisitPage(Page):
             return self.info(f"Mikrofon nicht verfügbar: {e}", bad=True)
         self.ctl.keep_awake(True)
         self.recording, self.started, self.heard = True, time.time(), ""
+        self._state()
         self.before = self.text.toPlainText().rstrip()        # schon Getipptes bleibt, die Aufnahme kommt dahinter
         self.text.setReadOnly(True)
         self.tasks.setEnabled(False)
@@ -1456,7 +1631,7 @@ class VisitPage(Page):
 
     # ----- Auswerten
     def _analyse(self):
-        text = self.text.toPlainText().strip()
+        text = self._input()
         restyle(self.note, "bad")
         if not text:
             return self.note.setText("Erst den Fall aufnehmen oder eintippen.")
@@ -1471,7 +1646,9 @@ class VisitPage(Page):
         restyle(self.note, "muted")
         self.note.setText("Läuft …")
         case = self.case
-        keep = {"texts": (self.result or {}).get("texts")} if (self.result or {}).get("texts") else {}
+        keep = {k: (self.result or {})[k] for k in ("texts", "items") if (self.result or {}).get(k)}
+        if self.items:
+            keep["items"] = self.items
         self.result = {**keep, "visit": True}
         self.errors = {k: v for k, v in self.errors.items() if k == "text_errors"}
         self.waiting |= {"brief"} | ({"jev"} if jev.available(server) else set())
@@ -1495,7 +1672,7 @@ class VisitPage(Page):
             if part == "jev":
                 merged["jev"] = result
             else:
-                merged = {**result, **{k: merged[k] for k in ("jev", "texts") if merged.get(k)}}
+                merged = {**result, **{k: merged[k] for k in ("jev", "texts", "items") if merged.get(k)}}
             merged["visit"] = True
             self.store.save(case, row[0], row[1], merged)
         if case != self.case:
@@ -1533,12 +1710,16 @@ class VisitPage(Page):
             box.setParent(None)
             box.deleteLater()
         self.boxes, self.columns, self.text_boxes = {}, 0, []
-        self.area.setVisible(result is not None)
-        self.text.setMaximumHeight(16777215 if result is None else 118)     # mit Ergebnis tritt der Text zurück
-        if result is None:
-            return
-        done, fails = result.get("texts") or {}, result.get("text_errors") or {}
+        done, fails = (result or {}).get("texts") or {}, (result or {}).get("text_errors") or {}
         running = [n for n in self.waiting if n not in ("brief", "jev")]
+        structured = bool(result) and bool(result.get("visit") or self.waiting & {"brief", "jev"}
+                                           or any(k in result for k in ("documentation", "jev", "error", "jev_error")))
+        output = bool(done or fails or running or structured)
+        self.area.setVisible(output)
+        self.text.setMaximumHeight(118 if output else 16777215)     # mit Ergebnis tritt der Text zurück
+        self._state()
+        if not output:
+            return
         for name in list(dict.fromkeys(running + list(fails) + list(reversed(list(done))))):
             if name in running or name in fails:
                 box = Box(name)
@@ -1554,8 +1735,7 @@ class VisitPage(Page):
                 box.add(out)
             self.texts.addWidget(box)
             self.text_boxes.append(box)
-        if not (result.get("visit") or self.waiting & {"brief", "jev"}
-                or any(k in result for k in ("documentation", "jev", "error", "jev_error"))):
+        if not structured:
             return
         made = {"jev": self._jev_box(result["jev"]) if result.get("jev") else None, **self._letter_boxes(result)}
         for key in self.ORDER:
@@ -1668,6 +1848,17 @@ class VisitPage(Page):
             if q.get("rationale"):
                 lay.addWidget(label(str(q["rationale"]), "muted", wrap=True))
             lay.addLayout(hbox(chip(word, kind), None))
+            if self.handover:
+                asked = str(q.get("question") or "")
+                had = next((it for it in self.items if it.get("label") == f"Rückfrage {i} · Antwort"
+                            and it.get("content", "").startswith(f"Frage: {asked}")), None)
+                reply = QtWidgets.QLineEdit(placeholderText="Antwort eintragen …")
+                if had:
+                    reply.setText(had["content"].split("\nAntwort: ", 1)[-1])
+                    reply.setCursorPosition(0)
+                send = button("Ändern" if had else "Ablegen", lambda _=False, n=i, a=asked, e=reply: self._answer(n, a, e.text()))
+                reply.returnPressed.connect(send.click)
+                lay.addLayout(hbox((reply, 1), send))
             box.add(row)
         if not asks:
             box.add(label("Keine Rückfragen.", "muted"))
@@ -1722,24 +1913,23 @@ class TrainPage(Page):
                                       button("Zurück", lambda: self.next(-1)), None),
                                  self.result))
         self.learned = label("", "muted", wrap=True)
-        self.body.addWidget(card(label("Gelernt", "h2"), self.learned))
-        self.pairs = label("Hast du Diktate mit dem fertigen Text dazu? Wähle die Tondateien aus; das Transkript liegt als "
-                           "Textdatei mit gleichem Namen daneben (befund1.wav und befund1.txt oder .docx), oder du wählst es "
-                           "im zweiten Schritt. LocalScribe erkennt die Aufnahme, vergleicht mit dem Transkript und lernt "
-                           "deine Verhörer und Fachwörter. Der Ton wird nur gelesen und nirgends gespeichert.",
+        self.learned.hide()                              # steht im Wörterbuch; hier nur die Meldung nach jedem Satz
+        self.pairs = label("Diktate mit fertigem Text: Tondateien wählen, das Transkript liegt als Textdatei gleichen "
+                           "Namens daneben oder wird im zweiten Schritt gewählt. Eigene Briefe und Befunde: LocalScribe "
+                           "liest daraus nur einzelne Fachwörter. Ton und Texte werden nur gelesen, nicht gespeichert.",
                            "muted", wrap=True)
         self.pair_btn = button("Aufnahmen mit Transkript wählen …", self._pairs)
-        self.body.addWidget(card(label("Aus Aufnahme mit Transkript lernen", "h2"), self.pairs, hbox(self.pair_btn, None)))
         self.words = label("", "muted", wrap=True)
-        self.words_n = label("Gelernter Wortschatz", "h2")
-        self.body.addWidget(card(
-            hbox(self.words_n, None, button("Aus eigenen Texten lernen …", self._learn_files),
-                 button("Leeren", self._learn_clear)), self.words))
-        self.keep = QtWidgets.QCheckBox("Die oben angezeigten, erfundenen Übungssätze beim Vorlesen als Ton aufheben")
+        self.words.setMaximumHeight(40)
+        self.words_n = label("", "muted")
+        self.body.addWidget(card(label("Aus eigenem Material lernen", "h2"), self.pairs,
+                                 hbox(self.pair_btn, button("Aus eigenen Texten lernen …", self._learn_files), None,
+                                      self.words_n, button("Leeren", self._learn_clear)), self.words))
+        self.keep = QtWidgets.QCheckBox("Vorgelesene Übungssätze als Ton aufheben (Material für ein Nachtraining)")
         self.keep.setChecked(bool(self.ctl.cfg.get("training_keep")))
         self.keep.toggled.connect(self._keep)
         self.kept = label("", "muted", wrap=True)
-        self.body.addWidget(card(label("Material für ein Nachtraining auf deine Stimme", "h2"), self.keep, self.kept,
+        self.body.addWidget(card(label("Nachtraining auf deine Stimme", "h2"), self.keep, self.kept,
                                  hbox(button("Ordner öffnen", self._open_store), button("Alle löschen", self._clear), None)))
         self.sig_pairs.connect(self._pairs_done)
         self.body.addStretch(1)
@@ -1794,7 +1984,7 @@ class TrainPage(Page):
 
     def _words(self):
         n = len(self.ctl.cfg.get("learned") or [])
-        self.words_n.setText(f"Gelernter Wortschatz: {n:,} Fachwörter".replace(",", "."))
+        self.words_n.setText(f"{n:,} Fachwörter gelernt".replace(",", "."))
         self.words.setText("Fachwörter aus deinen Diktaten, Transkripten und eingelesenen Briefen; beim Erkennen werden sie "
                            "bevorzugt. Übernommen werden nur einzelne Wörter aus dem Lexikon, keine Sätze, keine Namen.")
 
@@ -1809,9 +1999,7 @@ class TrainPage(Page):
     def _kept(self):
         n, sec = training.kept()
         self.kept.setText(f"{n} Aufnahme{'n' if n != 1 else ''}, {sec / 60:.1f} Minuten, nur auf diesem Rechner. Aufgehoben werden "
-                          "ausschließlich die erfundenen Übungssätze dieser Seite, während du sie vorliest. Diktate, eingelesene "
-                          "Aufnahmen und alles andere werden nie gespeichert. Ab etwa 30 Minuten lohnt ein Versuch, das "
-                          "Sprachmodell auf deine Stimme nachzutrainieren; ob das hilft, ist noch nicht gemessen. Ab Werk aus.")
+                          "nur die erfundenen Übungssätze dieser Seite, nie Diktate. Ab etwa 30 Minuten lohnt ein Versuch.")
 
     def _pairs(self):
         if self.ctl.transcriber is None or not getattr(self.ctl, "ready", True):
@@ -2003,11 +2191,12 @@ class LlmPage(Page):
         left = QtWidgets.QVBoxLayout()
         left.addWidget(self.list, 1)
         left.addLayout(hbox(button("Neu", self.new_prompt), button("Löschen", self.del_prompt), None, spacing=6))
-        right = form(("Name", self.name), ("Halte-Taste", self.hotkey), ("Anweisung", self.text))
+        self.on_record = QtWidgets.QCheckBox("Auf der Seite Aufnahme als Knopf anbieten")
+        right = form(("Name", self.name), ("Halte-Taste", self.hotkey), ("Anweisung", self.text), ("", self.on_record))
         self.body.addWidget(card(
             label("Aufträge (Prompts)", "h2"),
-            label("Jeder Auftrag erscheint auf der Seite Aufnahme als Knopf unter dem Text und im Verlauf unter „KI“. "
-                  "Mit einer Halte-Taste wendet er sich gleich beim Diktieren an.", "muted", wrap=True),
+            label("Aufträge stehen im Verlauf unter „KI“ und, wenn angekreuzt, auf der Seite Aufnahme als Knopf unter "
+                  "dem Transkript. Mit einer Halte-Taste wendet sich ein Auftrag gleich beim Diktieren an.", "muted", wrap=True),
             hbox(left, (self._wrap(right), 1), spacing=16),
             form(("Bei jedem Diktat", self.auto))))
 
@@ -2288,7 +2477,7 @@ class LlmPage(Page):
                 self.saved(self.note, "Unbekannte Taste in der Halte-Taste.", ok=False)
                 return False
             self.prompts[self.current] = {"name": self.name.text().strip(), "hotkey": keys,
-                                          "text": self.text.toPlainText().strip()}
+                                          "text": self.text.toPlainText().strip(), "record": self.on_record.isChecked()}
         return True
 
     def _select(self, row):
@@ -2306,6 +2495,7 @@ class LlmPage(Page):
             self.name.setText(p.get("name", ""))
             self.hotkey.setText(keys_text(p.get("hotkey") or []))
             self.text.setPlainText(p.get("text", ""))
+            self.on_record.setChecked(bool(p.get("record", p.get("name") in VisitPage.SHOWN)))
         else:
             self._enable_form(False)
 
@@ -2838,6 +3028,7 @@ class Hub(QtWidgets.QWidget):
         self.pages = [
             ("Verlauf", HistoryPage(ctl)),
             ("Aufnahme", VisitPage(ctl)),
+            ("Übergabe", VisitPage(ctl, "handover")),
             ("Wortschatz", Tabs([("Wörterbuch", MapPage(ctl, "Wörterbuch",
                                    "Wörter, die falsch erkannt werden, automatisch ersetzen. "
                                    "Groß- und Kleinschreibung spielt beim Erkennen keine Rolle.",

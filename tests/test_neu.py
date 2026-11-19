@@ -632,7 +632,19 @@ try:
     _c = config.load()
     _names = [p["name"] for p in _c["prompts"]]
     check("Aufträge: neue kommen einmal dazu, der eigene bleibt", _names == ["Arztbrief", "Zusammenfassung", "Meeting-Protokoll"]
-          and _c["prompts"][0]["text"] == "mein eigener" and _c["config_version"] == 4, _names)
+          and _c["prompts"][0]["text"] == "mein eigener" and _c["config_version"] == 5, _names)
+    check("Aufträge: Aufnahme zeigt ab Werk Zusammenfassung und Protokoll, den eigenen Arztbrief nicht",
+          [p["record"] for p in _c["prompts"]] == [False, True, True])
+    config.FILE.write_text(json.dumps({"config_version": 4, "hotkey_hold": ["ctrl", "win"], "prompts": [
+        {"name": "Zusammenfassung", "hotkey": [], "text": config.OLD_V4["Zusammenfassung"]},
+        {"name": "Meeting-Protokoll", "hotkey": [], "text": "mein Protokoll", "record": False}]}), encoding="utf-8")
+    _v5 = config.load()["prompts"]
+    check("Aufträge: unveränderter Text von 1.3.0 wird nachgezogen, geänderter und abgewählter bleiben",
+          _v5[0]["text"] == config.SUMMARY and _v5[1]["text"] == "mein Protokoll" and _v5[1]["record"] is False, _v5)
+    config.FILE.write_text(json.dumps({"config_version": 3, "hotkey_hold": ["ctrl", "win"], "vocabulary": ["RIVA"],
+                                       "llm": {"model": "mein-modell"},
+                                       "prompts": [{"name": "Arztbrief", "hotkey": [], "text": "mein eigener"}]}), encoding="utf-8")
+    _c = config.load()
     _c["prompts"] = _c["prompts"][:1]
     config.save(_c)
     check("Aufträge: gelöschte kommen nicht wieder", [p["name"] for p in config.load()["prompts"]] == ["Arztbrief"])

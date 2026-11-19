@@ -69,6 +69,19 @@ MODELS = {
               "repo": "istupakov/parakeet-tdt-0.6b-v3-onnx", "revision": "8f23f0c03c8761650bdb5b40aaf3e40d2c15f1ce"},
 }
 
+SUMMARY = ("Fasse den Text zusammen und erfinde nichts. Geht es um eine Patientin oder einen Patienten (Anamnese, Visite, "
+           "Fallbesprechung), schreibe eine knappe klinische Dokumentation mit den Abschnitten Anlass, Anamnese, Befunde, "
+           "Beurteilung und Vorgehen; Abschnitte, zu denen nichts gesagt wurde, weglassen. Sonst fünf bis acht Sätze, das "
+           "Wichtigste zuerst.")
+MEETING = ("Schreibe das Protokoll einer Besprechung mit den Abschnitten Teilnehmende, Themen, Entscheidungen und Aufgaben "
+           "(wer, was, bis wann). Knapp und sachlich, in ganzen Sätzen. Übernimm nur, was gesagt wurde; was nicht genannt "
+           "wurde, weglassen.")
+OLD_V4 = {"Zusammenfassung": "Fasse den Text in fünf bis acht Sätzen zusammen, das Wichtigste zuerst. Erfinde nichts.",
+          "Meeting-Protokoll": "Schreibe ein Protokoll mit den Abschnitten Teilnehmende, Besprochenes, Entscheidungen und "
+                               "Aufgaben (wer, was, bis wann). Übernimm nur, was gesagt wurde; was nicht genannt wurde, "
+                               "weglassen."}
+ON_RECORD = ("Glätten", "Zusammenfassung", "Meeting-Protokoll")       # ab Werk als Knopf auf der Seite Aufnahme
+
 DEFAULTS = {
     # Tasten gedrückt halten = aufnehmen, loslassen = einfügen
     "hotkey_hold": ["ctrl", "win"],
@@ -100,7 +113,7 @@ DEFAULTS = {
     "visite_rules": "",           # Hausregeln (Schockraum, Labor, Zuständigkeiten), die Jev mitbekommt; leer = keine
     "training_done": [],          # Stimmtraining: schon gelesene Sätze
     "phone": {"enabled": False, "port": 8765, "token": ""},   # Handy als Mikrofon (Webseite im eigenen Netz)
-    "config_version": 4,
+    "config_version": 5,
     "quantization": "int8",
     "provider": "CPUExecutionProvider",
     "threads": 0,
@@ -153,12 +166,13 @@ DEFAULTS = {
                  "Verlauf und Procedere. Übernimm nur, was im Text steht, und erfinde nichts. Wozu nichts gesagt "
                  "wurde, den Abschnitt weglassen."},
         {"name": "Zusammenfassung", "hotkey": [],
-         "text": "Fasse den Text in fünf bis acht Sätzen zusammen, das Wichtigste zuerst. Erfinde nichts."},
+         "text": SUMMARY},
         {"name": "Meeting-Protokoll", "hotkey": [],
-         "text": "Schreibe ein Protokoll mit den Abschnitten Teilnehmende, Besprochenes, Entscheidungen und Aufgaben "
-                 "(wer, was, bis wann). Übernimm nur, was gesagt wurde; was nicht genannt wurde, weglassen."},
+         "text": MEETING},
     )],
 }
+for _p in DEFAULTS["prompts"]:
+    _p["record"] = _p["name"] in ON_RECORD
 ADDED_V4 = ("Arztbrief", "Zusammenfassung", "Meeting-Protokoll")     # kamen mit 1.3.0 dazu
 
 
@@ -219,6 +233,13 @@ def load() -> dict:
                 cfg["prompts"] = list(cfg.get("prompts") or []) + [
                     copy.deepcopy(p) for p in DEFAULTS["prompts"] if p["name"] in ADDED_V4 and p["name"] not in names]
                 cfg["config_version"] = 4
+            if int(stored.get("config_version") or 1) < 5:
+                # 1.4.0: Welche Aufträge die Seite Aufnahme zeigt; die beiden Texte von 1.3.0 nachziehen, wenn unverändert.
+                for p in cfg.get("prompts") or []:
+                    p.setdefault("record", p.get("name") in ON_RECORD)
+                    if p.get("text") == OLD_V4.get(p.get("name")):
+                        p["text"] = {"Zusammenfassung": SUMMARY, "Meeting-Protokoll": MEETING}[p["name"]]
+                cfg["config_version"] = 5
             cfg.pop("model", None)
             cfg.pop("model_revision", None)
         except Exception:
