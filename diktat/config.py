@@ -102,6 +102,7 @@ DEFAULTS = {
     "mic_warm": False,            # Mikrofon dauerhaft offen halten: kein Startverzug, erste Silbe bleibt
     "speakers": True,             # Sprecher trennen bei Aufnahme und Datei (bei nur einer Stimme bleibt der Text, wie er ist)
     "update_check": False,        # einmal am Tag still bei GitHub nach einer neueren Fassung fragen; ab Werk nur auf Klick
+    "profile_name": "",           # gewähltes Profil am Programmordner (profile\\<Name>); leer = die Daten dieses Rechners
     "training_keep": True,        # Stimmtraining: vorgelesene (erfundene) Sätze als Ton aufheben, für ein Nachtraining
     "field": "",                  # Fachrichtung für die Sätze im Stimmtraining; leer = Grundstock
     "training_scores": [],        # Messungen mit Prüfsätzen: Zeitpunkt, Fachrichtung, Wortfehler, Trainingsminuten
@@ -258,15 +259,338 @@ def load() -> dict:
             cfg.pop("model_revision", None)
         except Exception:
             logging.exception("config.json ist nicht lesbar, nutze Standardwerte")
+    global ACTIVE, OFFLINE, _base
+    name, ACTIVE, OFFLINE, _base = str(cfg.get("profile_name") or ""), "", False, {}
+    if name and profile_root() is not None:      # gewähltes Profil: seine persönlichen Einstellungen gelten
+        fresh = _profile_load(name)
+        if fresh is None:
+            cfg["profile_name"] = ""             # das Profil gibt es nicht mehr: zurück zu den Daten dieses Rechners
+        else:
+            ACTIVE = name
+            cfg.update(fresh)
     save(cfg)  # neue Schlüssel in die Datei nachtragen
     return cfg
 
 
+def _whole() -> dict:
+    """Was gerade gilt, als ein Stück: config.json, bei gewähltem Profil mit dessen persönlichen Einstellungen."""
+    data = _read(FILE) or {}
+    if ACTIVE:
+        data.update(copy.deepcopy((_read(_copy_file(ACTIVE)) or {}).get("data") or _base))
+    return data
+
+
+def _write(path: Path, data: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(".tmp")
+    tmp.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+    os.replace(tmp, path)
+
+
+def _read(path):
+    """Inhalt einer JSON-Datei oder None (fehlt, nicht erreichbar, beschädigt)."""
+    try:
+        data = json.loads(Path(path).read_text(encoding="utf-8-sig"))
+        return data if isinstance(data, dict) else None
+    except (OSError, ValueError):
+        return None
+
+
 def save(cfg: dict) -> None:
+    """Einstellungen schreiben. Ist ein Profil gewählt, gehen die persönlichen Teile dorthin; in config.json bleibt
+    dafür stehen, was vorher zu diesem Rechner gehörte („Dieser Rechner“ bleibt, wie es war)."""
     DIR.mkdir(parents=True, exist_ok=True)
-    tmp = FILE.with_suffix(".tmp")
-    tmp.write_text(json.dumps(cfg, indent=2, ensure_ascii=False), encoding="utf-8")
-    os.replace(tmp, FILE)
+    if not ACTIVE:
+        return _write(FILE, cfg)
+    own = _read(FILE) or {}
+    out = {k: v for k, v in cfg.items() if k not in PERSONAL}
+    out.update({k: own[k] for k in PERSONAL if k in own})
+    _write(FILE, out)
+    _profile_save(cfg)
+
+
+# ---- Profile: mehrere Personen an einem Programmordner (oft ein Netzlaufwerk, viele Rechner) ----
+# Ein Profil ist ein Ordner profile\<Name> neben dem Programm: profil.json mit den persönlichen Einstellungen und
+# training\ mit den Stimmaufnahmen. Kein Passwort, keine Rollen: Wer den Programmordner starten darf, kann jedes
+# Profil wählen. Verlauf, Fälle, Protokoll und Schlüssel bleiben im Windows-Konto des Rechners.
+PROFILES = "profile"
+PROFILE_FILE = "profil.json"
+COPIES = "profil-kopie"       # letzte Kopie je Profil auf diesem Rechner, falls der Programmordner gerade fehlt
+PERSONAL = ("dictionary", "snippets", "vocabulary", "learned", "corrections", "commands", "prompts",
+            "spoken_punctuation", "base_dictionary", "learn_terms", "sounds",
+            "hotkey_hold", "hotkey_lock", "hotkey_paste_last", "hotkey_target", "hotkey_next_field",
+            "field", "training_done", "training_scores", "handover_frame", "visite_prompt")
+ACTIVE = ""                   # Name des gewählten Profils; leer = die Daten dieses Rechners
+OFFLINE = False               # Profilordner gerade nicht erreichbar: Es gilt die Kopie von diesem Rechner
+PROFILE_ROOT = None           # nur für Tests: fester Ordner statt „profile“ neben dem Programm
+_base = {}                    # Stand des Profils beim letzten Lesen oder Schreiben, zum Zusammenführen
+_probe = {}                   # Ordner -> lässt sich dort schreiben? (einmal je Lauf geprüft)
+
+
+class _Gone:
+    """Markiert „diesen Eintrag gibt es nicht“ beim Zusammenführen."""
+    def __deepcopy__(self, memo):
+        return self
+
+
+_GONE = _Gone()
+
+
+def profile_root():
+    """Ordner mit den Profilen neben dem Programm; None, wenn die App aus dem Quelltext läuft."""
+    if PROFILE_ROOT is not None:
+        return Path(PROFILE_ROOT)
+    from . import ort
+    root = ort.root()
+    return root / PROFILES if root else None
+
+
+def _remote(path) -> bool:
+    """Liegt der Ordner auf einem Netzlaufwerk (Freigabe eines Servers oder verbundener Laufwerksbuchstabe)?"""
+    text = str(path)
+    if text.startswith("\\\\"):
+        return True
+    try:
+        import ctypes
+        return ctypes.windll.kernel32.GetDriveTypeW(text[:3]) == 4      # DRIVE_REMOTE
+    except Exception:
+        return False
+
+
+def _writable(folder: Path) -> bool:
+    key = str(folder)
+    if key not in _probe:
+        try:
+            probe = folder / ".schreibtest"
+            probe.write_text("", encoding="utf-8")
+            probe.unlink()
+            _probe[key] = True
+        except OSError:
+            _probe[key] = False
+    return _probe[key]
+
+
+def profiles_on() -> bool:
+    """Bietet das Fenster Profile an? Ja, wenn es den Ordner „profile“ neben dem Programm gibt, oder wenn das Programm
+    auf einem Netzlaufwerk liegt, in das sich schreiben lässt: Dann legt das erste Profil den Ordner an."""
+    root = profile_root()
+    if root is None:
+        return False
+    try:
+        if root.is_dir():
+            return True
+        return _remote(root.parent) and _writable(root.parent)
+    except OSError:
+        return False
+
+
+def profiles_enable() -> None:
+    """Profile an einem Programmordner einschalten, der nicht auf einem Netzlaufwerk liegt (legt den Ordner an)."""
+    root = profile_root()
+    if root is None:
+        raise ValueError("Profile gibt es nur im installierten Programm.")
+    root.mkdir(parents=True, exist_ok=True)
+
+
+def profile_names() -> list:
+    root = profile_root()
+    try:
+        return sorted((p.name for p in root.iterdir() if (p / PROFILE_FILE).is_file()), key=str.lower)
+    except (OSError, AttributeError):
+        return []
+
+
+def clean_name(name: str) -> str:
+    """Name eines Profils als Ordnername: ohne Zeichen, die Windows nicht erlaubt, höchstens 40 Zeichen."""
+    import re
+    name = re.sub(r'[\\/:*?"<>|\x00-\x1f]', "", str(name)).strip(" .")[:40].strip(" .")
+    return "" if name.upper() in ("CON", "PRN", "AUX", "NUL") or name.startswith("_") else name
+
+
+def _personal(cfg: dict) -> dict:
+    return {k: copy.deepcopy(cfg[k]) for k in PERSONAL if k in cfg}
+
+
+def _merge(base, mine, theirs):
+    """Drei Stände zusammenführen: Was nur eine Seite geändert hat, gilt; haben beide geändert, wird Eintrag für
+    Eintrag weitergeschaut, und im echten Konflikt gewinnt dieser Rechner."""
+    if mine == base:
+        return copy.deepcopy(theirs)
+    if theirs == base or mine == theirs:
+        return copy.deepcopy(mine)
+    if isinstance(mine, dict) and isinstance(theirs, dict):
+        b = base if isinstance(base, dict) else {}
+        out = {}
+        for k in list(mine) + [k for k in theirs if k not in mine]:
+            v = _merge(b.get(k, _GONE), mine.get(k, _GONE), theirs.get(k, _GONE))
+            if v is not _GONE:
+                out[k] = v
+        return out
+    if isinstance(mine, list) and isinstance(theirs, list):
+        b = base if isinstance(base, list) else []
+        named = lambda rows: all(isinstance(r, dict) and r.get("name") for r in rows)
+        if mine and theirs and named(mine) and named(theirs) and named(b):   # Aufträge: nach Namen, nicht nach Platz
+            merged = _merge({r["name"]: r for r in b}, {r["name"]: r for r in mine}, {r["name"]: r for r in theirs})
+            return list(merged.values())
+        out = [x for x in mine if not (x in b and x not in theirs)]          # was die andere Seite gestrichen hat, geht
+        out += [x for x in theirs if x not in mine and x not in b]            # was die andere Seite ergänzt hat, kommt
+        return copy.deepcopy(out)
+    return copy.deepcopy(mine)
+
+
+def _copy_file(name: str) -> Path:
+    return DIR / COPIES / f"{name}.json"
+
+
+def _profile_load(name: str):
+    """Persönliche Einstellungen eines Profils lesen. Ist der Programmordner nicht erreichbar, gilt die Kopie von
+    diesem Rechner (OFFLINE). Gibt None zurück, wenn es das Profil nicht mehr gibt."""
+    global OFFLINE, _base
+    root = profile_root()
+    copy_file = _copy_file(name)
+    kept = _read(copy_file) or {}
+    try:
+        reachable = root is not None and root.is_dir()
+    except OSError:
+        reachable = False
+    if not reachable:
+        if not kept:
+            return None
+        OFFLINE, _base = True, copy.deepcopy(kept.get("base") or {})
+        return copy.deepcopy(kept.get("data") or {})
+    theirs = _read(root / name / PROFILE_FILE)
+    if theirs is None:
+        return None
+    theirs = {k: theirs[k] for k in PERSONAL if k in theirs}
+    OFFLINE = False
+    if kept.get("pending"):                 # hier wurde ohne Programmordner weitergearbeitet: jetzt zusammenführen
+        base, mine = kept.get("base") or {}, kept.get("data") or {}
+        merged = {k: _merge(base.get(k, _GONE), mine.get(k, _GONE), theirs.get(k, _GONE)) for k in PERSONAL}
+        theirs = {k: v for k, v in merged.items() if v is not _GONE}
+        try:
+            _write(root / name / PROFILE_FILE, theirs)
+        except OSError:
+            OFFLINE = True
+    _base = copy.deepcopy(theirs)
+    try:
+        _write(copy_file, {"pending": OFFLINE, "base": _base, "data": theirs})
+    except OSError:
+        pass
+    if not OFFLINE:
+        voice_sync(name)
+    return copy.deepcopy(theirs)
+
+
+def _profile_save(cfg: dict) -> None:
+    """Persönliche Einstellungen ins Profil schreiben und dabei übernehmen, was ein anderer Rechner inzwischen
+    beigetragen hat. Ist der Programmordner nicht erreichbar, bleibt alles in der Kopie auf diesem Rechner."""
+    global OFFLINE, _base
+    mine = _personal(cfg)
+    merged = mine
+    path = profile_root() / ACTIVE / PROFILE_FILE
+    try:
+        if not path.parent.is_dir():
+            raise OSError("Profilordner nicht erreichbar")
+        theirs = _read(path)
+        if theirs is not None:
+            merged = {k: v for k, v in ((k, _merge(_base.get(k, _GONE), mine.get(k, _GONE), theirs.get(k, _GONE)))
+                                        for k in PERSONAL) if v is not _GONE}
+        _write(path, merged)
+        OFFLINE = False
+        _base = copy.deepcopy(merged)
+        for k, v in merged.items():
+            if v != mine.get(k):
+                cfg[k] = copy.deepcopy(v)        # was ein anderer Rechner inzwischen ergänzt hat
+    except OSError:
+        OFFLINE = True
+    try:
+        _write(_copy_file(ACTIVE), {"pending": OFFLINE, "base": _base, "data": merged})
+    except OSError:
+        pass
+
+
+def profile_create(name: str, cfg=None) -> str:
+    """Legt profile\\<Name> an. cfg: Einstellungen, deren persönlicher Teil mitgeht; ohne cfg die Werkseinstellung."""
+    name = clean_name(name)
+    if not name:
+        raise ValueError("Bitte einen Namen eingeben (ohne Sonderzeichen wie / : * ?).")
+    root = profile_root()
+    if root is None:
+        raise ValueError("Profile gibt es nur im installierten Programm.")
+    if name.lower() in (n.lower() for n in profile_names()):
+        raise ValueError(f"Das Profil „{name}“ gibt es schon.")
+    try:
+        _write(root / name / PROFILE_FILE, _personal(cfg if cfg is not None else DEFAULTS))
+    except OSError as e:
+        raise ValueError(f"Der Programmordner lässt sich nicht beschreiben ({e}).") from e
+    return name
+
+
+def profile_use(cfg: dict, name: str) -> None:
+    """Auf ein Profil wechseln (leer = die Daten dieses Rechners): erst den jetzigen Stand sichern, dann die
+    persönlichen Einstellungen in cfg tauschen. Der Rechner merkt sich die Wahl für dieses Windows-Konto."""
+    global ACTIVE, OFFLINE, _base
+    save(cfg)
+    if name:
+        fresh = _profile_load(name)
+        if fresh is None:
+            raise ValueError(f"Das Profil „{name}“ ist nicht erreichbar.")
+    else:
+        own = _read(FILE) or {}
+        fresh, OFFLINE, _base = {k: own[k] for k in PERSONAL if k in own}, False, {}
+    ACTIVE = name
+    cfg["profile_name"] = name
+    for k in PERSONAL:
+        cfg[k] = copy.deepcopy(fresh[k] if k in fresh else DEFAULTS[k])
+    save(cfg)
+
+
+def voice_dir(name=None) -> Path:
+    """Ordner der Stimmaufnahmen: im gewählten Profil, sonst im Datenordner dieses Rechners. Ist der Programmordner
+    gerade nicht erreichbar, sammelt die App auf diesem Rechner und legt die Aufnahmen später ins Profil."""
+    name = ACTIVE if name is None else name
+    if not name:
+        return DIR / VOICE
+    if OFFLINE or profile_root() is None:
+        return DIR / COPIES / name / VOICE
+    return profile_root() / name / VOICE
+
+
+def voice_sync(name: str) -> int:
+    """Aufnahmen, die ohne Programmordner auf diesem Rechner gesammelt wurden, ins Profil legen."""
+    here, there, moved = DIR / COPIES / name / VOICE, profile_root() / name / VOICE, 0
+    try:
+        for index in sorted(here.rglob("index.jsonl")) if here.is_dir() else []:
+            target = there / index.parent.relative_to(here)
+            target.mkdir(parents=True, exist_ok=True)
+            lines = []
+            for line in index.read_text(encoding="utf-8").splitlines():
+                try:
+                    row = json.loads(line)
+                    audio = Path(row["audio"]).name
+                except (ValueError, KeyError, TypeError):
+                    continue
+                source = index.parent / audio
+                if not source.is_file():
+                    continue
+                stem, n = Path(audio).stem, 1
+                while (target / audio).exists():                 # derselbe Name ist im Profil schon vergeben
+                    if (target / audio).read_bytes() == source.read_bytes():
+                        break
+                    n += 1
+                    audio = f"{stem}-{n}.wav"
+                else:
+                    shutil.copyfile(source, target / audio)
+                    lines.append(json.dumps(dict(row, audio=audio), ensure_ascii=False))
+            if lines:
+                with open(target / "index.jsonl", "a", encoding="utf-8") as f:
+                    f.write("\n".join(lines) + "\n")
+                moved += len(lines)
+        if here.is_dir():
+            shutil.rmtree(here, ignore_errors=True)
+    except OSError:
+        pass
+    return moved
 
 
 BACKUPS = "sicherung"
@@ -283,7 +607,10 @@ def backup(tag: str = "") -> Path | None:
         folder = DIR / BACKUPS
         folder.mkdir(parents=True, exist_ok=True)
         target = folder / f"einstellungen-{time.strftime('%Y-%m-%d-%H%M%S')}{'-' + tag if tag else ''}.json"
-        shutil.copyfile(FILE, target)
+        if ACTIVE:
+            _write(target, _whole())             # mit dem, was im gewählten Profil steht
+        else:
+            shutil.copyfile(FILE, target)
         for old in sorted(folder.glob("einstellungen-*.json"))[:-10]:
             old.unlink()
         return target
@@ -300,13 +627,14 @@ VOICE = "training"
 def export(path) -> int:
     """Einstellungen an einen frei gewählten Ort schreiben. Endet der Name auf .lsprofil, kommen die Stimmaufnahmen des
     Stimmtrainings (Übungs- und Prüfsätze) mit in die Datei. Gibt die Zahl der Aufnahmen zurück. API-Schlüssel sind nie dabei."""
+    text = json.dumps(_whole(), indent=2, ensure_ascii=False)
     if not str(path).lower().endswith(PROFILE):
-        shutil.copyfile(FILE, path)
+        Path(path).write_text(text, encoding="utf-8")
         return 0
     import zipfile
-    count, voice = 0, DIR / VOICE
+    count, voice = 0, voice_dir()
     with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as z:
-        z.write(FILE, SETTINGS)
+        z.writestr(SETTINGS, text)
         for f in sorted(voice.rglob("*")) if voice.is_dir() else []:
             if f.is_file() and f.suffix in (".wav", ".jsonl"):
                 z.write(f, f"{VOICE}/{f.relative_to(voice).as_posix()}")
@@ -319,7 +647,7 @@ def _voice_in(z) -> int:
     count = 0
     names = [n for n in z.namelist() if n.startswith(VOICE + "/") and ".." not in n and not n.endswith("/")]
     for name in (n for n in names if n.endswith(".jsonl")):
-        folder = DIR / Path(name).parent
+        folder = voice_dir() / Path(name).parent.relative_to(VOICE)
         folder.mkdir(parents=True, exist_ok=True)
         new = []
         for line in z.read(name).decode("utf-8", "replace").splitlines():
@@ -354,10 +682,17 @@ def restore(path) -> dict:
     if not isinstance(stored, dict) or not ({"hotkey_hold", "dictionary", "llm"} & set(stored)):
         raise ValueError("Das ist keine Einstellungsdatei von LocalScribe.")
     backup("vor-zurueckholen")
-    tmp = FILE.with_suffix(".tmp")
-    tmp.write_text(json.dumps(stored, indent=2, ensure_ascii=False), encoding="utf-8")
-    os.replace(tmp, FILE)
+    active, own = ACTIVE, _read(FILE) or {}
+    on_disk = dict(stored)
+    on_disk["profile_name"] = active             # eine gesicherte Datei wählt kein Profil; das gewählte bleibt
+    if active:                                   # die persönlichen Teile gehen ins gewählte Profil, nicht in „Dieser Rechner“
+        on_disk = {k: v for k, v in on_disk.items() if k not in PERSONAL}
+        on_disk.update({k: own[k] for k in PERSONAL if k in own})
+    _write(FILE, on_disk)
     cfg = load()
+    if active and ACTIVE == active:
+        cfg.update({k: copy.deepcopy(stored[k]) for k in PERSONAL if k in stored})
+        save(cfg)
     if profile is not None:
         with profile:
             cfg["_voice"] = _voice_in(profile)        # nur für die Meldung, wird nicht gespeichert

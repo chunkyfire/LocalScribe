@@ -172,7 +172,7 @@
 <body>
 <h1 id="localscribe--technische-dokumentation">LocalScribe – Technische
 Dokumentation</h1>
-<p>Stand: Version 1.6.1. Für Betrieb, IT und alle, die den Code lesen
+<p>Stand: Version 1.7.0. Für Betrieb, IT und alle, die den Code lesen
 oder prüfen wollen. Die Bedienung steht im <a
 href="https://chunkyfire.github.io/LocalScribe/LocalScribe-Handbuch.pdf">Handbuch</a>, die Messwerte mit Methode
 in <a
@@ -637,6 +637,31 @@ Stimmaufnahmen werden ergänzt, vorhandene nicht überschrieben
 (<code>config.export</code>, <code>config.restore</code>). Diktate,
 Fälle und der Schlüssel für ein Sprachmodell-Konto sind nicht
 enthalten.</p>
+<p><strong>Profile (seit 1.7.0).</strong> Für mehrere Personen an einem
+Programmordner, typisch ein Netzlaufwerk, aus dem viele Rechner starten.
+Ein Profil ist ein Ordner <code>profile\&lt;Name&gt;</code> neben
+<code>LocalScribe.exe</code> mit <code>profil.json</code> (die
+persönlichen Einstellungen, <code>config.PERSONAL</code>: Wörterbuch,
+Wortschatz, gelernte Wörter, Berichtigungen, Textbausteine, Befehle,
+Aufträge, Tasten, Satzzeichen-Schalter, Fachrichtung, Fortschritt und
+Messungen des Stimmtrainings) und <code>training\</code>
+(Stimmaufnahmen). Angeboten wird das, wenn es den Ordner
+<code>profile</code> gibt oder das Programm auf einem Netzlaufwerk
+liegt, in das sich schreiben lässt (<code>config.profiles_on</code>);
+das erste Profil legt den Ordner an. Welches Profil gilt, steht je
+Windows-Konto in <code>config.json</code> (<code>profile_name</code>);
+dort bleiben auch die Einstellungen des Geräts (Mikrofon, Modellordner,
+Server, Verlauf) und unverändert die persönlichen Daten von „Dieser
+Rechner“. Geschrieben wird mit Zusammenführen
+(<code>config._merge</code>): Die App merkt sich den Stand beim letzten
+Lesen; was nur eine Seite geändert hat, gilt, bei Wörterbuch und Listen
+Eintrag für Eintrag, im echten Konflikt gewinnt der schreibende Rechner.
+Ist der Programmordner nicht erreichbar, gilt die Kopie unter
+<code>profil-kopie\&lt;Name&gt;.json</code> im Datenordner des Rechners,
+Aufnahmen sammeln sich daneben und wandern beim nächsten Kontakt ins
+Profil. Es gibt kein Passwort und keine Rollen: Zugriffsschutz ist die
+Windows-Anmeldung und das Recht auf den Programmordner. Verlauf, Fälle,
+Protokoll und Schlüssel liegen nie im Profil.</p>
 <h2 id="7-daten-auf-dem-rechner">7. Daten auf dem Rechner</h2>
 <p>Alles Eigene, auch der gelernte Wortschatz, liegt unter
 <code>%LOCALAPPDATA%\LocalScribe</code>, also je Windows-Konto (nicht im
@@ -682,25 +707,30 @@ sichern“.</td>
 abschaltbar</td>
 </tr>
 <tr class="even">
+<td><code>profil-kopie\</code></td>
+<td>nur mit gewähltem Profil: dessen letzte Kopie für den Fall, dass der
+Programmordner fehlt</td>
+</tr>
+<tr class="odd">
 <td><code>modelle\</code></td>
 <td>Sprachmodell, Stimmmodell für die Sprechertrennung</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>diktat.log</code>, <code>absturz.log</code></td>
 <td>Betriebsmeldungen: Dauer, Zeichenzahl, Fehler. Kein diktierter
 Text.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>aufnahmen\</code></td>
 <td>Sicherung einer laufenden langen Aufnahme; wird gelöscht, sobald der
 Text fertig ist</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>visite.sqlite</code></td>
 <td>Fälle aus „Visite &amp; Übergabe“: Eingabe und Ergebnis als Text,
 mit Papierkorb</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>training\</code></td>
 <td>vorgelesene Übungssätze des Stimmtrainings als Ton mit Text
 (<code>index.jsonl</code>), Prüfsätze in <code>pruef\</code>; nie
@@ -896,34 +926,40 @@ fragen</td>
 <td>aus</td>
 </tr>
 <tr class="even">
+<td><code>profile_name</code></td>
+<td>gewähltes Profil am Programmordner; leer = die Daten dieses
+Rechners</td>
+<td>leer</td>
+</tr>
+<tr class="odd">
 <td><code>training_keep</code></td>
 <td>vorgelesene Übungs- und Prüfsätze als Ton aufheben (kein Schalter im
 Fenster; für eine zentrale Vorgabe)</td>
 <td>an (seit 1.6.0)</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>field</code>, <code>training_scores</code></td>
 <td>Fachrichtung im Stimmtraining; Messungen mit Prüfsätzen (Zeitpunkt,
 Wortfehler, Trainingsminuten)</td>
 <td>leer</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>phone</code></td>
 <td>Handy als Mikrofon</td>
 <td>aus</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>model_dir</code></td>
 <td>eigener Ordner mit den Sprachmodellen, zum Beispiel ein
 Netzlaufwerk</td>
 <td>leer</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>live_preview</code> (nur Datei)</td>
 <td>Vorschau auf die laufende Äußerung in der Aufnahme</td>
 <td>an</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>threads</code> (nur Datei)</td>
 <td>Zahl der Rechen-Threads; 0 überlässt es der Laufzeit</td>
 <td>0</td>

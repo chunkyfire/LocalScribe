@@ -353,6 +353,14 @@ Transkript liegt als Textdatei mit gleichem Namen daneben (`befund1.wav` und `be
 erkennt die Aufnahme, vergleicht mit dem Transkript und lernt Verhörer fürs Wörterbuch und Fachwörter für den
 Wortschatz. Der Ton wird nur gelesen.
 
+**Mehrere Personen: Profile.** Liegt das Programm auf einem Netzlaufwerk, aus dem viele Rechner arbeiten, steht
+unten links im Fenster, wer diktiert: „Dieser Rechner“ oder ein Profil. Ein Klick dort wählt ein Profil oder legt
+eines an (auch über das Symbol neben der Uhr). Im Profil liegen Wörterbuch, Wortschatz, Textbausteine, Aufträge,
+Tasten und das Stimmtraining mit seinen Aufnahmen, im Programmordner unter `profile\<Name>`; es folgt der Person an
+jeden Rechner. Verlauf, Fälle, Protokoll, Mikrofon, Server und Schlüssel bleiben auf dem jeweiligen Rechner. Profile
+haben kein Passwort. Fehlt das Laufwerk, arbeitet die App mit der letzten Kopie weiter und führt später zusammen.
+Für einen einzelnen Rechner lässt sich das unter Einstellungen einschalten („Mehrere Personen an diesem Programm“).
+
 **Profil sichern.** Unter Einstellungen schreibt „Profil sichern …“ Wörterbuch, Wortschatz, Textbausteine,
 Aufträge, Tasten, Server und deine Stimmaufnahmen in eine Datei (`.lsprofil`). „Profil zurückholen …“ liest sie an
 diesem oder einem anderen Rechner wieder ein. Nicht enthalten: Diktate, Fälle und der Schlüssel für ein

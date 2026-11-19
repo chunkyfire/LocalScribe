@@ -284,7 +284,7 @@ TESTS = "pruef"
 
 def store(test: bool = False) -> Path:
     from . import config
-    return config.DIR / "training" / TESTS if test else config.DIR / "training"
+    return config.voice_dir() / TESTS if test else config.voice_dir()
 
 
 def keep(audio, text: str, rate: int = 16000, test: bool = False) -> Path:

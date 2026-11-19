@@ -68,6 +68,10 @@ QFrame#side QPushButton#updateGo:hover { background: #D4FF6A; }
 QFrame#side QPushButton#updateIdle { padding: 7px 12px; font-size: 9pt; color: #8A9096; background: transparent;
                                      border: 1px solid transparent; }
 QFrame#side QPushButton#updateIdle:hover { color: #C9CED4; background: rgba(255, 255, 255, 0.05); }
+QFrame#side QPushButton#profile { padding: 8px 12px; font-size: 9.5pt; color: #D7DBDF; background: rgba(255, 255, 255, 0.04);
+                                  border: 1px solid rgba(255, 255, 255, 0.10); }
+QFrame#side QPushButton#profile:hover { background: rgba(255, 255, 255, 0.08); }
+QFrame#side QPushButton#profile::menu-indicator { image: none; width: 0; }
 QFrame#card { background: rgba(255, 255, 255, 0.045); border: 1px solid rgba(255, 255, 255, 0.10); border-radius: 18px; }
 QFrame#card QWidget { background: transparent; }
 QFrame#row { background: transparent; border: none; border-bottom: 1px solid rgba(255, 255, 255, 0.06); }
@@ -192,7 +196,10 @@ def glyph(kind, color):
     p.setRenderHint(QtGui.QPainter.Antialiasing)
     p.setPen(QtGui.QPen(QtGui.QColor(color), 5, Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin))
     P = QtCore.QPointF
-    if kind == "down":
+    if kind == "person":
+        p.drawEllipse(P(24, 16), 8, 8)
+        p.drawArc(QtCore.QRectF(8, 29, 32, 30), 20 * 16, 140 * 16)
+    elif kind == "down":
         p.drawLine(P(24, 7), P(24, 29))
         p.drawPolyline([P(14, 20), P(24, 30), P(34, 20)])
         p.drawLine(P(10, 41), P(38, 41))
@@ -2928,6 +2935,18 @@ class SettingsPage(Page):
             hbox(button("Profil sichern …", self._keep), button("Profil zurückholen …", self._bring),
                  button("Ordner mit den Sicherungen öffnen", self._kept_open), None),
             self.keep_note))
+        self.many_note = label("", "muted", wrap=True)
+        self.many_btn = button("Profile einschalten", self._many)
+        self.many = card(
+            label("Mehrere Personen an diesem Programm", "h2"),
+            label("Arbeiten mehrere Personen mit diesem Programmordner (gemeinsamer Rechner, Netzlaufwerk, viele Rechner), "
+                  "bekommt jede ein eigenes Profil: Wörterbuch, Wortschatz, Textbausteine, Aufträge, Tasten und "
+                  "Stimmaufnahmen liegen dann im Programmordner unter „profile“ und folgen der Person an jeden Rechner. "
+                  "Gewählt wird unten links im Fenster. Profile haben kein Passwort; Verlauf, Fälle und Schlüssel "
+                  "bleiben auf dem jeweiligen Rechner. Liegt das Programm auf einem Netzlaufwerk, ist das von selbst an.",
+                  "muted", wrap=True),
+            hbox(self.many_btn, None), self.many_note)
+        self.body.addWidget(self.many)
         self.care_note = label("", "muted", wrap=True)
         self.auto_check = QtWidgets.QCheckBox("Einmal am Tag von selbst nach Updates fragen (bei GitHub; von dir wird dabei nichts "
                                               "übertragen). Gibt es eines, leuchtet unten links der Knopf „Update“.")
@@ -2989,6 +3008,15 @@ class SettingsPage(Page):
                               "bisherige Verlauf bleibt im Konto. Gilt ab dem nächsten Start: LocalScribe über das "
                               "Symbol neben der Uhr beenden und neu starten. Rückgängig: den Ordner „daten“ löschen.")
 
+    def _many(self):
+        try:
+            config.profiles_enable()
+        except (ValueError, OSError) as e:
+            return self.saved(self.many_note, f"Nicht möglich: {e}", ok=False)
+        self.ctl.hub.profile_refresh()
+        self.refresh()
+        self.saved(self.many_note, "Eingeschaltet. Unten links im Fenster steht jetzt „Dieser Rechner“: Klick, „Neues Profil …“.")
+
     def _auto_check(self, on):
         self.ctl.cfg["update_check"] = bool(on)
         config.save(self.ctl.cfg)
@@ -3035,7 +3063,7 @@ class SettingsPage(Page):
             return
         try:
             config.save(self.ctl.cfg)
-            voice = config.export(path)
+            voice = config.export(path)                  # bei gewähltem Profil: dessen Daten und Stimmaufnahmen
         except OSError as e:
             return self.saved(self.keep_note, f"Nicht gesichert: {e}", ok=False)
         self.saved(self.keep_note, f"Gesichert in {path}" + (f" ({voice} Stimmaufnahmen)" if voice else ""))
@@ -3202,6 +3230,10 @@ class SettingsPage(Page):
         self.days.setValue(int(cfg.get("history_days") or 0))
         self.history.setChecked(bool(cfg.get("history_enabled", True)))
         self.auto.setChecked(self.ctl.autostart_enabled())
+        self.many.setVisible(bool(pflege.program()))
+        self.many_btn.setVisible(not config.profiles_on())
+        if config.profiles_on() and not self.many_note.text():
+            self.many_note.setText("Profile sind an. Gewählt wird unten links im Fenster.")
         self.auto_check.blockSignals(True)
         self.auto_check.setChecked(bool(cfg.get("update_check")))
         self.auto_check.blockSignals(False)
@@ -3363,6 +3395,13 @@ class Hub(QtWidgets.QWidget):
         self.update_note.hide()
         if pflege.program():                 # aus dem Quelltext gestartet gibt es nichts zu aktualisieren
             self.update_idle()
+        # Wer diktiert? Nur wenn mehrere Personen an diesem Programmordner arbeiten (Ordner „profile“ oder Netzlaufwerk).
+        self.profile_btn = button("", self._profile_menu, "profile")
+        self.profile_btn.setIcon(glyph("person", "#B9BEC4"))
+        self.profile_btn.setIconSize(QtCore.QSize(16, 16))
+        nav.addWidget(self.profile_btn)
+        nav.addSpacing(2)
+        self.profile_refresh()
         nav.addWidget(self.update_btn)
         nav.addWidget(self.update_note)
         nav.addSpacing(8)
@@ -3452,6 +3491,102 @@ class Hub(QtWidgets.QWidget):
             glow.setColorAt(1, QtGui.QColor(color.red(), color.green(), color.blue(), 0))
             p.fillRect(self.rect(), glow)
         p.end()
+
+    def profile_refresh(self):
+        """Den Profil-Knopf unten links auf den Stand bringen: Name des gewählten Profils oder „Dieser Rechner“."""
+        on = config.profiles_on()
+        self.profile_btn.setVisible(on)
+        if not on:
+            return
+        name = config.ACTIVE or "Dieser Rechner"
+        self.profile_btn.setText(name + (" · ohne Ordner" if config.OFFLINE else ""))
+        if config.OFFLINE:
+            tip = ("Der Programmordner mit den Profilen ist gerade nicht erreichbar. LocalScribe arbeitet mit der Kopie von "
+                   "diesem Rechner weiter und führt beides zusammen, sobald der Ordner wieder da ist.")
+        elif config.ACTIVE:
+            tip = (f"Es diktiert: {config.ACTIVE}. Wörterbuch, Wortschatz, Textbausteine, Aufträge, Tasten und "
+                   "Stimmaufnahmen kommen aus diesem Profil. Klick: Profil wechseln.")
+        else:
+            tip = ("Kein Profil gewählt: Es gelten die Einstellungen dieses Rechners, für alle, die hier diktieren. "
+                   "Klick: eigenes Profil wählen oder anlegen. Es folgt dir an jeden Rechner an diesem Programmordner.")
+        self.profile_btn.setToolTip(tip)
+
+    def profile_actions(self, menu):
+        """Die Einträge des Profil-Menüs; auch das Symbol neben der Uhr zeigt sie."""
+        menu.clear()
+        for name in config.profile_names():
+            a = menu.addAction(name, lambda n=name: self.profile_pick(n))
+            a.setCheckable(True)
+            a.setChecked(name == config.ACTIVE)
+        a = menu.addAction("Dieser Rechner (ohne Profil)", lambda: self.profile_pick(""))
+        a.setCheckable(True)
+        a.setChecked(not config.ACTIVE)
+        menu.addSeparator()
+        menu.addAction("Neues Profil …", self.profile_new)
+
+    def _profile_menu(self):
+        menu = QtWidgets.QMenu(self)
+        menu.setStyleSheet(STYLE)
+        self.profile_actions(menu)
+        menu.exec(self.profile_btn.mapToGlobal(QtCore.QPoint(0, -menu.sizeHint().height() - 4)))
+
+    def profile_pick(self, name):
+        """Auf ein Profil wechseln: Wörterbuch, Tasten und alles Persönliche gelten sofort."""
+        if name == config.ACTIVE:
+            return
+        if self.busy():
+            return QtWidgets.QMessageBox.information(self, "Profil", "Erst die laufende Aufnahme oder Transkription beenden.")
+        try:
+            config.profile_use(self.ctl.cfg, name)
+        except ValueError as e:
+            QtWidgets.QMessageBox.warning(self, "Profil", str(e))
+            return self.profile_refresh()
+        self.ctl.apply_cfg()
+        self.profile_refresh()
+        self.pages[self.stack.currentIndex()][1].refresh()
+
+    def profile_new(self):
+        box = QtWidgets.QDialog(self)
+        box.setWindowTitle("Neues Profil")
+        box.setStyleSheet(STYLE)
+        box.setFixedWidth(560)
+        name = QtWidgets.QLineEdit(os.environ.get("USERNAME", ""))
+        name.selectAll()
+        take = QtWidgets.QCheckBox("Mit den Einstellungen beginnen, die hier gerade gelten")
+        take.setToolTip("Wörterbuch, Wortschatz, Textbausteine, Aufträge und Tasten gehen als Startstand ins neue Profil. "
+                        "Ohne Haken beginnt es mit der Werkseinstellung.")
+        take.setChecked(not config.ACTIVE)
+        note = label("", "bad", wrap=True)
+        note.hide()
+        done = {}
+
+        def create():
+            try:
+                done["name"] = config.profile_create(name.text(), self.ctl.cfg if take.isChecked() else None)
+                box.accept()
+            except ValueError as e:
+                note.setText(str(e))
+                note.show()
+        lay = QtWidgets.QVBoxLayout(box)
+        lay.setContentsMargins(22, 18, 22, 16)
+        lay.setSpacing(10)
+        lay.addWidget(label("Neues Profil", "h2"))
+        about = label("Ein Profil gehört einer Person: Wörterbuch, Wortschatz, Textbausteine, Aufträge, Tasten und "
+                      "Stimmaufnahmen. Es liegt im Programmordner und folgt dir an jeden Rechner, der LocalScribe "
+                      "von dort startet. Es hat kein Passwort: Jede Person an diesem Programmordner kann es wählen. "
+                      "Verlauf, Fälle und Schlüssel bleiben auf dem jeweiligen Rechner.", "muted", wrap=True)
+        about.setFixedWidth(516)
+        about.ensurePolished()
+        about.setMinimumHeight(about.heightForWidth(516) + 6)   # sonst schneidet der Dialog den umbrochenen Text ab
+        lay.addWidget(about)
+        lay.addWidget(label("Name oder Kürzel"))
+        lay.addWidget(name)
+        lay.addWidget(take)
+        lay.addWidget(note)
+        lay.addLayout(hbox(None, button("Abbrechen", box.reject), button("Anlegen", create, "primary")))
+        name.returnPressed.connect(create)
+        if box.exec() == QtWidgets.QDialog.Accepted and done.get("name"):
+            self.profile_pick(done["name"])
 
     def _update_show(self, state, name, kind, color, text, note, tip, enabled=True):
         self.update_state = state

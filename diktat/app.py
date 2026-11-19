@@ -73,6 +73,9 @@ class Diktat(QtCore.QObject):
         self.tray = QtWidgets.QSystemTrayIcon(make_icon(), self)
         self.menu = QtWidgets.QMenu()
         self.menu.addAction("LocalScribe öffnen", self.hub.open)
+        self.profile_menu = self.menu.addMenu("Profil")
+        self.profile_menu.aboutToShow.connect(lambda: self.hub.profile_actions(self.profile_menu))
+        self.menu.aboutToShow.connect(lambda: self.profile_menu.menuAction().setVisible(config.profiles_on()))
         self.menu.addAction("Letzten Text kopieren",
                             lambda: QtGui.QGuiApplication.clipboard().setMimeData(private_mime(self.store.last())))
         self.menu.addSeparator()

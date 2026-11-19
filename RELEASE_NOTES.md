@@ -1,3 +1,19 @@
+## LocalScribe 1.7.0
+
+- **Profile für mehrere Personen an einem Programmordner.** Liegt LocalScribe auf einem Netzlaufwerk, steht unten
+  links im Fenster, wer diktiert: „Dieser Rechner“ oder ein Profil. Ein Klick wählt ein Profil oder legt eines an.
+  Ein Profil enthält Wörterbuch, Wortschatz, Textbausteine, Aufträge, Tasten und das Stimmtraining mit seinen
+  Aufnahmen. Es liegt im Programmordner unter `profile\<Name>` und folgt der Person an jeden Rechner, der LocalScribe
+  von dort startet; der Rechner rechnet weiter selbst. Die Wahl merkt sich jeder Rechner je Windows-Konto: Am eigenen
+  Konto wählt man einmal, an einem Stationskonto wechselt man mit einem Klick, auch über das Symbol neben der Uhr.
+  Für einen einzelnen Rechner lässt sich das unter Einstellungen einschalten; sonst sieht man davon nichts.
+- **Was auf dem Rechner bleibt:** Verlauf, Fälle, Protokoll, Mikrofon, Server und Schlüssel. Profile haben kein
+  Passwort: Wer den Programmordner starten darf, kann jedes Profil wählen.
+- **Programmordner nicht erreichbar:** LocalScribe arbeitet mit der letzten Kopie auf dem Rechner weiter und führt
+  Änderungen und Aufnahmen zusammen, sobald der Ordner wieder da ist. Nutzen zwei Rechner gleichzeitig dasselbe
+  Profil, bleiben die Ergänzungen beider erhalten.
+- „Profil sichern“ und „Profil zurückholen“ gelten für das gewählte Profil.
+
 ## LocalScribe 1.6.1
 
 - **Update unten links im Fenster.** Dort steht jetzt die laufende Fassung. Ein Klick fragt bei GitHub nach einer

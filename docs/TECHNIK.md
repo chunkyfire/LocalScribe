@@ -1,6 +1,6 @@
 # LocalScribe – Technische Dokumentation
 
-Stand: Version 1.6.1. Für Betrieb, IT und alle, die den Code lesen oder prüfen wollen. Die Bedienung steht im
+Stand: Version 1.7.0. Für Betrieb, IT und alle, die den Code lesen oder prüfen wollen. Die Bedienung steht im
 [Handbuch](LocalScribe-Handbuch.pdf), die Messwerte mit Methode in [`werkzeug/messen/ERGEBNIS.md`](../werkzeug/messen/ERGEBNIS.md).
 
 ## 1. Was die App ist
@@ -240,6 +240,21 @@ ZIP-Archiv mit `einstellungen.json` (wie die bisherige Sicherung, ohne Schlüsse
 vorhandene nicht überschrieben (`config.export`, `config.restore`). Diktate, Fälle und der Schlüssel für ein
 Sprachmodell-Konto sind nicht enthalten.
 
+**Profile (seit 1.7.0).** Für mehrere Personen an einem Programmordner, typisch ein Netzlaufwerk, aus dem viele
+Rechner starten. Ein Profil ist ein Ordner `profile\<Name>` neben `LocalScribe.exe` mit `profil.json` (die
+persönlichen Einstellungen, `config.PERSONAL`: Wörterbuch, Wortschatz, gelernte Wörter, Berichtigungen,
+Textbausteine, Befehle, Aufträge, Tasten, Satzzeichen-Schalter, Fachrichtung, Fortschritt und Messungen des
+Stimmtrainings) und `training\` (Stimmaufnahmen). Angeboten wird das, wenn es den Ordner `profile` gibt oder das
+Programm auf einem Netzlaufwerk liegt, in das sich schreiben lässt (`config.profiles_on`); das erste Profil legt
+den Ordner an. Welches Profil gilt, steht je Windows-Konto in `config.json` (`profile_name`); dort bleiben auch
+die Einstellungen des Geräts (Mikrofon, Modellordner, Server, Verlauf) und unverändert die persönlichen Daten von
+„Dieser Rechner“. Geschrieben wird mit Zusammenführen (`config._merge`): Die App merkt sich den Stand beim letzten
+Lesen; was nur eine Seite geändert hat, gilt, bei Wörterbuch und Listen Eintrag für Eintrag, im echten Konflikt
+gewinnt der schreibende Rechner. Ist der Programmordner nicht erreichbar, gilt die Kopie unter
+`profil-kopie\<Name>.json` im Datenordner des Rechners, Aufnahmen sammeln sich daneben und wandern beim nächsten
+Kontakt ins Profil. Es gibt kein Passwort und keine Rollen: Zugriffsschutz ist die Windows-Anmeldung und das
+Recht auf den Programmordner. Verlauf, Fälle, Protokoll und Schlüssel liegen nie im Profil.
+
 ## 7. Daten auf dem Rechner
 
 Alles Eigene, auch der gelernte Wortschatz, liegt unter `%LOCALAPPDATA%\LocalScribe`, also je Windows-Konto
@@ -259,6 +274,7 @@ zuletzt `%TEMP%` aus (`config._dir`).
 | `config.json` | Einstellungen, Wörterbuch, Wortschatz, Textbausteine. Keine Schlüssel. |
 | `sicherung\einstellungen-….json` | Kopien von `config.json`: vor jedem Wechsel der Fassung und vor dem Zurückholen, die letzten zehn (`config.backup`). Zurückholen und in eine Datei sichern: Einstellungen, „Einstellungen sichern“. |
 | `verlauf.sqlite` | Verlauf der Diktate als Text, mit einstellbarer Aufbewahrungsfrist; abschaltbar |
+| `profil-kopie\` | nur mit gewähltem Profil: dessen letzte Kopie für den Fall, dass der Programmordner fehlt |
 | `modelle\` | Sprachmodell, Stimmmodell für die Sprechertrennung |
 | `diktat.log`, `absturz.log` | Betriebsmeldungen: Dauer, Zeichenzahl, Fehler. Kein diktierter Text. |
 | `aufnahmen\` | Sicherung einer laufenden langen Aufnahme; wird gelöscht, sobald der Text fertig ist |
@@ -327,6 +343,7 @@ zufälligen Schlüssel aus dem QR-Code. Ab Werk aus.
 | `visite_prompt` | eigene Anweisung für den Rahmen Notaufnahme; leer = die mitgelieferte. Station und Intensiv haben feste Aufträge (`visite.STATION`, `visite.ITS`) | leer |
 | `visite_model`, `visite_jev`, `visite_rules` | Modell für Arztbrief, Visiteneintrag und Übergabe (leer: bei OpenRouter `google/gemini-3.8-flash@low`, sonst das LLM-Modell; der Zusatz `@low` geht bei OpenRouter als `reasoning.effort` hinaus, `llm.model_of`), Jev-Modell (leer: `~typesafe/jev-latest`), Hausregeln für Jev | leer |
 | `update_check` | einmal am Tag von selbst bei GitHub nach einer neueren Fassung fragen | aus |
+| `profile_name` | gewähltes Profil am Programmordner; leer = die Daten dieses Rechners | leer |
 | `training_keep` | vorgelesene Übungs- und Prüfsätze als Ton aufheben (kein Schalter im Fenster; für eine zentrale Vorgabe) | an (seit 1.6.0) |
 | `field`, `training_scores` | Fachrichtung im Stimmtraining; Messungen mit Prüfsätzen (Zeitpunkt, Wortfehler, Trainingsminuten) | leer |
 | `phone` | Handy als Mikrofon | aus |

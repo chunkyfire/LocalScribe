@@ -816,5 +816,88 @@ try:
     check("Sicherung: es bleiben zehn", len(list((config.DIR / config.BACKUPS).glob("*.json"))) == 10)
 finally:
     config.DIR, config.FILE = _real
+
+# ---- 1.7.0: Profile für mehrere Personen an einem Programmordner ----
+import copy as _copy
+import shutil as _shutil
+import zipfile as _zipfile
+_real = (config.DIR, config.FILE)
+tmp = pathlib.Path(tempfile.mkdtemp())
+try:
+
+    def pc(n):                     # ein Rechner: eigener Datenordner, derselbe Programmordner
+        config.DIR = tmp / f"pc{n}"; config.FILE = config.DIR / "config.json"
+    config.PROFILE_ROOT = tmp / "programm" / "profile"
+    M = config._merge; G = config._GONE
+    check("Zusammenführen: nur die andere Seite hat geändert", M({"a":1},{"a":1},{"a":1,"b":2}) == {"a":1,"b":2})
+    check("Zusammenführen: beide ergänzen ein Wörterbuch", M({"a":"A"},{"a":"A","x":"X"},{"a":"A","y":"Y"}) == {"a":"A","x":"X","y":"Y"})
+    check("Zusammenführen: hier gelöscht, dort unverändert -> weg", M({"a":"A","b":"B"},{"a":"A"},{"a":"A","b":"B","c":"C"}) == {"a":"A","c":"C"})
+    check("Zusammenführen: Konflikt -> dieser Rechner", M({"a":"A"},{"a":"hier"},{"a":"dort"}) == {"a":"hier"})
+    check("Zusammenführen: Listen ergänzen und streichen", M(["a","b"],["a","b","c"],["b","d"]) == ["b","c","d"], M(["a","b"],["a","b","c"],["b","d"]))
+    P=lambda n,t: {"name":n,"text":t}
+    check("Zusammenführen: Aufträge nach Namen", [p["text"] for p in M([P("A","1"),P("B","1")],[P("A","2"),P("B","1")],[P("A","1"),P("B","1"),P("C","1")])] == ["2","1","1"])
+    check("Namen: Sonderzeichen raus, reservierte nicht", config.clean_name(' Dr. A/B:C? ') == "Dr. ABC" and config.clean_name("con") == "" and config.clean_name("_x") == "")
+    # ohne Profilordner: nichts angeboten, alles wie bisher
+    pc(1); cfg = config.load()
+    check("Ohne Ordner „profile“ und ohne Netzlaufwerk gibt es keine Profile", not config.profiles_on() and config.ACTIVE == "")
+    cfg["dictionary"] = {"Riba": "RIVA"}; cfg["microphone"] = "Mikro PC1"; config.save(cfg)
+    config.profiles_enable(); check("Einschalten legt den Ordner an", config.profiles_on() and config.profile_names() == [])
+    # erstes Profil nimmt die Daten dieses Rechners mit
+    name = config.profile_create("Cem", cfg); config.profile_use(cfg, name)
+    check("Profil angelegt, gewählt, gemerkt", config.ACTIVE == "Cem" and cfg["profile_name"] == "Cem" and config.profile_names() == ["Cem"])
+    check("Daten des Rechners sind mitgegangen", cfg["dictionary"] == {"Riba": "RIVA"})
+    cfg["dictionary"]["Apikzaban"] = "Apixaban"; cfg["training_done"] = ["Satz 1"]; config.save(cfg)
+    on_share = json.loads((config.PROFILE_ROOT / "Cem" / "profil.json").read_text(encoding="utf8"))
+    local = json.loads(config.FILE.read_text(encoding="utf8"))
+    check("Persönliches steht im Profil", on_share["dictionary"] == {"Riba": "RIVA", "Apikzaban": "Apixaban"} and "microphone" not in on_share)
+    check("config.json behält die Daten von „Dieser Rechner“ und das Gerät", local["dictionary"] == {"Riba": "RIVA"} and local["microphone"] == "Mikro PC1" and local["profile_name"] == "Cem")
+    check("Kein Schlüssel, kein Verlauf im Profilordner", sorted(p.name for p in (config.PROFILE_ROOT / "Cem").iterdir()) == ["profil.json"])
+    # Stimmaufnahmen liegen im Profil
+    training.keep(np.zeros(16000, dtype=np.float32), "Ein Satz."); training.keep(np.zeros(16000, dtype=np.float32), "Prüfsatz.", test=True)
+    check("Stimmaufnahmen im Profil", training.store() == config.PROFILE_ROOT / "Cem" / "training" and training.kept()[0] == 1 and training.kept(test=True)[0] == 1)
+    # zweiter Rechner, dasselbe Profil
+    pc(2); cfg2 = config.load()
+    check("Zweiter Rechner startet ohne Profil", config.ACTIVE == "" and cfg2["dictionary"] == {})
+    cfg2["microphone"] = "Mikro PC2"; config.profile_use(cfg2, "Cem")
+    check("Zweiter Rechner sieht Wörterbuch, Fortschritt, Aufnahmen", cfg2["dictionary"].get("Apikzaban") == "Apixaban" and cfg2["training_done"] == ["Satz 1"] and training.kept()[0] == 1 and cfg2["microphone"] == "Mikro PC2")
+    cfg2["dictionary"]["Trimbo"] = "Trimbow"; config.save(cfg2)
+    # erster Rechner arbeitet gleichzeitig weiter (hat den Stand von vorhin im Speicher)
+    pc(1); config.ACTIVE = "Cem"; config.OFFLINE = False; config._base = _copy.deepcopy(on_share)
+    del cfg["dictionary"]["Riba"]; cfg["dictionary"]["Lipaze"] = "Lipase"; config.save(cfg)
+    check("Gleichzeitig an zwei Rechnern: beides bleibt, Gelöschtes bleibt gelöscht", cfg["dictionary"] == {"Apikzaban": "Apixaban", "Lipaze": "Lipase", "Trimbo": "Trimbow"}, cfg["dictionary"])
+    # Programmordner nicht erreichbar
+    share = tmp / "programm"; away = tmp / "programm-weg"; share.rename(away)
+    cfg = config.load()
+    check("Ordner weg: Start mit der Kopie von diesem Rechner", config.ACTIVE == "Cem" and config.OFFLINE and cfg["dictionary"].get("Trimbo") == "Trimbow")
+    cfg["dictionary"]["Metoprolohl"] = "Metoprolol"; config.save(cfg)
+    training.keep(np.full(16000, 0.1, dtype=np.float32), "Ohne Netz gelesen.")
+    check("Ordner weg: Aufnahme landet vorerst auf dem Rechner", config.COPIES in str(training.store()) and training.kept()[0] == 1)
+    # inzwischen ändert der zweite Rechner etwas (Ordner wieder da)
+    away.rename(share); pc(2); cfg2 = config.load(); cfg2["dictionary"]["Kwick"] = "Quick"; config.save(cfg2)
+    pc(1); cfg = config.load()
+    check("Ordner wieder da: zusammengeführt", not config.OFFLINE and cfg["dictionary"].get("Metoprolohl") == "Metoprolol" and cfg["dictionary"].get("Kwick") == "Quick", cfg["dictionary"])
+    check("Aufnahme von unterwegs liegt jetzt im Profil", training.kept()[0] == 2 and not (config.DIR / config.COPIES / "Cem" / "training").exists(), training.kept())
+    # zurück zu „Dieser Rechner“
+    config.profile_use(cfg, "")
+    check("Zurück zu „Dieser Rechner“: dessen Daten unverändert", config.ACTIVE == "" and cfg["dictionary"] == {"Riba": "RIVA"} and cfg["profile_name"] == "" and training.kept()[0] == 0, cfg["dictionary"])
+    # neues leeres Profil
+    config.profile_create("Station 3"); config.profile_use(cfg, "Station 3")
+    check("Neues leeres Profil beginnt mit der Werkseinstellung", cfg["dictionary"] == {} and config.profile_names() == ["Cem", "Station 3"] and cfg["microphone"] == "Mikro PC1")
+    try: config.profile_create("cem"); dup = False
+    except ValueError: dup = True
+    check("Denselben Namen gibt es nicht zweimal (Groß und klein egal)", dup)
+    # Profil sichern und zurückholen bei gewähltem Profil
+    config.profile_use(cfg, "Cem"); f = tmp / "cem.lsprofil"; n = config.export(f)
+    z = _zipfile.ZipFile(f); s = json.loads(z.read("einstellungen.json"))
+    check("Profil sichern nimmt die Daten des gewählten Profils", n == 3 and s["dictionary"].get("Kwick") == "Quick" and s["microphone"] == "Mikro PC1", (n, list(s["dictionary"])))
+    config.profile_use(cfg, "Station 3"); got = config.restore(f); voice = got.pop("_voice", None)
+    check("Zurückholen ins gewählte Profil", config.ACTIVE == "Station 3" and got["dictionary"].get("Kwick") == "Quick" and voice == 3 and training.kept()[0] == 2, (config.ACTIVE, voice, training.kept()))
+    check("„Dieser Rechner“ bleibt beim Zurückholen unberührt", json.loads(config.FILE.read_text(encoding="utf8"))["dictionary"] == {"Riba": "RIVA"})
+    # gelöschtes Profil
+    _shutil.rmtree(config.PROFILE_ROOT / "Station 3"); cfg = config.load()
+    check("Profil gelöscht: zurück zu „Dieser Rechner“", config.ACTIVE == "" and cfg["profile_name"] == "" and cfg["dictionary"] == {"Riba": "RIVA"})
+finally:
+    config.DIR, config.FILE = _real
+    config.PROFILE_ROOT, config.ACTIVE, config.OFFLINE, config._base = None, "", False, {}
 print("FEHLER:" if failed else "ALLES OK", failed or "")
 sys.exit(1 if failed else 0)
