@@ -28,6 +28,7 @@ LocalScribe selbst steht unter der GPL-3.0-or-later (siehe `LICENSE`).
 | [cryptography](https://cryptography.io/) | erzeugt das Zertifikat für „Handy als Mikrofon“ | Apache-2.0 oder BSD-3-Clause | ja |
 | [Segno](https://github.com/heuer/segno) | zeichnet den QR-Code | BSD-3-Clause | ja |
 | [NumPy](https://numpy.org/) | Rechnen mit Audiodaten | BSD-3-Clause | ja |
+| [Space Grotesk](https://github.com/floriankarsten/space-grotesk) (Florian Karsten) | Schrift für Überschriften und die Zeitanzeige; Lizenztext in `diktat/schrift/OFL.txt` | OFL-1.1 | ja |
 | [Python](https://www.python.org/) | Laufzeit | PSF-2.0 | ja |
 
 Die GPL für LocalScribe folgt aus dem mitgelieferten FFmpeg: Wer die ZIP-Datei weitergibt, gibt

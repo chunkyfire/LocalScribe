@@ -1,7 +1,9 @@
 """Das App-Fenster: Verlauf, Wörterbuch, Textbausteine, KI-Nachbearbeitung, Einstellungen."""
+import collections
 import copy
 import difflib
 import logging
+import math
 import os
 import re
 import threading
@@ -41,9 +43,9 @@ QWidget { background: transparent; color: #F1F3F2; font-family: "Segoe UI Variab
 QDialog, QMessageBox, QToolTip { background: #121416; }
 QToolTip { color: #F1F3F2; border: 1px solid #2A2E33; padding: 5px 8px; }
 QLabel, QCheckBox { background: transparent; }
-QLabel#h1 { font-size: 19pt; font-weight: 600; }
+QLabel#h1 { font-family: "Space Grotesk", "Segoe UI Variable Display", "Segoe UI"; font-size: 20pt; font-weight: 500; }
 QLabel#h2 { font-size: 11pt; font-weight: 600; }
-QLabel#brand { font-size: 13pt; font-weight: 700; }
+QLabel#brand { font-family: "Space Grotesk", "Segoe UI Variable Display", "Segoe UI"; font-size: 13.5pt; font-weight: 700; }
 QLabel#muted, QLabel#time { color: #9AA0A6; }
 QLabel#day { color: #8C8C8C; font-size: 8pt; font-weight: 700; padding: 14px 4px 6px 4px; }
 QLabel#num { font-size: 16pt; font-weight: 600; }
@@ -155,12 +157,15 @@ QFrame#box QProgressBar#dim::chunk { background: #3A3A3A; border-radius: 2px; }
 QFrame#box QLabel { font-size: 9pt; }
 QFrame#box QLabel#chipLine { background: transparent; color: #C6FF3D; border: 1px solid #3C5412; border-radius: 9px;
     padding: 2px 8px; font-weight: 600; }
-QPushButton#recPill { background: #C6FF3D; color: #0B0B0B; border: none; border-radius: 14px; padding: 9px 20px; font-weight: 700; }
+QPushButton#recPill { background: #C6FF3D; color: #0B0B0B; border: none; border-radius: 18px; padding: 9px 20px; font-weight: 700; }
 QPushButton#recPill:hover { background: #D4FF6A; }
-QPushButton#recBig { background: #C6FF3D; color: #0B0B0B; border: 8px solid rgba(198, 255, 61, 0.22); border-radius: 66px;
-                     font-size: 30pt; padding: 0; }
-QPushButton#recBig:hover { background: #D4FF6A; }
-QPushButton#recPillOn { background: #FF5A4D; color: #0B0B0B; border: none; border-radius: 14px; padding: 9px 20px; font-weight: 700; }
+QPushButton#recHero { background: #C6FF3D; color: #0B0B0B; border: none; border-radius: 32px; padding: 0 34px;
+                      font-size: 12.5pt; font-weight: 600; }
+QPushButton#recHero:hover { background: #D4FF6A; }
+QPushButton#recHero:disabled { background: #2A2A2A; color: #6A6A6A; }
+QPushButton#recPillOn { background: #FF7A4D; color: #16100D; border: none; border-radius: 18px; padding: 9px 20px; font-weight: 700; }
+QPushButton#recPillOn:hover { background: #FF9068; }
+QPushButton#fileBtn { padding: 9px 18px; border-radius: 12px; }
 QPushButton#recPill:disabled { background: #2A2A2A; color: #6A6A6A; }
 QScrollBar:vertical { background: transparent; width: 10px; margin: 2px; }
 QScrollBar::handle:vertical { background: rgba(255, 255, 255, 0.14); border-radius: 4px; min-height: 30px; }
@@ -208,6 +213,263 @@ def glyph(kind, color):
         p.drawPolyline([P(9, 8), P(17, 11), P(11, 19)])
     p.end()
     return QtGui.QIcon(pm)
+
+
+FONT = ["Space Grotesk", "Segoe UI Variable Display", "Segoe UI"]     # Überschriften und Zeit; Space Grotesk liegt bei
+
+
+def load_fonts():
+    """Die mitgelieferte Schrift einmal anmelden (Space Grotesk, SIL Open Font License; diktat/schrift)."""
+    if getattr(load_fonts, "done", False):
+        return
+    load_fonts.done = True
+    folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), "schrift")
+    try:
+        for name in sorted(os.listdir(folder)):
+            if name.lower().endswith(".ttf"):
+                QtGui.QFontDatabase.addApplicationFont(os.path.join(folder, name))
+    except OSError:
+        log.warning("Schrift nicht gefunden: %s", folder)      # dann greift die Schrift von Windows
+
+
+def _canvas(size):
+    """Zeichenfläche für ein Zeichen auf 24 x 24 Einheiten, dreifach aufgelöst: scharf bei jeder Bildschirmskalierung."""
+    pm = QtGui.QPixmap(size * 3, size * 3)
+    pm.setDevicePixelRatio(3)
+    pm.fill(Qt.transparent)
+    p = QtGui.QPainter(pm)
+    p.setRenderHint(QtGui.QPainter.Antialiasing)
+    p.scale(size / 24, size / 24)
+    return pm, p
+
+
+def _mic(p):
+    p.drawRoundedRect(QtCore.QRectF(9, 3, 6, 12), 3, 3)
+    p.drawArc(QtCore.QRectF(5, 4, 14, 14), 180 * 16, 180 * 16)
+    p.drawLine(QtCore.QPointF(12, 18), QtCore.QPointF(12, 21))
+
+
+def rec_icon(kind, color="#0B0B0B", size=24):
+    """Mikrofon oder Stopp-Quadrat für den Aufnahmeknopf: gezeichnet und damit genau mittig, kein Schriftzeichen."""
+    pm, p = _canvas(size)
+    if kind == "stop":
+        p.setPen(Qt.NoPen)
+        p.setBrush(QtGui.QColor(color))
+        p.drawRoundedRect(QtCore.QRectF(6.5, 6.5, 11, 11), 2.2, 2.2)
+    else:
+        p.setPen(QtGui.QPen(QtGui.QColor(color), 2, Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin))
+        _mic(p)
+    p.end()
+    return QtGui.QIcon(pm)
+
+
+def nav_icon(kind, size=18):
+    """Zeichen vor den Menüpunkten: grau, beim gewählten Punkt in Lime."""
+    P, R = QtCore.QPointF, QtCore.QRectF
+    icon = QtGui.QIcon()
+    for color, state in (("#A3A9B0", QtGui.QIcon.Off), ("#C6FF3D", QtGui.QIcon.On)):
+        pm, p = _canvas(size)
+        p.setPen(QtGui.QPen(QtGui.QColor(color), 1.7, Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin))
+        if kind == "Verlauf":                               # Uhr
+            p.drawEllipse(P(12, 12), 8.5, 8.5)
+            p.drawPolyline([P(12, 7.5), P(12, 12), P(15, 14)])
+        elif kind == "Aufnahme":                            # Mikrofon
+            _mic(p)
+        elif kind == "Übergabe":                            # zwei Pfeile, hin und zurück
+            p.drawLine(P(4, 8), P(17, 8))
+            p.drawPolyline([P(14, 5), P(17, 8), P(14, 11)])
+            p.drawLine(P(20, 16), P(7, 16))
+            p.drawPolyline([P(10, 13), P(7, 16), P(10, 19)])
+        elif kind == "Wortschatz":                          # Buch
+            path = QtGui.QPainterPath(P(5, 4.5))
+            path.lineTo(16, 4.5)
+            path.arcTo(R(13, 4.5, 6, 6), 90, -90)
+            path.lineTo(19, 19.5)
+            path.lineTo(8, 19.5)
+            path.arcTo(R(5, 13.5, 6, 6), 270, -90)
+            path.closeSubpath()
+            p.drawPath(path)
+            p.drawLine(P(9, 9), P(15, 9))
+            p.drawLine(P(9, 13), P(13, 13))
+        else:                                               # Einstellungen: zwei Schieberegler
+            p.drawLine(P(4, 7), P(14, 7))
+            p.drawLine(P(18, 7), P(20, 7))
+            p.drawEllipse(P(16, 7), 2, 2)
+            p.drawLine(P(4, 17), P(6, 17))
+            p.drawLine(P(10, 17), P(20, 17))
+            p.drawEllipse(P(8, 17), 2, 2)
+        p.end()
+        icon.addPixmap(pm, QtGui.QIcon.Normal, state)
+    return icon
+
+
+class Clock(QtWidgets.QWidget):
+    """Zeitanzeige in der Schrift der Überschriften. Jede Ziffer bekommt dieselbe Breite, damit beim Zählen nichts
+    springt; die Höhe ist genau die der Ziffern, damit nichts abgeschnitten wird und die Abstände stimmen."""
+
+    def __init__(self, px=104, color="#F1F3F2"):
+        super().__init__()
+        self.text, self.color = "00:00", QtGui.QColor(color)
+        self.setAttribute(Qt.WA_TransparentForMouseEvents)
+        self.set_px(px)
+
+    def set_px(self, px):
+        self.px = max(12, int(px))
+        self.font_ = QtGui.QFont()
+        self.font_.setFamilies(FONT)
+        self.font_.setPixelSize(self.px)
+        self.font_.setWeight(QtGui.QFont.Light)
+        fm = QtGui.QFontMetricsF(self.font_)
+        self.cell = max(fm.horizontalAdvance(d) for d in "0123456789") * 0.95
+        self.colon = fm.horizontalAdvance(":") * 0.9
+        box = fm.tightBoundingRect("0123456789:")
+        self.base = 3 - box.top()
+        self.high = int(box.height() + 6.99)
+        self._size()
+
+    def _size(self):
+        width = sum(self.colon if c == ":" else self.cell for c in self.text)
+        self.setFixedSize(int(width + 2.99), self.high)
+
+    def setText(self, text):
+        if text != self.text:
+            grow = len(text) != len(self.text)
+            self.text = text
+            if grow:
+                self._size()
+            self.update()
+
+    def paintEvent(self, _):
+        p = QtGui.QPainter(self)
+        p.setRenderHint(QtGui.QPainter.TextAntialiasing)
+        p.setFont(self.font_)
+        p.setPen(self.color)
+        fm, x = QtGui.QFontMetricsF(self.font_), 1.0
+        for c in self.text:
+            wide = self.colon if c == ":" else self.cell
+            p.drawText(QtCore.QPointF(x + (wide - fm.horizontalAdvance(c)) / 2, self.base), c)
+            x += wide
+        p.end()
+
+
+class Wave(QtWidgets.QWidget):
+    """Wellenform aus Strichen: in Ruhe eine feste Form, bei der Aufnahme der Pegel der letzten Sekunden (neu = rechts)."""
+    LIME, GREY = QtGui.QColor("#C6FF3D"), QtGui.QColor(255, 255, 255, 51)
+
+    def __init__(self, bars=64, height=96, width=None):
+        super().__init__()
+        self.n, self.live = bars, False
+        self.setFixedHeight(height)
+        if width:
+            self.setFixedWidth(width)
+        else:
+            self.setMinimumWidth(160)
+        self.setAttribute(Qt.WA_TransparentForMouseEvents)
+        half = bars / 2
+        self.rest = [0.08 + 0.74 * abs(math.sin(i * 1.7) * math.sin(i * 0.37 + 1)) * (0.35 + 0.65 * (1 - abs(i - half) / half))
+                     for i in range(bars)]
+        self.levels = collections.deque([0.0] * bars, maxlen=bars)
+
+    def start(self):
+        self.live = True
+        self.levels.extend([0.0] * self.n)
+        self.update()
+
+    def stop(self):
+        self.live = False
+        self.update()
+
+    def feed(self, level):
+        """level: Effektivwert des letzten Tonstücks (0 bis 1); Sprache liegt meist zwischen 0,01 und 0,2."""
+        self.levels.append(min(1.0, (max(0.0, level) * 9) ** 0.6))
+        self.update()
+
+    def paintEvent(self, _):
+        p = QtGui.QPainter(self)
+        p.setRenderHint(QtGui.QPainter.Antialiasing)
+        p.setPen(Qt.NoPen)
+        step = self.width() / self.n
+        bar = max(2.0, min(4.0, step * 0.45))
+        values = list(self.levels) if self.live else self.rest
+        for i, v in enumerate(values):
+            hot = i >= self.n - 12 if self.live else abs(i - self.n / 2 + 0.5) <= 6
+            h = max(bar, v * self.height())
+            p.setBrush(self.LIME if hot and (v > 0.04 or not self.live) else self.GREY)
+            p.drawRoundedRect(QtCore.QRectF((i + 0.5) * step - bar / 2, (self.height() - h) / 2, bar, h), bar / 2, bar / 2)
+        p.end()
+
+
+class Hero(QtWidgets.QWidget):
+    """Leerer Zustand der Seite Aufnahme: große Zeit, Wellenform, breiter Startknopf, darunter „Datei laden“.
+    Passt sich der Höhe an: Wird es eng (kleines Fenster, Band mit einem Download darüber), werden Zeit, Wellenform
+    und Abstände kleiner, zuletzt entfällt die Wellenform. Abgeschnitten oder übereinander liegt nie etwas."""
+
+    def __init__(self, start, load):
+        super().__init__()
+        self.clock = Clock(104)
+        self.wave = Wave(64, 96, 576)
+        self.go = button("  Aufnahme starten", start, "recHero")
+        self.go.setIconSize(QtCore.QSize(24, 24))
+        self.go.setIcon(rec_icon("mic"))
+        glow = QtWidgets.QGraphicsDropShadowEffect(self.go)
+        glow.setBlurRadius(48)
+        glow.setOffset(0, 0)
+        glow.setColor(QtGui.QColor(198, 255, 61, 66))
+        self.go.setGraphicsEffect(glow)
+        self.file = button("Datei laden …", load, "fileBtn")
+        self.file.setToolTip("Audio- oder Videodatei transkribieren. Sie verlässt diesen Rechner nicht.")
+        self.hint = label("Ein zweiter Klick beendet. Der Text läuft live mit und wird gespeichert.", "muted")
+        self.note = label("", "bad")
+        self.note.setAlignment(Qt.AlignHCenter)
+        self.note.setWordWrap(True)
+        self.note.hide()
+        self.lay = QtWidgets.QVBoxLayout(self)
+        self.lay.setContentsMargins(0, 0, 0, 0)
+        self.lay.addStretch(5)
+        self.lay.addWidget(self.clock, 0, Qt.AlignHCenter)
+        self.lay.addWidget(self.wave, 0, Qt.AlignHCenter)
+        self.lay.addWidget(self.go, 0, Qt.AlignHCenter)
+        self.lay.addLayout(hbox(None, self.file, self.hint, None, spacing=14))
+        self.lay.addWidget(self.note)
+        self.lay.addStretch(6)
+        self.setMinimumHeight(150)
+        self.scale = None
+        self.fit(1.0, True)
+
+    def say(self, text):
+        self.note.setText(text)
+        self.note.setVisible(bool(text))
+        self._refit()
+
+    def need(self, s, wave):
+        """Höhe des Inhalts bei Maßstab s."""
+        gap, rows = round(26 * s), 3 if wave else 2
+        note = self.note.sizeHint().height() + gap if self.note.isVisible() else 0
+        return (Clock(round(104 * s)).high + (round(96 * s) if wave else 0) + max(48, round(64 * s))
+                + self.file.sizeHint().height() + rows * gap + note)
+
+    def fit(self, s, wave):
+        if (s, wave) == self.scale:
+            return
+        self.scale = (s, wave)
+        high = max(48, round(64 * s))
+        self.clock.set_px(round(104 * s))
+        self.wave.setVisible(wave)
+        self.wave.setFixedSize(round(576 * s), round(96 * s))
+        self.go.setFixedHeight(high)
+        self.go.setStyleSheet(f"border-radius: {high // 2}px;")     # Rundung nie größer als die halbe Höhe
+        self.lay.setSpacing(round(26 * s))
+
+    def _refit(self):
+        room = self.height() - 8
+        for s in (1.0, 0.9, 0.8, 0.7, 0.6, 0.5):
+            if self.need(s, True) <= room:
+                return self.fit(s, True)
+        self.fit(0.5, self.need(0.5, True) <= room + 40)
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self._refit()
 
 
 def restyle(widget, name):
@@ -1138,9 +1400,7 @@ class VisitPage(Page):
                              "Ausgaben sind Entwürfe und Wahrscheinlichkeiten von Modellen und vor jeder Verwendung zu "
                              "prüfen.", scroll=False)
         else:
-            super().__init__("Aufnahme",
-                             "Aufnehmen oder eine Datei laden. Das Transkript wird gespeichert; danach macht ein Klick "
-                             "daraus einen Visiteneintrag, ein Protokoll, einen Arztbrief oder einen Pflegebericht.", scroll=False)
+            super().__init__("Aufnahme", scroll=False)
         self.ctl = ctl
         self.tab_names = ("Fall", "Fälle", "Papierkorb") if handover else ("Aufnahme", "Gespeichert", "Papierkorb")
         self.store = visite.Store(config.DIR / ("visite.sqlite" if handover else "aufnahme.sqlite"))
@@ -1152,7 +1412,7 @@ class VisitPage(Page):
             b = QtWidgets.QPushButton(name, checkable=True, objectName="tab")
             b.setCursor(Qt.PointingHandCursor)
             self.tabs.addButton(b, i)
-            row.addWidget(b)
+            (row if handover else self.head).addWidget(b)       # Aufnahme: Reiter rechts neben der Überschrift
         row.addStretch(1)
         # Übergabe: der Rahmen bestimmt, was gefragt und geschrieben wird (Notaufnahme, Station, Intensiv)
         self.frames = QtWidgets.QButtonGroup(self)
@@ -1169,13 +1429,18 @@ class VisitPage(Page):
                 fl.addWidget(b)
             self.frames.idClicked.connect(self._frame_picked)
             row.addWidget(self.frame_bar)
-        self.body.addLayout(row)
+        if handover:
+            self.body.addLayout(row)
+        else:
+            self.head.setSpacing(6)
         self.stack = QtWidgets.QStackedWidget()
         self.body.addWidget(self.stack, 1)
 
         # Neuer Patient: oben eine schmale Leiste und der Text, darunter das Ergebnis über die ganze Breite
         self.name = QtWidgets.QLineEdit(placeholderText="Fallbezeichnung, z. B. Zimmer 4 oder Kürzel (kein Klarname nötig)")
-        self.rec = button("●  Aufnahme", self._record, "recPill")
+        self.rec = button(" Aufnahme", self._record, "recPill")
+        self.rec.setIcon(rec_icon("mic", size=18))
+        self.rec.setIconSize(QtCore.QSize(18, 18))
         self.split = QtWidgets.QCheckBox("Sprecher trennen")
         self.split.setToolTip("Für Gespräche mit mehreren Personen: „Sprecher 1: …“, „Sprecher 2: …“. Läuft auf diesem Rechner.")
         self.split.toggled.connect(lambda on: LongPage._split(self, on))
@@ -1199,21 +1464,9 @@ class VisitPage(Page):
         self.put = button("Zur Ablage legen", self._put)
         self.put.setToolTip("Legt den Text aus dem Feld als Eintrag in die Ablage und macht das Feld frei für das nächste "
                             "Diktat, etwa den Verlauf oder die Übergabe.")
-        # Aufnahme: leerer Zustand mit einem großen Knopf
-        self.rec_big = button("●", self._record, "recBig")
-        self.rec_big.setFixedSize(132, 132)
-        self.hero = QtWidgets.QWidget()
-        hl = QtWidgets.QVBoxLayout(self.hero)
-        hl.setSpacing(14)
-        hl.addStretch(2)
-        hl.addWidget(self.rec_big, 0, Qt.AlignHCenter)
-        hl.addWidget(label("Aufnehmen", "h2"), 0, Qt.AlignHCenter)
-        hl.addWidget(label("Klicken zum Starten, noch einmal zum Beenden. Der Text läuft mit und wird gespeichert.", "muted"),
-                     0, Qt.AlignHCenter)
-        hl.addLayout(hbox(None, button("Datei laden …", self._file), None))
-        self.hero_note = label("", "bad")
-        hl.addWidget(self.hero_note, 0, Qt.AlignHCenter)
-        hl.addStretch(3)
+        # Aufnahme: leerer Zustand mit Zeit, Wellenform und einem breiten Startknopf
+        self.hero = Hero(self._record, self._file)
+        self.rec_big = self.hero.go
         # Aufnahme, die beim letzten Mal nicht fertig wurde (Absturz, Stromausfall, Fehler)
         self.left_text = label("", wrap=True)
         self.left_card = card(hbox((self.left_text, 1), button("Jetzt transkribieren", self.recover, "primary"),
@@ -1227,6 +1480,13 @@ class VisitPage(Page):
         self.bar = QtWidgets.QWidget()
         self.bar.setLayout(hbox(self.rec, self.load, (self.name, 1), self.split, button("Neu", self._new)))
         top.addWidget(self.bar)
+        self.live_clock = Clock(30)
+        self.live_wave = Wave(96, 44)
+        self.pulse = QtWidgets.QWidget()                 # nur während der Aufnahme: Zeit und Pegel
+        self.pulse.setLayout(hbox(self.live_clock, (self.live_wave, 1), spacing=18))
+        self.pulse.layout().setContentsMargins(4, 6, 4, 2)
+        self.pulse.hide()
+        top.addWidget(self.pulse)
         top.addWidget(self.left_card)
         top.addWidget(self.hero, 1)
         top.addLayout(hbox((self.state, 1), self.note))
@@ -1274,7 +1534,8 @@ class VisitPage(Page):
         self.job.glimpse.connect(lambda g: self._live(self.heard, g))
         self.job.finished.connect(self._recorded)
         self.recording, self.before, self.heard, self.started = False, "", "", 0.0
-        self.tick = QTimer(self, interval=250, timeout=lambda: self.rec.setText("■  Stopp  " + clock(time.time() - self.started)))
+        self.tick = QTimer(self, interval=250, timeout=lambda: self.live_clock.setText(clock(time.time() - self.started)))
+        self.meter = QTimer(self, interval=50, timeout=lambda: self.live_wave.feed(self.job.level))
 
         # Fallliste und Papierkorb
         self.lists = []
@@ -1384,6 +1645,7 @@ class VisitPage(Page):
         empty = (not self.handover and not self.recording and not self.job.running and self.result is None
                  and not self.text.toPlainText().strip() and not self.typing)
         self.hero.setVisible(empty)
+        self.pulse.setVisible(self.recording)
         for w in (self.bar, self.state, self.note, self.text, self.tasks):
             w.setVisible(not empty)
         if self.handover:
@@ -1531,6 +1793,9 @@ class VisitPage(Page):
             return self.note.setText("Kein Sprachmodell eingestellt. Unter Einstellungen, LLM, Server und Modell wählen.")
         if name in self.waiting:
             return
+        if schutz.blocked(server) and self.window().shield_wait(lambda n=name: self._task(n)):
+            restyle(self.note, "muted")           # statt einer Fehlermeldung: laden und danach von selbst weitermachen
+            return self.note.setText("Die Namenserkennung wird einmalig geladen. Der Auftrag startet danach von selbst.")
         self.saver.stop()
         self._save()
         restyle(self.note, "muted")
@@ -1570,7 +1835,7 @@ class VisitPage(Page):
     def info(self, text, bad=False):
         restyle(self.state, "bad" if bad else "muted")
         self.state.setText(text)
-        self.hero_note.setText(text if bad else "")
+        self.hero.say(text if bad else "")
 
     def _tab(self, i):
         self.tabs.button(i).setChecked(True)
@@ -1661,15 +1926,30 @@ class VisitPage(Page):
         self._show(row[2])
 
     # ----- Aufnahme
+    def _rec_look(self, on):
+        """Knopf in der Leiste und die Zeile mit Zeit und Pegel: Aufnahme läuft oder nicht."""
+        restyle(self.rec, "recPillOn" if on else "recPill")
+        self.rec.setText(" Stopp" if on else " Aufnahme")
+        self.rec.setIcon(rec_icon("stop", "#16100D", 18) if on else rec_icon("mic", size=18))
+        self.live_clock.setText("00:00")
+        if on:
+            self.live_wave.start()
+            self.tick.start()
+            self.meter.start()
+        else:
+            self.tick.stop()
+            self.meter.stop()
+            self.live_wave.stop()
+        self.pulse.setVisible(on)
+
     def _record(self):
         if self.recording:
             self.recording = False
-            self.tick.stop()
             self.ctl.keep_awake(False)
             self.job.stop_recording()
             self.rec.setEnabled(False)
-            restyle(self.rec, "recPill")
-            self.rec.setText("●  Aufnahme")
+            self._rec_look(False)
+            self.rec.setText(" Schreibt …")
             return self.info("Schreibe den Rest fertig …")
         if self.job.running or self.window().busy():
             return self.info("Es läuft schon eine Aufnahme oder Transkription.", bad=True)
@@ -1687,10 +1967,8 @@ class VisitPage(Page):
         self.before = self.text.toPlainText().rstrip()        # schon Getipptes bleibt, die Aufnahme kommt dahinter
         self.text.setReadOnly(True)
         self.tasks.setEnabled(False)
-        restyle(self.rec, "recPillOn")
-        self.rec.setText("■  Stopp  00:00")
+        self._rec_look(True)
         self.info("Nimmt auf … Der Text läuft mit.")
-        self.tick.start()
 
     def _whole(self, text):
         return (self.before + "\n\n" + text if self.before and text else self.before or text)
@@ -1716,15 +1994,14 @@ class VisitPage(Page):
     def _recorded(self, text, seconds, error):
         if self.recording:                              # Abbruch durch einen Fehler mitten in der Aufnahme
             self.recording = False
-            self.tick.stop()
             self.ctl.keep_awake(False)
             self.job.stop_recording()
-            restyle(self.rec, "recPill")
-            self.rec.setText("●  Aufnahme")
+            self._rec_look(False)
         self.heard = text
         self._live(text)
         self.text.setReadOnly(False)
         self.rec.setEnabled(True)
+        self.rec.setText(" Aufnahme")
         self.tasks.setEnabled(True)
         self.refresh()
         if text.strip() or self.before:
@@ -1741,8 +2018,9 @@ class VisitPage(Page):
         elif text.strip():
             n = self.job.speakers
             who = f" {n} Sprecher erkannt." if self.ctl.cfg.get("speakers") and n > 1 else ""
+            then = "„Auswerten“" if self.handover else "unten wählen, was daraus werden soll"
             self.info(f"Fertig – {clock(seconds)}, {len(text.split())} Wörter.{who} Text prüfen und korrigieren, dann "
-                      "„Auswerten“. Die Tonaufnahme ist gelöscht.")
+                      f"{then}. Die Tonaufnahme ist gelöscht.")
         else:
             self.info("Kein Text erkannt. Die Tonaufnahme ist gelöscht.")
 
@@ -1760,6 +2038,9 @@ class VisitPage(Page):
         self._save()
         if self.waiting & {"brief", "jev"}:
             return
+        if schutz.blocked(server) and self.window().shield_wait(self._analyse):
+            restyle(self.note, "muted")
+            return self.note.setText("Die Namenserkennung wird einmalig geladen. Die Auswertung startet danach von selbst.")
         restyle(self.note, "muted")
         self.note.setText("Läuft …")
         case, frame = self.case, self.frame()
@@ -2611,6 +2892,10 @@ class LlmPage(Page):
 
     def _shield_load(self):
         self.shield_btn.setEnabled(False)
+        if getattr(self.ctl, "shield_start", None):          # ein einziger Download, egal wer ihn anstößt
+            if not self.window().shield_wait(retry=True):
+                self._shield_progress(1.0, "")
+            return
 
         def work():
             try:
@@ -3344,6 +3629,7 @@ class Hub(QtWidgets.QWidget):
         self.ctl = ctl
         self.setWindowTitle("LocalScribe")
         self.setWindowIcon(make_icon())
+        load_fonts()
         self.setStyleSheet(STYLE)
         self.resize(1000, 680)
         self.setMinimumSize(860, 560)
@@ -3380,7 +3666,9 @@ class Hub(QtWidgets.QWidget):
         ]
         self.buttons = QtWidgets.QButtonGroup(self)
         for i, (name, page) in enumerate(self.pages):
-            b = QtWidgets.QPushButton(name.replace("&", "&&"), checkable=True)
+            b = QtWidgets.QPushButton("  " + name.replace("&", "&&"), checkable=True)
+            b.setIcon(nav_icon(name))
+            b.setIconSize(QtCore.QSize(18, 18))
             b.setCursor(Qt.PointingHandCursor)
             self.buttons.addButton(b, i)
             nav.addWidget(b)
@@ -3413,6 +3701,14 @@ class Hub(QtWidgets.QWidget):
         self.loadbar.setRange(0, 1000)
         self.loadbar.hide()
         nav.addWidget(self.loadbar)
+        self.shield_note = label("", "muted", wrap=True)      # Namenserkennung wird geladen
+        self.shield_bar = QtWidgets.QProgressBar(textVisible=False)
+        self.shield_bar.setRange(0, 1000)
+        self.shield_note.hide()
+        self.shield_bar.hide()
+        self.shield_queue = []
+        nav.addWidget(self.shield_note)
+        nav.addWidget(self.shield_bar)
 
         # Erster Start: großes Band über den Seiten, solange das Sprachmodell geladen wird
         self.banner = QtWidgets.QFrame(objectName="card")
@@ -3701,6 +3997,33 @@ class Hub(QtWidgets.QWidget):
             self.banner_bar.setValue(int(fraction * 1000))
             self.banner_text.setText(text.split(" · ", 1)[-1] + ". Nur beim ersten Start – danach bleibt das Modell auf diesem "
                                      "Rechner. Diktieren geht, sobald der Balken voll ist.")
+
+    def shield_wait(self, then=None, force=True, retry=False) -> bool:
+        """Fehlt die Namenserkennung für den eingestellten Server, wird sie jetzt geladen; „then“ läuft, sobald
+        sie da ist. Gibt True zurück, wenn gewartet wird, sonst False (nichts zu laden oder nicht ladbar)."""
+        start = getattr(self.ctl, "shield_start", None)
+        if not start or not start(force, retry):
+            return False
+        if then:
+            self.shield_queue.append(then)
+        return True
+
+    def set_shield(self, fraction, text):
+        """fraction: Anteil 0..1, solange die Namenserkennung geladen wird; None am Ende (text: Fehler oder leer)."""
+        active = fraction is not None
+        self.shield_bar.setVisible(active)
+        self.shield_note.setVisible(active or bool(text))
+        page = self.pages[-1][1].pages[1]                     # Einstellungen, LLM: dort steht derselbe Stand
+        if active:
+            self.shield_bar.setValue(int(fraction * 1000))
+            self.shield_note.setText(text)
+            page._shield_progress(min(fraction, 0.99), "")
+            return
+        self.shield_note.setText(f"Namenserkennung nicht geladen: {text[:140]}" if text else "")
+        page._shield_progress(1.0, text)
+        waiting, self.shield_queue = self.shield_queue, []
+        for then in waiting:                                  # die Aufträge, die darauf gewartet haben
+            then()
 
     def set_error(self, error):
         """Das Sprachmodell ließ sich nicht laden: Grund und Ausweg im Fenster zeigen, nicht nur im Protokoll."""

@@ -1,3 +1,21 @@
+## LocalScribe 1.8.0
+
+- **Seite Aufnahme neu gestaltet.** Im leeren Zustand stehen eine große Zeitanzeige, eine Wellenform und ein breiter
+  Knopf „Aufnahme starten“. Das Mikrofon ist gezeichnet und sitzt mittig; der schiefe Punkt ist weg. Die Reiter
+  stehen rechts neben der Überschrift. Wird das Fenster klein oder liegt oben ein Band, werden Zeit und Wellenform
+  kleiner: Nichts überlappt, nichts wird abgeschnitten.
+- **Laufende Aufnahme:** Über dem Text läuft die Zeit, daneben der Pegel der Stimme, das Neueste rechts in Lime. Der
+  Knopf heißt „Stopp“ und ist orange, danach „Schreibt …“, bis der Rest geschrieben ist. Die Übergabe sieht gleich aus.
+- **Zeichen vor den Menüpunkten.** Überschriften und Zeit stehen in der Schrift Space Grotesk; sie liegt bei.
+- **Kein doppelter Download.** Startet LocalScribe aus einem zweiten Programmordner desselben Windows-Kontos, benutzt
+  es die Modelle, die der erste schon hat (Sprachmodell, Sprechertrennung, Namenserkennung). Jeder Programmordner
+  merkt seinen Modellordner dafür im Datenordner vor (`modellorte.txt`).
+- **Die Namenserkennung lädt von selbst.** Ist ein Server außerhalb des Rechners eingestellt, der Schutz an und die
+  Namenserkennung fehlt (kleines Paket), lädt LocalScribe sie nach dem Start einmal (293 MB); der Stand steht unten
+  links. Ein Auftrag, der in dieser Zeit geklickt wird, wartet und startet danach von selbst, statt mit einer
+  Fehlermeldung zu enden. Die Regel bleibt: Ohne Namenserkennung geht nichts an einen Server außerhalb.
+- Behoben: Nach einer Aufnahme stand auf der Seite Aufnahme „dann Auswerten“, obwohl es diesen Knopf dort nicht gibt.
+
 ## LocalScribe 1.7.1
 
 - **Seite Aufnahme: vier Aufträge für die Klinik.** Unter dem Transkript stehen jetzt **Visite**, **Meeting-Protokoll**,

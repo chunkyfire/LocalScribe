@@ -172,7 +172,7 @@
 <body>
 <h1 id="localscribe--technische-dokumentation">LocalScribe – Technische
 Dokumentation</h1>
-<p>Stand: Version 1.7.1. Für Betrieb, IT und alle, die den Code lesen
+<p>Stand: Version 1.8.0. Für Betrieb, IT und alle, die den Code lesen
 oder prüfen wollen. Die Bedienung steht im <a
 href="https://chunkyfire.github.io/LocalScribe/LocalScribe-Handbuch.pdf">Handbuch</a>, die Messwerte mit Methode
 in <a
@@ -268,10 +268,22 @@ jedem Ordner liegen. Die App sucht sie in dieser Reihenfolge
 (<code>modelle.places</code>): <code>modelle</code> neben
 <code>LocalScribe.exe</code>; der in den Einstellungen angegebene
 Modellordner (<code>model_dir</code>); <code>modelle</code> eine Ebene
-über dem Programmordner; der Datenordner. Ein Ordner
-<code>modelle</code> aus dem Komplettpaket, einmal neben die
-Programmordner gelegt, versorgt also alle, die daneben das kleine Paket
-entpackt haben.</p>
+über dem Programmordner; der Datenordner; zuletzt die Modellordner, die
+ein anderer Programmordner desselben Windows-Kontos schon benutzt hat.
+Jeder Programmordner trägt den Ordner, in dem er ein Modell gefunden
+hat, dafür in <code>modellorte.txt</code> im Datenordner ein (höchstens
+acht; ein gerade nicht erreichbarer Ordner wird zwei Minuten lang
+übersprungen). Ein Ordner <code>modelle</code> aus dem Komplettpaket,
+einmal neben die Programmordner gelegt, versorgt also alle, die daneben
+das kleine Paket entpackt haben, und eine zweite Kopie von LocalScribe
+lädt nichts noch einmal.</p>
+<p>Die Namenserkennung für den Schutz vor dem Versand (293 MB) liegt im
+Komplettpaket bei. Fehlt sie und ist ein Server außerhalb des Rechners
+mit eingeschaltetem Schutz eingestellt, lädt die App sie nach dem Start
+von selbst (<code>app.shield_start</code>), sichtbar unten links;
+Aufträge, die darauf warten, laufen danach weiter
+(<code>hub.shield_wait</code>). Bis sie da ist, geht nichts an diesen
+Server.</p>
 <p>Scheitert der Download des Modells (Proxy, Firewall), zeigt das
 Fenster den Grund im Klartext, dazu die Knöpfe „Erneut versuchen“,
 „Komplettpaket herunterladen“ und „Protokoll öffnen“.</p>

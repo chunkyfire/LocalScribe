@@ -7,7 +7,9 @@ Gesucht wird in dieser Reihenfolge, und nur wenn nirgends etwas liegt, wird heru
   3. Ordner „modelle“ eine Ebene über dem Programmordner (dasselbe ganz ohne Einstellung: mehrere
      Programmordner nebeneinander teilen sich ein „modelle“),
   4. der Datenordner (hierhin wird heruntergeladen; ohne Adminrechte beschreibbar),
-  5. der allgemeine Hugging-Face-Zwischenspeicher (frühere Fassungen haben dort abgelegt).
+  5. Modellordner, die ein anderer Programmordner dieses Windows-Kontos schon benutzt hat (gemerkt im
+     Datenordner, Datei „modellorte.txt“). So lädt eine zweite Kopie von LocalScribe nichts noch einmal,
+  6. der allgemeine Hugging-Face-Zwischenspeicher (frühere Fassungen haben dort abgelegt).
 """
 import fnmatch
 import logging
@@ -25,7 +27,9 @@ os.environ.setdefault("HF_HUB_DISABLE_XET", "1")
 
 log = logging.getLogger("diktat")
 MARK = ".vollstaendig"
+KNOWN = "modellorte.txt"  # im Datenordner: Modellordner anderer Programmordner dieses Windows-Kontos, einer je Zeile
 extra = ""               # Modellordner aus den Einstellungen (cfg["model_dir"]); setzt die App beim Laden
+_alive, _noted = {}, set()
 
 
 def folder() -> Path:
@@ -49,6 +53,45 @@ def _beside() -> Path:
     return base / "modelle"
 
 
+def known():
+    """Gemerkte Modellordner anderer Programmordner (höchstens acht). Ein Ordner, der gerade nicht erreichbar ist
+    (Netzlaufwerk weg), wird zwei Minuten lang nicht noch einmal angefasst, damit die Suche nie hängt."""
+    try:
+        lines = (config.DIR / KNOWN).read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return []
+    out = []
+    for line in dict.fromkeys(x.strip() for x in lines if x.strip()):
+        seen, ok = _alive.get(line, (0.0, False))
+        if time.time() - seen > 120:
+            try:
+                ok = os.path.isdir(line)
+            except OSError:
+                ok = False
+            _alive[line] = (time.time(), ok)
+        if ok:
+            out.append(Path(line))
+    return out[-8:]
+
+
+def remember(base) -> None:
+    """Einen Ordner mit einem fertigen Modell für die anderen Programmordner dieses Windows-Kontos vormerken."""
+    key = os.path.normcase(os.path.abspath(str(base)))
+    if key in _noted:
+        return
+    _noted.add(key)
+    try:
+        if key == os.path.normcase(os.path.abspath(str(folder()))):
+            return                                   # der Datenordner wird ohnehin immer durchsucht
+        path = config.DIR / KNOWN
+        have = path.read_text(encoding="utf-8").splitlines() if path.exists() else []
+        if key not in {os.path.normcase(os.path.abspath(x.strip())) for x in have if x.strip()}:
+            config.DIR.mkdir(parents=True, exist_ok=True)
+            path.write_text("\n".join([x for x in have if x.strip()][-7:] + [os.path.abspath(str(base))]) + "\n", encoding="utf-8")
+    except OSError:
+        pass
+
+
 def places():
     """Alle Ordner, in denen fertige Modelle liegen können, in Suchreihenfolge."""
     beside = _beside()
@@ -58,7 +101,8 @@ def places():
     if getattr(sys, "frozen", False):
         out.append(beside.parent.parent / "modelle")
     out.append(folder())
-    return out
+    have = {os.path.normcase(os.path.abspath(str(p))) for p in out}
+    return out + [p for p in known() if os.path.normcase(os.path.abspath(str(p))) not in have]
 
 
 def _size(path: Path) -> int:
@@ -77,6 +121,7 @@ def find(repo: str, revision: str, patterns):
     for base in places():
         path = base / _name(repo, revision)
         if (path / _mark(patterns)).exists():
+            remember(base)
             return str(path)
     try:
         from huggingface_hub import snapshot_download
@@ -131,6 +176,7 @@ def find_release(release: dict):
     for base in places():
         path = base / release["name"]
         if (path / MARK).exists():
+            remember(base)
             return str(path)
     return None
 

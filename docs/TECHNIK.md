@@ -1,6 +1,6 @@
 # LocalScribe – Technische Dokumentation
 
-Stand: Version 1.7.1. Für Betrieb, IT und alle, die den Code lesen oder prüfen wollen. Die Bedienung steht im
+Stand: Version 1.8.0. Für Betrieb, IT und alle, die den Code lesen oder prüfen wollen. Die Bedienung steht im
 [Handbuch](LocalScribe-Handbuch.pdf), die Messwerte mit Methode in [`werkzeug/messen/ERGEBNIS.md`](../werkzeug/messen/ERGEBNIS.md).
 
 ## 1. Was die App ist
@@ -56,9 +56,17 @@ gelesen. Er lässt sich kopieren oder per Softwareverteilung ausrollen.
 
 Mehrere Personen, viele Programmordner: Die Modelle müssen nicht in jedem Ordner liegen. Die App sucht sie in
 dieser Reihenfolge (`modelle.places`): `modelle` neben `LocalScribe.exe`; der in den Einstellungen angegebene
-Modellordner (`model_dir`); `modelle` eine Ebene über dem Programmordner; der Datenordner. Ein Ordner `modelle`
-aus dem Komplettpaket, einmal neben die Programmordner gelegt, versorgt also alle, die daneben das kleine Paket
-entpackt haben.
+Modellordner (`model_dir`); `modelle` eine Ebene über dem Programmordner; der Datenordner; zuletzt die
+Modellordner, die ein anderer Programmordner desselben Windows-Kontos schon benutzt hat. Jeder Programmordner trägt
+den Ordner, in dem er ein Modell gefunden hat, dafür in `modellorte.txt` im Datenordner ein (höchstens acht; ein
+gerade nicht erreichbarer Ordner wird zwei Minuten lang übersprungen). Ein Ordner `modelle` aus dem Komplettpaket,
+einmal neben die Programmordner gelegt, versorgt also alle, die daneben das kleine Paket entpackt haben, und eine
+zweite Kopie von LocalScribe lädt nichts noch einmal.
+
+Die Namenserkennung für den Schutz vor dem Versand (293 MB) liegt im Komplettpaket bei. Fehlt sie und ist ein
+Server außerhalb des Rechners mit eingeschaltetem Schutz eingestellt, lädt die App sie nach dem Start von selbst
+(`app.shield_start`), sichtbar unten links; Aufträge, die darauf warten, laufen danach weiter (`hub.shield_wait`).
+Bis sie da ist, geht nichts an diesen Server.
 
 Scheitert der Download des Modells (Proxy, Firewall), zeigt das Fenster den Grund im Klartext, dazu die Knöpfe
 „Erneut versuchen“, „Komplettpaket herunterladen“ und „Protokoll öffnen“.

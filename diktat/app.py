@@ -31,6 +31,7 @@ class Diktat(QtCore.QObject):
     sig_ready = Signal(str)
     sig_status = Signal(str)
     sig_download = Signal(float, float)   # geladene Bytes, Gesamtgröße (Modell-Download)
+    sig_shield = Signal(float, float, str)  # Namenserkennung: geladene Bytes, Gesamtgröße, "" | "ok" | Fehlertext
     sig_heard = Signal(str, str)      # gehörter Text, Fehlermeldung (Wörterbuch: Wort einsprechen)
     sig_result = Signal(object)
     sig_phone = Signal(object)        # Aufnahme vom Telefon (Handy als Mikrofon)
@@ -63,6 +64,8 @@ class Diktat(QtCore.QObject):
         self.sig_ready.connect(self.on_ready)
         self.sig_status.connect(self.on_status)
         self.sig_download.connect(self.on_download)
+        self.sig_shield.connect(self.on_shield)
+        self.shield_loading, self.shield_failed = False, 0.0
         self.sig_result.connect(self.on_result)
         self.sig_phone.connect(self.on_phone)
         self.phone = None
@@ -244,6 +247,7 @@ class Diktat(QtCore.QObject):
             threading.Thread(target=self._load, daemon=True).start()
         elif self.ready:
             self.set_status(self.ready_text())
+            self.shield_start()
 
     def rework(self, text, prompt_name):
         """Einen Verlaufseintrag mit einem Prompt nachbearbeiten; Ergebnis landet in der Zwischenablage."""
@@ -339,6 +343,41 @@ class Diktat(QtCore.QObject):
         self.hub.set_download(self.download, text)
         self.overlay.set_progress(text, self.download)
 
+    def shield_start(self, force=False, retry=False) -> bool:
+        """Die Namenserkennung laden, wenn sie fehlt und ein Server außerhalb dieses Rechners mit eingeschaltetem
+        Schutz eingestellt ist (force: immer, wenn sie fehlt; retry: auch kurz nach einem Fehlschlag, per Klick in
+        den Einstellungen). Der Fortschritt steht unten links im Fenster. Gibt True zurück, solange geladen wird.
+        So scheitert kein Auftrag daran, dass sie fehlt."""
+        from . import schutz
+        if self.shield_loading:
+            return True
+        server = self.cfg.get("llm") or {}
+        wanted = (force and not schutz.ready()) or (bool((server.get("base_url") or "").strip()) and schutz.blocked(server))
+        if not wanted or (time.time() - self.shield_failed < 60 and not retry):
+            return False                        # nichts zu laden, oder gerade fehlgeschlagen: nicht im Kreis versuchen
+        self.shield_loading = True
+
+        def work():
+            try:
+                schutz.prepare(lambda done, total: self.sig_shield.emit(float(done), float(total), ""))
+                self.sig_shield.emit(1.0, 1.0, "ok")
+            except Exception as e:
+                self.sig_shield.emit(0.0, 0.0, str(e) or type(e).__name__)
+        threading.Thread(target=work, daemon=True).start()
+        return True
+
+    def on_shield(self, done, total, state):
+        if state:
+            self.shield_loading = False
+            if state != "ok":
+                self.shield_failed = time.time()
+                log.warning("Namenserkennung nicht geladen: %s", state)
+            self.hub.set_shield(None, "" if state == "ok" else state)
+            return
+        mb, part = 1024 * 1024, done / total if total else 0.0
+        self.hub.set_shield(part, f"Namenserkennung wird einmalig geladen · {part * 100:.0f} % "
+                                  f"({done / mb:.0f} von {total / mb:.0f} MB)")
+
     def on_ready(self, error):
         self.download = None
         self.hub.set_download(None, "")
@@ -353,6 +392,7 @@ class Diktat(QtCore.QObject):
         self.recorder.set_warm(self.cfg.get("mic_warm"), self.cfg.get("microphone"))
         self.set_status(self.ready_text())
         self.overlay.flash(f"Bereit – {keys_text(self.cfg['hotkey_hold'])} halten und sprechen", 3500)
+        self.shield_start()
 
     def _worker(self):
         while True:

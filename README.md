@@ -146,7 +146,7 @@ Einstellungen in den Programmordner (Ordner `daten`). Die Sprachmodelle können 
   ersetzt LocalScribe vorher auf dem Rechner Namen, Geburts- und andere Daten, Telefonnummern, E-Mail-Adressen,
   Anschriften und lange Nummern durch Platzhalter (`[NAME_1]`, `[DATUM_1]`) und übersetzt die Antwort zurück.
   Regeln finden Daten, Nummern, Kontaktdaten und Namen hinter Anrede oder Titel; die Namenserkennung (GLiNER,
-  293 MB, im Komplettpaket, sonst auf Knopfdruck geladen, läuft auf der CPU) findet Namen, Orte und Einrichtungen
+  293 MB, im Komplettpaket, sonst beim ersten Bedarf von selbst geladen, läuft auf der CPU) findet Namen, Orte und Einrichtungen
   auch ohne solche Hinweise. **Fehlt die Namenserkennung, sendet LocalScribe nichts an einen fremden Server.**
   Gemessen an 17 erfundenen klinischen Sätzen mit 34 persönlichen Angaben (`werkzeug/messen/schutz.py`): Regeln
   allein ersetzen 20, mit Namenserkennung alle 34. Das ist eine kleine Stichprobe, kein Nachweis.

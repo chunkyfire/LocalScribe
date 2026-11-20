@@ -936,5 +936,31 @@ try:
 finally:
     config.DIR, config.FILE = _real
     config.PROFILE_ROOT, config.ACTIVE, config.OFFLINE, config._base = None, "", False, {}
+# ---- 1.8.0: Modelle, die ein anderer Programmordner dieses Windows-Kontos schon hat, werden mitbenutzt ----
+from diktat import modelle as _mo
+_real = (config.DIR, config.FILE)
+_beside0 = _mo._beside
+tmp = pathlib.Path(tempfile.mkdtemp())
+try:
+    config.DIR = tmp / "daten"; config.FILE = config.DIR / "config.json"
+    _mo._alive.clear(); _mo._noted.clear()
+    _a, _b = tmp / "A" / "modelle", tmp / "B" / "modelle"
+    _m = _a / _mo._name("x/y", "0123456789abcdef"); _m.mkdir(parents=True); (_m / _mo._mark(["*.onnx"])).write_text("x")
+    _mo._beside = lambda: _a
+    check("Modell neben dem Programm wird gefunden", _mo.find("x/y", "0123456789abcdef", ["*.onnx"]) == str(_m))
+    check("Der Ordner ist für andere Programmordner gemerkt", (config.DIR / _mo.KNOWN).read_text(encoding="utf-8").split() == [str(_a)])
+    _mo._beside = lambda: _b; _mo._noted.clear()
+    check("Ein zweiter Programmordner findet das Modell dort, statt es neu zu laden", _mo.find("x/y", "0123456789abcdef", ["*.onnx"]) == str(_m))
+    _r = _a / "sprachmodell-1"; _r.mkdir(); (_r / _mo.MARK).write_text("x")
+    check("Das gilt auch für das Sprachmodell", _mo.find_release({"name": "sprachmodell-1"}) == str(_r))
+    (config.DIR / _mo.KNOWN).write_text(str(tmp / "weg") + "\n" + str(_a) + "\n", encoding="utf-8"); _mo._alive.clear()
+    check("Ein verschwundener Ordner stört die Suche nicht", _mo.known() == [_a] and _mo.find("x/y", "0123456789abcdef", ["*.onnx"]) == str(_m))
+    _d = _mo.folder() / "eigenes-1"; _d.mkdir(parents=True); (_d / _mo.MARK).write_text("x"); _mo._noted.clear()
+    check("Der Datenordner selbst wird nicht eingetragen",
+          _mo.find_release({"name": "eigenes-1"}) == str(_d) and str(_mo.folder()) not in (config.DIR / _mo.KNOWN).read_text(encoding="utf-8"))
+    check("Fehlt das Modell überall, bleibt die Suche ohne Fund", _mo.find_release({"name": "gibt-es-nicht"}) is None)
+finally:
+    config.DIR, config.FILE = _real
+    _mo._beside = _beside0; _mo._alive.clear(); _mo._noted.clear()
 print("FEHLER:" if failed else "ALLES OK", failed or "")
 sys.exit(1 if failed else 0)
