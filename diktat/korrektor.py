@@ -177,6 +177,7 @@ def correct(text: str, cfg_llm: dict, ask=None, memory=None):
         return text, []
     shield = schutz.Mask(lenient=True) if ask is None and schutz.needed(cfg_llm) else None
     if ask is None:
+        cfg_llm = llm.quick(cfg_llm)             # hängt an jedem Diktat: das schnelle Modell des Anbieters
         cfg_llm = dict(cfg_llm, timeout=min(float(cfg_llm.get("timeout") or 30), WAIT))
         def ask(system, user):
             return llm.chat(cfg_llm, system, user, json_mode=True)

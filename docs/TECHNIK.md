@@ -1,6 +1,6 @@
 # LocalScribe – Technische Dokumentation
 
-Stand: Version 1.8.0. Für Betrieb, IT und alle, die den Code lesen oder prüfen wollen. Die Bedienung steht im
+Stand: Version 1.8.1. Für Betrieb, IT und alle, die den Code lesen oder prüfen wollen. Die Bedienung steht im
 [Handbuch](LocalScribe-Handbuch.pdf), die Messwerte mit Methode in [`werkzeug/messen/ERGEBNIS.md`](../werkzeug/messen/ERGEBNIS.md).
 
 ## 1. Was die App ist
@@ -303,6 +303,8 @@ Frage nach einer neuen Fassung: nur auf Klick, oder einmal am Tag, wenn das in d
 | `huggingface.co` | Ausweichquelle für das Modell; Stimmmodell beim ersten Einschalten der Sprechertrennung | nichts außer der Anfrage |
 | `github.com` (Releases) | auf Klick (unten links im Fenster oder „Nach Updates suchen“) und beim Laden der geänderten Dateien; einmal am Tag nur mit `update_check` (ab Werk aus) | nichts außer der Anfrage |
 | selbst eingetragener Sprachmodell-Server | nur wenn KI-Nachbearbeitung oder Fachkorrektur eingeschaltet sind oder in „Visite & Übergabe“ auf „Auswerten“ gedrückt wird | der diktierte Text bzw. der Fall, nach dem Schutz aus `schutz.py` |
+| selbst eingetragener Sprachmodell-Server, `/models` | auf Klick „Modelle abrufen“, nach dem Speichern eines neuen Schlüssels und nach der Wahl eines Servers, zu dem schon ein Schlüssel gespeichert ist (lokale Server und OpenRouter auch ohne) | nichts außer der Anfrage; ein gespeicherter Schlüssel geht nur an den Server, zu dem er gehört |
+| `api.noirdoc.de/v1/prices` | einmal je Programmlauf, zusammen mit der Modellliste von Noirdoc | nichts außer der Anfrage, ohne Schlüssel; daraus liest die App, welcher Anbieter ein Modell ausliefert (`llm.noirdoc_out`) |
 | `openrouter.ai/api/v1/systemone` (Jev) | nur bei „Auswerten“ in „Visite & Übergabe“ und nur, wenn OpenRouter der eingetragene Server ist | der Fall nach dem Schutz aus `schutz.py`, dazu die festen Fragen und, falls eingetragen, die Hausregeln |
 | eigenes Netz, Port 8765 | nur wenn „Handy als Mikrofon“ eingeschaltet ist | nichts; das Telefon schickt Ton an den Rechner |
 
@@ -347,10 +349,11 @@ zufälligen Schlüssel aus dem QR-Code. Ab Werk aus.
 | `speakers` | Sprecher trennen bei Aufnahme, Datei und Übergabe; bei nur einer Stimme bleibt der Text unverändert | an (seit 1.5.0, einmal umgestellt) |
 | `handover_frame` | zuletzt gewählter Rahmen der Übergabe: `zna`, `station` oder `its` | `zna` |
 | `spoken_punctuation` | „Punkt“, „Komma“, „neue Zeile“ als Zeichen schreiben | aus |
-| `llm`, `llm_fix` | Sprachmodell-Server und Fachkorrektur | aus |
+| `llm`, `llm_fix` | Sprachmodell-Server und Fachkorrektur. Die Fachkorrektur nimmt bei OpenRouter und Noirdoc das schnelle Modell aus `llm.QUICK`, sonst das gewählte | aus |
+| `llm_profiles`, `llm_models` | gespeicherte Anbieter (Name, Adresse, Modell; der Schlüssel liegt im Windows-Schlüsselspeicher) und eigene Modellnamen je Server. Die kurze Liste je Anbieter steht in `llm.PICKS`, das erste ist die Vorgabe | leer |
 | `prompts` | Aufträge an das Sprachmodell: Name, Anweisung, Taste, und `record` (als Knopf auf der Seite Aufnahme). Mitgeliefert: Glätten, E-Mail, Stichpunkte, Arztbrief, Zusammenfassung, Meeting-Protokoll, Visite (SOAP), Pflegebericht. Beim Wechsel auf 1.7.1 kommen die zwei neuen einmal dazu; die Zeile der Aufnahme wird nur umgestellt, wenn sie noch der Vorgabe entsprach (`config._prompts_v8`) | Aufnahme zeigt Visite, Meeting-Protokoll, Arztbrief, Pflegebericht |
 | `visite_prompt` | eigene Anweisung für den Rahmen Notaufnahme; leer = die mitgelieferte. Station und Intensiv haben feste Aufträge (`visite.STATION`, `visite.ITS`) | leer |
-| `visite_model`, `visite_jev`, `visite_rules` | Modell für Arztbrief, Visiteneintrag und Übergabe (leer: bei OpenRouter `google/gemini-3.8-flash@low`, sonst das LLM-Modell; der Zusatz `@low` geht bei OpenRouter als `reasoning.effort` hinaus, `llm.model_of`), Jev-Modell (leer: `~typesafe/jev-latest`), Hausregeln für Jev | leer |
+| `visite_model`, `visite_jev`, `visite_rules` | Modell für Arztbrief, Visiteneintrag und Übergabe (leer: bei OpenRouter `google/gemini-3.8-flash@low`, sonst das LLM-Modell; der Zusatz `@low` geht bei OpenRouter als `reasoning.effort` hinaus, bei jedem anderen Server als `reasoning_effort`, und einmal ohne, wenn der Server die Angabe ablehnt: `llm.model_of`, `llm._ask`), Jev-Modell (leer: `~typesafe/jev-latest`), Hausregeln für Jev | leer |
 | `update_check` | einmal am Tag von selbst bei GitHub nach einer neueren Fassung fragen | aus |
 | `profile_name` | gewähltes Profil am Programmordner; leer = die Daten dieses Rechners | leer |
 | `training_keep` | vorgelesene Übungs- und Prüfsätze als Ton aufheben (kein Schalter im Fenster; für eine zentrale Vorgabe) | an (seit 1.6.0) |

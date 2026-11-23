@@ -189,6 +189,7 @@ DEFAULTS = {
     },
     "corrections": [],            # eigene Berichtigungen [erkannt, gemeint], die nur der Zusammenhang klärt (Kabel -> Cave)
     "llm_profiles": [],           # gespeicherte Anbieter: [{"name", "base_url", "model"}], Schlüssel im Schlüsselspeicher
+    "llm_models": {},             # eigene Modellnamen je Server (über „+“ in den Einstellungen): {"api.noirdoc.de": [...]}
     # Jeder Prompt kann eine eigene Halte-Taste bekommen: halten, sprechen, loslassen.
     "prompts": [
         {"name": "Glätten", "hotkey": ["f8"],

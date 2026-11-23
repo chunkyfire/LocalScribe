@@ -1,3 +1,24 @@
+## LocalScribe 1.8.1
+
+- **Noirdoc als Anbieter.** Unter Einstellungen, LLM, steht in der Liste „Server“ jetzt Noirdoc (`api.noirdoc.de`,
+  Verarbeitung in der EU). Wählen, Schlüssel einfügen, speichern: LocalScribe legt den Anbieter mit eigenem Schlüssel
+  an und zeigt gleich, ob der Schlüssel gilt. Modelle der zwei Unteranbieter ohne Verschwiegenheitsverpflichtung
+  bietet LocalScribe dort nicht an. Die Maskierung bei Noirdoc ist ab Werk aus; der Schutz von LocalScribe ersetzt
+  Namen, Daten und Nummern wie bei jedem Server außerhalb. Die Bedingungen von Noirdoc schließen klinische Zwecke aus.
+- **Modell wählen statt eintippen.** Bei OpenRouter und Noirdoc steht oben eine kurze Liste; die Vorgabe ist
+  Gemini 4 Hydrogen mit wenig Nachdenken. „Modelle abrufen“ setzt darunter alles, was der Server meldet. Über „+“
+  kommt ein eigener Modellname dazu, „Entfernen“ nimmt ihn wieder heraus. Wer schon ein Modell eingestellt hat,
+  behält es.
+- Gemessen an sechs erfundenen Diktaten (Visite, Pflegebericht): Gemini 4 Hydrogen braucht 5 bis 14 Sekunden je
+  Auftrag, Gemini 3.1 Flash Lite 1 bis 4. Die **Fachkorrektur** hängt an jedem Diktat und nimmt deshalb bei
+  OpenRouter und Noirdoc immer das schnelle Modell, egal was oben gewählt ist.
+- Der Zusatz `@low` hinter einem Modellnamen (wenig Nachdenken) gilt jetzt bei jedem Server, nicht nur bei
+  OpenRouter. Kennt ein Server die Angabe nicht, geht die Anfrage ohne sie hinaus.
+- Behoben: Wer in der Liste „Server“ einen anderen Anbieter wählte, schickte beim Abrufen der Modelle den
+  gespeicherten Schlüssel des bisherigen Anbieters mit, und „Speichern“ überschrieb dessen Eintrag. Jetzt bleibt
+  jeder Schlüssel bei seinem Anbieter; ein Wechsel holt dessen Modell und Schlüssel zurück.
+- Behoben: Auf der Seite LLM waren im üblichen Fenster die Knöpfe am rechten Rand abgeschnitten.
+
 ## LocalScribe 1.8.0
 
 - **Seite Aufnahme neu gestaltet.** Im leeren Zustand stehen eine große Zeitanzeige, eine Wellenform und ein breiter

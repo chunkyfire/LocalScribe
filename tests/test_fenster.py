@@ -159,5 +159,89 @@ while time.time() < end and "Visite" not in (V.errors.get("text_errors") or {}):
     time.sleep(0.02)
 check("Lässt sie sich nicht laden: eine Meldung, kein Kreislauf", ctl.shield_calls == [(True, False)] and "Visite" in (V.errors.get("text_errors") or {}), (ctl.shield_calls, V.errors))
 
+# Einstellungen, LLM: Noirdoc als Anbieter, kurze Modellliste, eigener Modellname, Schlüssel bleibt beim Anbieter
+keys, asked = {"OpenRouter": "or-geheim"}, []
+llm.get_key = lambda profile="": keys.get(profile, "")
+llm.set_key = lambda key, profile="": keys.__setitem__(profile, key) if key else keys.pop(profile, None)
+answers = {"api.noirdoc.de": ["gemini-3.1-flash-lite", "gemini-4-hydrogen", "gpt-6-luna"]}
+
+
+def fake_models(server, key=None):
+    asked.append((llm.host_of(server["base_url"]), key))
+    return answers.get(llm.host_of(server["base_url"]), [])
+
+
+def wait(done):
+    end = time.time() + 5
+    while time.time() < end and not done():
+        settle(2)
+        time.sleep(0.02)
+    return done()
+
+
+llm.list_models = fake_models
+hub.show_page(4)
+S = hub.pages[4][1]
+S.show_tab(1)
+L = S.pages[1]
+settle()
+area = L.findChildren(QtWidgets.QScrollArea)[0]
+hub.resize(1000, 680)
+settle()
+check("Einstellungen, LLM: Die Karten sind nicht breiter als das Fenster, kein Knopf ist abgeschnitten",
+      area.widget().width() <= area.viewport().width() and L.fetch.geometry().right() <= L.fetch.parentWidget().width(),
+      (area.widget().width(), area.viewport().width()))
+check("Modell für Brief und Übergabe: Der Eintrag ist von vorn zu lesen", L.v_writer.lineEdit().cursorPosition() == 0
+      and L.v_writer.currentText().startswith("Standard"), L.v_writer.currentText())
+presets = [L.preset.itemText(i) for i in range(L.preset.count())]
+check("Noirdoc steht in der Liste der Server, gleich nach OpenRouter",
+      presets.index("Noirdoc") == presets.index("OpenRouter") + 1, presets)
+check("Die bisherige Wahl bleibt wählbar und gewählt", L.model_name() == "m" and L.active == "OpenRouter", (L.model_name(), L.active))
+check("Bei OpenRouter steht die kurze Liste oben, Gemini 4 Hydrogen zuerst",
+      [L.model.itemData(i) for i in range(4)] == [m for m, _ in llm.picks("https://openrouter.ai/api/v1")]
+      and L.model.itemData(0) == "google/gemini-4-hydrogen@low", [L.model.itemData(i) for i in range(L.model.count())])
+L.preset.setCurrentIndex(presets.index("Noirdoc"))
+L._preset(presets.index("Noirdoc"))
+settle()
+check("Noirdoc gewählt: Adresse und Vorgabe Gemini 4 Hydrogen mit wenig Nachdenken",
+      L.url.text() == "https://api.noirdoc.de/v1" and L.model_name() == "gemini-4-hydrogen@low" and L.active == "Noirdoc",
+      (L.url.text(), L.model_name(), L.active))
+check("Der Schlüssel von OpenRouter geht nicht an Noirdoc", L._live()[1] == "" and not asked
+      and "einfügen" in L.key.placeholderText(), (L._live()[1], asked, L.key.placeholderText()))
+check("Hinweis zu Noirdoc steht da", "Noirdoc" in L.advice.text() and L.advice.isVisible())
+L.key.setText("px-probe")
+L.save()
+check("Speichern legt den Anbieter Noirdoc mit eigenem Schlüssel an; der von OpenRouter bleibt",
+      keys == {"OpenRouter": "or-geheim", "Noirdoc": "px-probe"}
+      and [p["name"] for p in ctl.cfg["llm_profiles"]] == ["OpenRouter", "Noirdoc"]
+      and ctl.cfg["llm"]["profile"] == "Noirdoc" and ctl.cfg["llm"]["model"] == "gemini-4-hydrogen@low",
+      (keys, ctl.cfg["llm_profiles"], ctl.cfg["llm"]))
+check("Nach dem Speichern eines Schlüssels fragt LocalScribe die Modellliste ab",
+      wait(lambda: "Verbunden" in L.status.text()) and asked == [("api.noirdoc.de", None)], (L.status.text(), asked))
+names = [L.model.itemData(i) for i in range(L.model.count())]
+check("Liste vom Server: nur was er meldet, die kurze Liste oben, der Rest unter dem Strich",
+      names == ["gemini-4-hydrogen@low", "gemini-3.1-flash-lite", None, "gemini-4-hydrogen", "gpt-6-luna"]
+      and L.model_name() == "gemini-4-hydrogen@low", names)
+ask = QtWidgets.QInputDialog.getText
+QtWidgets.QInputDialog.getText = staticmethod(lambda *a, **k: ("mein-modell@low", True))
+L._add_model()
+check("Eigener Modellname über +: gewählt, gemerkt, entfernbar",
+      L.model_name() == "mein-modell@low" and ctl.cfg["llm_models"] == {"api.noirdoc.de": ["mein-modell@low"]}
+      and not L.drop.isHidden(), (L.model_name(), ctl.cfg.get("llm_models")))
+QtWidgets.QInputDialog.getText = staticmethod(lambda *a, **k: ("google/gemma-4-31B-it", True))
+L._add_model()
+check("Ein Modell eines Anbieters ohne Verschwiegenheitsverpflichtung nimmt LocalScribe bei Noirdoc nicht an",
+      L.model_name() == "mein-modell@low" and "nicht an" in L.note.text(), (L.model_name(), L.note.text()))
+QtWidgets.QInputDialog.getText = ask
+L._drop_model()
+check("Entfernen: zurück zur Vorgabe", L.model_name() == "gemini-4-hydrogen@low" and ctl.cfg["llm_models"]["api.noirdoc.de"] == []
+      and L.drop.isHidden(), (L.model_name(), ctl.cfg["llm_models"]))
+asked.clear()
+L._preset(presets.index("OpenRouter"))
+check("Zurück zu OpenRouter: dessen Modell und Schlüssel kommen mit",
+      L.active == "OpenRouter" and L.model_name() == "m" and L._live()[1] is None and "gespeichert" in L.key.placeholderText()
+      and wait(lambda: asked == [("openrouter.ai", None)]), (L.active, L.model_name(), asked))
+L._pick()
+
 print("FEHLER:" if failed else "ALLES OK", failed or "")
 sys.exit(1 if failed else 0)

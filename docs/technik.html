@@ -172,10 +172,10 @@
 <body>
 <h1 id="localscribe--technische-dokumentation">LocalScribe – Technische
 Dokumentation</h1>
-<p>Stand: Version 1.8.0. Für Betrieb, IT und alle, die den Code lesen
+<p>Stand: Version 1.8.1. Für Betrieb, IT und alle, die den Code lesen
 oder prüfen wollen. Die Bedienung steht im <a
-href="https://chunkyfire.github.io/LocalScribe/LocalScribe-Handbuch.pdf">Handbuch</a>, die Messwerte mit Methode
-in <a
+href="https://chunkyfire.github.io/LocalScribe/LocalScribe-Handbuch.pdf">Handbuch</a>,
+die Messwerte mit Methode in <a
 href="https://github.com/chunkyfire/LocalScribe/blob/main/werkzeug/messen/ERGEBNIS.md"><code>werkzeug/messen/ERGEBNIS.md</code></a>.</p>
 <h2 id="1-was-die-app-ist">1. Was die App ist</h2>
 <p>LocalScribe ist ein Diktierprogramm für Windows. Taste halten,
@@ -795,6 +795,22 @@ oder in „Visite &amp; Übergabe“ auf „Auswerten“ gedrückt wird</td>
 <code>schutz.py</code></td>
 </tr>
 <tr class="odd">
+<td>selbst eingetragener Sprachmodell-Server, <code>/models</code></td>
+<td>auf Klick „Modelle abrufen“, nach dem Speichern eines neuen
+Schlüssels und nach der Wahl eines Servers, zu dem schon ein Schlüssel
+gespeichert ist (lokale Server und OpenRouter auch ohne)</td>
+<td>nichts außer der Anfrage; ein gespeicherter Schlüssel geht nur an
+den Server, zu dem er gehört</td>
+</tr>
+<tr class="even">
+<td><code>api.noirdoc.de/v1/prices</code></td>
+<td>einmal je Programmlauf, zusammen mit der Modellliste von
+Noirdoc</td>
+<td>nichts außer der Anfrage, ohne Schlüssel; daraus liest die App,
+welcher Anbieter ein Modell ausliefert
+(<code>llm.noirdoc_out</code>)</td>
+</tr>
+<tr class="odd">
 <td><code>openrouter.ai/api/v1/systemone</code> (Jev)</td>
 <td>nur bei „Auswerten“ in „Visite &amp; Übergabe“ und nur, wenn
 OpenRouter der eingetragene Server ist</td>
@@ -910,10 +926,20 @@ Stimme bleibt der Text unverändert</td>
 </tr>
 <tr class="even">
 <td><code>llm</code>, <code>llm_fix</code></td>
-<td>Sprachmodell-Server und Fachkorrektur</td>
+<td>Sprachmodell-Server und Fachkorrektur. Die Fachkorrektur nimmt bei
+OpenRouter und Noirdoc das schnelle Modell aus <code>llm.QUICK</code>,
+sonst das gewählte</td>
 <td>aus</td>
 </tr>
 <tr class="odd">
+<td><code>llm_profiles</code>, <code>llm_models</code></td>
+<td>gespeicherte Anbieter (Name, Adresse, Modell; der Schlüssel liegt im
+Windows-Schlüsselspeicher) und eigene Modellnamen je Server. Die kurze
+Liste je Anbieter steht in <code>llm.PICKS</code>, das erste ist die
+Vorgabe</td>
+<td>leer</td>
+</tr>
+<tr class="even">
 <td><code>prompts</code></td>
 <td>Aufträge an das Sprachmodell: Name, Anweisung, Taste, und
 <code>record</code> (als Knopf auf der Seite Aufnahme). Mitgeliefert:
@@ -925,65 +951,67 @@ umgestellt, wenn sie noch der Vorgabe entsprach
 <td>Aufnahme zeigt Visite, Meeting-Protokoll, Arztbrief,
 Pflegebericht</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>visite_prompt</code></td>
 <td>eigene Anweisung für den Rahmen Notaufnahme; leer = die
 mitgelieferte. Station und Intensiv haben feste Aufträge
 (<code>visite.STATION</code>, <code>visite.ITS</code>)</td>
 <td>leer</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>visite_model</code>, <code>visite_jev</code>,
 <code>visite_rules</code></td>
 <td>Modell für Arztbrief, Visiteneintrag und Übergabe (leer: bei
 OpenRouter <code>google/gemini-3.8-flash@low</code>, sonst das
 LLM-Modell; der Zusatz <code>@low</code> geht bei OpenRouter als
-<code>reasoning.effort</code> hinaus, <code>llm.model_of</code>),
+<code>reasoning.effort</code> hinaus, bei jedem anderen Server als
+<code>reasoning_effort</code>, und einmal ohne, wenn der Server die
+Angabe ablehnt: <code>llm.model_of</code>, <code>llm._ask</code>),
 Jev-Modell (leer: <code>~typesafe/jev-latest</code>), Hausregeln für
 Jev</td>
 <td>leer</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>update_check</code></td>
 <td>einmal am Tag von selbst bei GitHub nach einer neueren Fassung
 fragen</td>
 <td>aus</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>profile_name</code></td>
 <td>gewähltes Profil am Programmordner; leer = die Daten dieses
 Rechners</td>
 <td>leer</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>training_keep</code></td>
 <td>vorgelesene Übungs- und Prüfsätze als Ton aufheben (kein Schalter im
 Fenster; für eine zentrale Vorgabe)</td>
 <td>an (seit 1.6.0)</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>field</code>, <code>training_scores</code></td>
 <td>Fachrichtung im Stimmtraining; Messungen mit Prüfsätzen (Zeitpunkt,
 Wortfehler, Trainingsminuten)</td>
 <td>leer</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>phone</code></td>
 <td>Handy als Mikrofon</td>
 <td>aus</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>model_dir</code></td>
 <td>eigener Ordner mit den Sprachmodellen, zum Beispiel ein
 Netzlaufwerk</td>
 <td>leer</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>live_preview</code> (nur Datei)</td>
 <td>Vorschau auf die laufende Äußerung in der Aufnahme</td>
 <td>an</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>threads</code> (nur Datei)</td>
 <td>Zahl der Rechen-Threads; 0 überlässt es der Laufzeit</td>
 <td>0</td>

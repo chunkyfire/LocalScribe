@@ -285,8 +285,14 @@ Zahlen bleiben unberührt, umformuliert wird nichts. Gemessen mit Gemini Flash L
 Sekunde je Diktat: eigene Diktate 9,0 → 7,5 %, Med-Dictate 16,7 → 13,7 %, Arztbrief-Sätze 10,2 → 8,4 %,
 MultiMed 12,3 → 12,2 % (dort neun richtige, zwei falsche Ersetzungen). Mit einem kleinen lokalen Modell bringt es nichts.
 
-**Anbieter speichern und wechseln.** Mehrere Server lassen sich unter eigenem Namen ablegen (OpenRouter, IONOS,
-lokal) und in der Auswahl „Anbieter“ wechseln; jeder hat seinen eigenen Schlüssel im Windows-Schlüsselspeicher.
+**Anbieter speichern und wechseln.** Mehrere Server lassen sich unter eigenem Namen ablegen (OpenRouter, Noirdoc,
+IONOS, lokal) und in der Auswahl „Anbieter“ wechseln; jeder hat seinen eigenen Schlüssel im Windows-Schlüsselspeicher.
+Wer in der Liste „Server“ einen bekannten Anbieter wählt und speichert, bekommt den Eintrag von selbst.
+
+**Modell wählen.** Bei OpenRouter und Noirdoc steht oben eine kurze Liste, die Vorgabe ist Gemini 4 Hydrogen mit wenig
+Nachdenken (5 bis 14 Sekunden je Auftrag; Gemini 3.1 Flash Lite 1 bis 4). „Modelle abrufen“ ergänzt, was der Server
+meldet, „+“ einen eigenen Modellnamen. Die Fachkorrektur nimmt bei beiden immer das schnelle Modell. Bei Noirdoc
+fehlen die Modelle zweier Unteranbieter ohne Verschwiegenheitsverpflichtung mit Absicht.
 
 **Aus Korrektur lernen** (Seite Wörterbuch): das letzte Diktat berichtigen. Verhörte Fachwörter kommen ins
 Wörterbuch. War das Erkannte selbst ein richtiges Wort („Kabel“ statt Cave), merkt es sich die Fachkorrektur und

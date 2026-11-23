@@ -229,7 +229,7 @@ def _restore(value, shield):
 # (werkzeug/messen/ERGEBNIS.md): Gemini 3.8 Flash mit wenig Nachdenken braucht rund 15 s statt 45 s und meldet dieselben
 # Hörfehler wie Gemini 3.1 Pro. Gemini 3.6 Flash ist noch schneller, setzt aber eher ein geratenes Vorzeichen ein.
 WRITER = "google/gemini-3.8-flash@low"
-WRITERS = (("Standard: bei OpenRouter Gemini 3.8 Flash (etwa 15 Sekunden), sonst das Modell von oben", ""),
+WRITERS = (("Standard: bei OpenRouter Gemini 3.8 Flash, sonst das Modell oben", ""),
            ("Gründlich: Gemini 3.1 Pro, etwa 45 Sekunden (OpenRouter)", "google/gemini-3.1-pro-preview"),
            ("Schnell: Gemini 3.6 Flash, etwa 8 Sekunden, rät eher (OpenRouter)", "google/gemini-3.6-flash@low"))
 
@@ -239,6 +239,8 @@ def writer(cfg: dict) -> dict:
     gemessene Standardmodell, bei jedem anderen Server (Ollama im Haus, IONOS …) das unter LLM gewählte Modell."""
     server = dict(cfg.get("llm") or {})
     own = (cfg.get("visite_model") or "").strip()
+    if own in [model for _, model in WRITERS] and not jev.available(server):
+        own = ""                                 # diese Namen kennt nur OpenRouter: woanders gilt das gewählte Modell
     if own:
         server["model"] = own
     elif jev.available(server):

@@ -177,17 +177,21 @@ QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical { background: trans
 PRESETS = [("Ollama (lokal)", "http://localhost:11434/v1"),
            ("LM Studio (lokal)", "http://localhost:1234/v1"),
            ("OpenRouter", "https://openrouter.ai/api/v1"),
+           ("Noirdoc", "https://api.noirdoc.de/v1"),
            ("IONOS AI Model Hub", "https://openai.inference.de-txl.ionos.com/v1"),
            ("STACKIT AI Model Serving", "https://api.openai-compat.model-serving.eu01.onstackit.cloud/v1"),
            ("Eigene Adresse", "")]
 # Welches Modell wofür: gemessen am 19.11.2026 an erfundenen Fällen (werkzeug/messen/ERGEBNIS.md)
-ADVICE = (("openrouter.ai", "Empfehlung: google/gemini-3.1-flash-lite für die kurzen Aufträge (1 bis 3 Sekunden). Arztbrief und "
-                            "Übergabe schreibt ein eigenes Modell, siehe „Übergabe“ weiter unten."),
+ADVICE = (("noirdoc", "Noirdoc verarbeitet in der EU. Die Maskierung dort ist ab Werk aus: Lass den Schutz unten an. Modelle "
+                      "zweier Unteranbieter ohne Verschwiegenheitsverpflichtung fehlen in der Liste mit Absicht."),
           ("ionos", "Empfehlung bei IONOS: gpt-oss-120b („Modelle abrufen“, dann auswählen). In der Messung 10 bis 17 Sekunden "
                     "je Arztbrief; verhörte Arzneimittelnamen bemerkt es seltener als das Standardmodell bei OpenRouter."),
           ("stackit", "Empfehlung bei STACKIT: gpt-oss-120b oder Gemma 4 31b („Modelle abrufen“, dann auswählen). Beide schreiben "
                       "einen Arztbrief in 6 bis 17 Sekunden; verhörte Arzneimittelnamen bemerken sie seltener als das "
                       "Standardmodell bei OpenRouter."))
+# Kurze Liste der Modelle: gemessen am 23.11.2026 an sechs erfundenen Diktaten (Visite, Pflegebericht) über OpenRouter
+MODEL_TIP = ("Das oberste Modell ist die Vorgabe. Gemessen an kurzen Aufträgen: Gemini 4 Hydrogen 5 bis 14 Sekunden, "
+             "Gemini 3.1 Flash Lite 1 bis 4 Sekunden, dafür übersieht das kleine Modell eher einen Hörfehler.")
 ADVICE_LOCAL = ("Auf dem eigenen Rechner: Für Glätten und Zusammenfassen genügt ein Modell um 9 Milliarden Parameter (etwa "
                 "Qwen3.5 9B, braucht rund 8 GB Grafikspeicher). Für Arztbrief und Übergabe sind so kleine Modelle zu ungenau: "
                 "In der Messung übernahmen sie Hörfehler oder setzten Werte ein, die niemand gesagt hatte.")
@@ -2692,20 +2696,31 @@ class LlmPage(Page):
         self.url = QtWidgets.QLineEdit(placeholderText="https://…/v1")
         self.url.textEdited.connect(lambda: self.preset.setCurrentIndex(len(PRESETS) - 1))
         self.url.textChanged.connect(self._where)
+        self.url.editingFinished.connect(lambda: self._fill_models())
         self.where = label("", "muted", wrap=True)
         self.advice = label("", "muted", wrap=True)
         self.advice.hide()
         self.key = QtWidgets.QLineEdit()
         self.key.setEchoMode(QtWidgets.QLineEdit.Password)
-        self.model = QtWidgets.QComboBox(editable=True)
-        self.model.lineEdit().setPlaceholderText("Modellname")
+        self.remote = {}                  # Server -> Modelle, die er in diesem Programmlauf gemeldet hat
+        self.model = QtWidgets.QComboBox()
+        self.model.setMaxVisibleItems(14)
+        self.model.setPlaceholderText("Modelle abrufen oder mit + eintragen")
+        self.model.setToolTip(MODEL_TIP)
+        self.model.currentIndexChanged.connect(self._model_picked)
+        self.add = button("+", self._add_model)
+        self.add.setToolTip("Eigenen Modellnamen hinzufügen, so wie ihn der Server kennt. Der Zusatz @low hinter dem "
+                            "Namen lässt ein denkendes Modell weniger nachdenken.")
+        self.drop = button("Entfernen", self._drop_model, "ghost")
+        self.drop.hide()
         self.status = label("", "muted", wrap=True)
         self.status.hide()
         self.fetch = button("Modelle abrufen", self.load_models)
         self.fix = QtWidgets.QCheckBox("Fachkorrektur: Hörfehler bei Fachbegriffen vom Sprachmodell korrigieren lassen")
         self.fix.setToolTip("Das Sprachmodell schlägt vor, was bei verhörten Wörtern gemeint war. Übernommen wird nur, "
                             "was selbst ein Fachbegriff ist, ähnlich klingt und keine Zahl ändert. Kostet je Diktat "
-                            "eine Anfrage an den Server oben; mit kleinen lokalen Modellen bringt es wenig.")
+                            "eine Anfrage an den Server oben; mit kleinen lokalen Modellen bringt es wenig. Bei "
+                            "OpenRouter und Noirdoc nimmt sie immer Gemini 3.1 Flash Lite, damit kein Diktat wartet.")
         self.body.addWidget(card(
             self.enabled,
             self.fix,
@@ -2713,7 +2728,7 @@ class LlmPage(Page):
                                    button("Löschen", self._delete, "ghost"))),
                  ("Server", hbox(self.preset, (self.url, 1))),
                  ("API-Schlüssel", hbox((self.key, 1), button("Entfernen", self.drop_key, "ghost"))),
-                 ("Modell", hbox((self.model, 1), self.fetch))),
+                 ("Modell", hbox((self.model, 1), self.add, self.drop, self.fetch))),
             self.where, self.advice, self.status,
             self.protect, hbox((self.shield, 1), self.shield_btn)))
 
@@ -2746,6 +2761,11 @@ class LlmPage(Page):
         self.v_writer = QtWidgets.QComboBox(editable=True)
         for name, model in visite.WRITERS:
             self.v_writer.addItem(name, model)
+        for box in (self.v_writer, self.model, self.profile):    # lange Einträge dürfen die Karte nicht breiter machen
+            box.setSizeAdjustPolicy(QtWidgets.QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
+            box.setMinimumContentsLength(18)
+        self.v_writer.view().setMinimumWidth(self.v_writer.view().sizeHintForColumn(0) + 28)   # aufgeklappt ganz lesbar
+        self.v_writer.activated.connect(lambda _: self.v_writer.lineEdit().setCursorPosition(0))  # Anfang zeigen, nicht das Ende
         self.v_writer.setToolTip("Auswählen oder einen eigenen Modellnamen eintippen. Der Zusatz @low hinter dem Namen lässt "
                                  "ein denkendes Modell bei OpenRouter weniger nachdenken; das macht es deutlich schneller.")
         self.v_rules = QtWidgets.QPlainTextEdit(placeholderText="Optional: Hausregeln für die Ersteinschätzung, zum Beispiel "
@@ -2837,26 +2857,107 @@ class LlmPage(Page):
         self.active = name
         if p:
             self.url.setText(p.get("base_url", ""))
-            self.model.setEditText(p.get("model", ""))
+            self._fill_models(p.get("model", ""))
             urls = [u for _, u in PRESETS]
             self.preset.setCurrentIndex(urls.index(self.url.text()) if self.url.text() in urls[:-1] else len(urls) - 1)
-        self.key.clear()
-        self.key.setPlaceholderText("gespeichert – zum Ändern neu eingeben" if llm.get_key(self.active)
-                                    else "bei lokalen Servern meist leer")
+        self._key_hint()
         if p:
             self.saved(self.note, f"„{name}“ gewählt – mit Speichern übernehmen")
 
+    # ----- Modellwahl
+    def model_name(self) -> str:
+        return self.model.currentData() or ""
+
+    def _own(self) -> list:
+        """Eigene Modellnamen für den Server, der gerade im Feld steht."""
+        return (self.ctl.cfg.get("llm_models") or {}).get(llm.host_of(self.url.text()), [])
+
+    def _fill_models(self, select=None):
+        """Die Auswahl neu aufbauen: oben die kurze Liste des Anbieters (das erste ist die Vorgabe), dann eigene
+        Namen, darunter alles Weitere, was der Server gemeldet hat. select=None behält die jetzige Wahl."""
+        url = self.url.text().strip()
+        wanted = self.model_name() if select is None else select
+        seen = self.remote.get(llm.host_of(url))
+        known = {m.lower() for m in seen} if seen else None          # ohne Liste vom Server gilt die mitgelieferte
+        self.model.blockSignals(True)
+        self.model.clear()
+        for name, text in llm.picks(url):
+            if known is None or llm.model_of({"model": name})[0].lower() in known:
+                self.model.addItem(text, name)
+        for name in self._own():
+            if self.model.findData(name) < 0:
+                self.model.addItem(name, name)
+        if wanted and self.model.findData(wanted) < 0 and wanted not in (seen or ()):
+            self.model.addItem(wanted, wanted)           # eine frühere Wahl bleibt wählbar
+        rest = [m for m in seen or () if self.model.findData(m) < 0]
+        if rest and self.model.count():
+            self.model.insertSeparator(self.model.count())
+        for name in rest:
+            self.model.addItem(name, name)
+        i = self.model.findData(wanted) if wanted else -1
+        self.model.setCurrentIndex(i if i >= 0 else (0 if self.model.count() else -1))
+        self.model.blockSignals(False)
+        self._model_picked()
+
+    def _model_picked(self, _=None):
+        self.drop.setVisible(bool(self.model_name()) and self.model_name() in self._own())
+
+    def _add_model(self):
+        if not self.url.text().strip():
+            return self.saved(self.note, "Erst den Server wählen.", ok=False)
+        name, ok = QtWidgets.QInputDialog.getText(self, "Eigenes Modell", "Modellname, wie ihn der Server kennt:")
+        name = (name or "").strip()
+        if not ok or not name:
+            return
+        if llm.refused(self.llm_cfg(), name):
+            return self.saved(self.note, "Dieses Modell bietet LocalScribe bei Noirdoc nicht an: Einer seiner Anbieter "
+                                         "hat keine Verschwiegenheitsverpflichtung.", ok=False)
+        if name not in self._own():
+            self.ctl.cfg.setdefault("llm_models", {}).setdefault(llm.host_of(self.url.text()), []).append(name)
+        self._fill_models(name)
+
+    def _drop_model(self):
+        name = self.model_name()
+        if name in self._own():
+            self._own().remove(name)
+            self._fill_models("")
+
+    def _home(self, name) -> str:
+        """Adresse, zu der der gespeicherte Schlüssel dieses Anbieters gehört."""
+        p = next((p for p in self._profiles() if p["name"] == name), None)
+        if p:
+            return p.get("base_url", "")
+        stored = self.ctl.cfg["llm"]
+        return stored.get("base_url", "") if not name and not stored.get("profile") else ""
+
+    def _own_key(self) -> bool:
+        """Gehört der gespeicherte Schlüssel zu dem Server, der gerade im Feld steht?"""
+        return llm.host_of(self._home(self.active)) == llm.host_of(self.url.text())
+
+    def _key_hint(self):
+        self.key.clear()
+        local = llm._is_local(self.url.text().strip())
+        self.key.setPlaceholderText("gespeichert – zum Ändern neu eingeben" if self._own_key() and llm.get_key(self.active)
+                                    else "bei lokalen Servern meist leer" if local or not self.url.text().strip()
+                                    else "Schlüssel des Anbieters einfügen")
+
+    def _live(self):
+        """Server und Schlüssel für einen Abruf vor dem Speichern. Ein gespeicherter Schlüssel geht nur an den Server,
+        zu dem er gehört: Steht im Feld inzwischen ein anderer, gilt nur ein frisch eingetippter."""
+        key = self.typed_key()
+        return self.llm_cfg(), key if key is not None or self._own_key() else ""
+
     def _save_as(self):
-        url, model = self.url.text().strip(), self.model.currentText().strip()
+        url, model = self.url.text().strip(), self.model_name()
         if not url or not model:
-            return self.saved(self.note, "Erst Server und Modell eintragen.", ok=False)
+            return self.saved(self.note, "Erst Server und Modell wählen.", ok=False)
         host = llm.urllib.parse.urlsplit(url).hostname or "Server"
         suggestion = next((n for n, u in PRESETS if u and u == url), host)
         name, ok = QtWidgets.QInputDialog.getText(self, "Anbieter speichern", "Name für diesen Anbieter:", text=suggestion)
         name = (name or "").strip()
         if not ok or not name:
             return
-        key = self.typed_key() or llm.get_key(self.active)
+        key = self.typed_key() or (llm.get_key(self.active) if self._own_key() else "")
         profiles = [p for p in self._profiles() if p["name"] != name] + [{"name": name, "base_url": url, "model": model}]
         self.ctl.cfg["llm_profiles"] = profiles
         try:
@@ -2932,6 +3033,7 @@ class LlmPage(Page):
             self.v_writer.setCurrentIndex(i)
         else:
             self.v_writer.setEditText(chosen)
+        self.v_writer.lineEdit().setCursorPosition(0)
         self.v_rules.setPlainText(cfg.get("visite_rules") or "")
         l = cfg["llm"]
         self.active = l.get("profile") or ""
@@ -2943,10 +3045,8 @@ class LlmPage(Page):
         self.url.setText(l.get("base_url") or "")
         urls = [u for _, u in PRESETS]
         self.preset.setCurrentIndex(urls.index(self.url.text()) if self.url.text() in urls[:-1] else len(urls) - 1)
-        self.key.clear()
-        self.key.setPlaceholderText("gespeichert – zum Ändern neu eingeben" if llm.get_key(self.active)
-                                    else "bei lokalen Servern meist leer")
-        self.model.setEditText(l.get("model") or "")
+        self._key_hint()
+        self._fill_models(l.get("model") or "")
         self.prompts = copy.deepcopy(cfg.get("prompts") or [])
         self.current = -1
         self.list.clear()
@@ -2967,7 +3067,7 @@ class LlmPage(Page):
     def llm_cfg(self):
         l = dict(self.ctl.cfg["llm"])
         l.update(enabled=self.enabled.isChecked(), base_url=self.url.text().strip(),
-                 model=self.model.currentText().strip(), auto_prompt=self.auto.currentData() or "",
+                 model=self.model_name(), auto_prompt=self.auto.currentData() or "",
                  profile=self.active, protect=self.protect.isChecked())
         return l
 
@@ -2981,9 +3081,13 @@ class LlmPage(Page):
         names = [p["name"] for p in self.prompts]
         if len(set(names)) != len(names) or not all(names):
             return self.saved(self.note, "Jeder Prompt braucht einen eigenen Namen.", ok=False)
-        if self.typed_key():
+        typed = self.typed_key()
+        if self.active and self.url.text().strip() and all(p["name"] != self.active for p in self._profiles()):
+            # ein Anbieter aus der Liste „Server“ bekommt beim ersten Speichern seinen eigenen Eintrag samt Schlüssel
+            self._profiles().append({"name": self.active, "base_url": self.url.text().strip(), "model": self.model_name()})
+        if typed:
             try:
-                llm.set_key(self.typed_key(), self.active)
+                llm.set_key(typed, self.active)
             except Exception as e:
                 return self.saved(self.note, f"Schlüssel nicht speicherbar: {e}", ok=False)
         self.ctl.cfg["llm"] = self.llm_cfg()
@@ -2997,11 +3101,13 @@ class LlmPage(Page):
         self.refresh()
         self.list.setCurrentRow(selected)
         self.saved(self.note)
+        if typed:                                  # ein neuer Schlüssel zeigt gleich, ob er gilt
+            self.load_models()
 
     def drop_key(self):
-        llm.set_key("", self.active)
-        self.key.clear()
-        self.key.setPlaceholderText("bei lokalen Servern meist leer")
+        if self._own_key():
+            llm.set_key("", self.active)
+        self._key_hint()
 
     def _where(self, url):
         url = url.strip()
@@ -3019,10 +3125,23 @@ class LlmPage(Page):
             self.where.setText(f"Mit dieser Adresse verlassen die Texte diesen Rechner und gehen an {host}.")
 
     def _preset(self, i):
-        if PRESETS[i][1]:
-            self.url.setText(PRESETS[i][1])
-        else:
-            self.url.setFocus()
+        """Einen Server aus der Liste wählen: Ist er schon als Anbieter gespeichert, kommen dessen Modell und Schlüssel
+        mit; sonst gilt die Vorgabe des Anbieters, und der Schlüssel eines anderen bleibt, wo er ist."""
+        name, url = PRESETS[i]
+        if not url:
+            return self.url.setFocus()
+        if url == self.url.text().strip():
+            return
+        self.url.setText(url)
+        known = next((p for p in self._profiles() if p.get("base_url") == url), None)
+        taken = {p["name"] for p in self._profiles()}
+        self.active = known["name"] if known else next(n for n in [name] + [f"{name} {k}" for k in range(2, 99)]
+                                                       if n not in taken)
+        self._fill_profiles()
+        self._key_hint()
+        self._fill_models(known.get("model", "") if known else "")
+        if llm._is_local(url) or "openrouter.ai" in url or (known and llm.get_key(self.active)):
+            self.load_models(quiet=True)
 
     # ----- Prompts
     def _enable_form(self, on):
@@ -3085,33 +3204,39 @@ class LlmPage(Page):
         self._enable_form(bool(self.prompts))
 
     # ----- Netz
-    def load_models(self):
+    def load_models(self, _=None, quiet=False):
+        """Die Modellliste des Servers holen. quiet: nebenbei nach der Wahl eines Servers, ohne Fehlermeldung."""
+        cfg, key = self._live()
+        if not cfg["base_url"]:
+            return
         self.fetch.setEnabled(False)
         restyle(self.status, "muted")
         self.status.setText("Frage den Server …")
-        self.status.show()
-        cfg, key = self.llm_cfg(), self.typed_key()
+        self.status.setVisible(not quiet)
+        host = llm.host_of(cfg["base_url"])
 
         def work():
             try:
-                self.sig_models.emit(llm.list_models(cfg, key), "")
+                self.sig_models.emit((host, llm.list_models(cfg, key), quiet), "")
             except Exception as e:
-                self.sig_models.emit([], str(e) or type(e).__name__)
+                self.sig_models.emit((host, [], quiet), str(e) or type(e).__name__)
         threading.Thread(target=work, daemon=True).start()
 
-    def _models(self, models, error):
+    def _models(self, answer, error):
+        host, models, quiet = answer
         self.fetch.setEnabled(True)
         if error:
             restyle(self.status, "bad")
             self.status.setText(error)
-        else:
-            current = self.model.currentText()
-            self.model.clear()
-            self.model.addItems(models)
-            self.model.setEditText(current or (models[0] if models else ""))
-            restyle(self.status, "ok")
-            self.status.setText(f"Verbunden – {len(models)} Modelle gefunden." if models
-                                else "Verbunden, aber der Server meldet keine Modelle.")
+            return self.status.setVisible(not quiet)
+        self.remote[host] = models
+        if host != llm.host_of(self.url.text()):
+            return                                 # inzwischen steht ein anderer Server im Feld
+        self._fill_models()
+        restyle(self.status, "ok")
+        self.status.setText(f"Verbunden – {len(models)} Modelle gefunden." if models
+                            else "Verbunden, aber der Server meldet keine Modelle.")
+        self.status.show()
 
     def try_prompt(self):
         instruction = self.text.toPlainText().strip()
@@ -3119,7 +3244,7 @@ class LlmPage(Page):
             return self.try_note.setText("Erst links einen Prompt wählen.")
         self.try_btn.setEnabled(False)
         self.try_note.setText("Modell arbeitet …")
-        cfg, key, sample = self.llm_cfg(), self.typed_key(), self.sample.toPlainText()
+        (cfg, key), sample = self._live(), self.sample.toPlainText()
 
         def work():
             t = time.time()
