@@ -172,7 +172,7 @@
 <body>
 <h1 id="localscribe--technische-dokumentation">LocalScribe – Technische
 Dokumentation</h1>
-<p>Stand: Version 1.8.1. Für Betrieb, IT und alle, die den Code lesen
+<p>Stand: Version 2.0.0. Für Betrieb, IT und alle, die den Code lesen
 oder prüfen wollen. Die Bedienung steht im <a
 href="https://chunkyfire.github.io/LocalScribe/LocalScribe-Handbuch.pdf">Handbuch</a>,
 die Messwerte mit Methode in <a
@@ -281,7 +281,7 @@ lädt nichts noch einmal.</p>
 Komplettpaket bei. Fehlt sie und ist ein Server außerhalb des Rechners
 mit eingeschaltetem Schutz eingestellt, lädt die App sie nach dem Start
 von selbst (<code>app.shield_start</code>), sichtbar unten links;
-Aufträge, die darauf warten, laufen danach weiter
+Prompts, die darauf warten, laufen danach weiter
 (<code>hub.shield_wait</code>). Bis sie da ist, geht nichts an diesen
 Server.</p>
 <p>Scheitert der Download des Modells (Proxy, Firewall), zeigt das
@@ -655,7 +655,7 @@ Ein Profil ist ein Ordner <code>profile\&lt;Name&gt;</code> neben
 <code>LocalScribe.exe</code> mit <code>profil.json</code> (die
 persönlichen Einstellungen, <code>config.PERSONAL</code>: Wörterbuch,
 Wortschatz, gelernte Wörter, Berichtigungen, Textbausteine, Befehle,
-Aufträge, Tasten, Satzzeichen-Schalter, Fachrichtung, Fortschritt und
+Prompts, Tasten, Satzzeichen-Schalter, Fachrichtung, Fortschritt und
 Messungen des Stimmtrainings) und <code>training\</code>
 (Stimmaufnahmen). Angeboten wird das, wenn es den Ordner
 <code>profile</code> gibt oder das Programm auf einem Netzlaufwerk
@@ -798,7 +798,8 @@ oder in „Visite &amp; Übergabe“ auf „Auswerten“ gedrückt wird</td>
 <td>selbst eingetragener Sprachmodell-Server, <code>/models</code></td>
 <td>auf Klick „Modelle abrufen“, nach dem Speichern eines neuen
 Schlüssels und nach der Wahl eines Servers, zu dem schon ein Schlüssel
-gespeichert ist (lokale Server und OpenRouter auch ohne)</td>
+gespeichert ist (lokale Server und OpenRouter auch ohne); gewählt wird
+in der einen Liste „Anbieter“</td>
 <td>nichts außer der Anfrage; ein gespeicherter Schlüssel geht nur an
 den Server, zu dem er gehört</td>
 </tr>
@@ -915,23 +916,32 @@ Stimme bleibt der Text unverändert</td>
 </tr>
 <tr class="even">
 <td><code>handover_frame</code></td>
-<td>zuletzt gewählter Rahmen der Übergabe: <code>zna</code>,
-<code>station</code> oder <code>its</code></td>
+<td>zuletzt gewählter Bereich der Übergabe: <code>zna</code>,
+<code>station</code>, <code>its</code> oder <code>pflege</code> (Pflege
+schreibt nur den Pflegebericht, ohne Jev:
+<code>hub.VisitPage._care</code>)</td>
 <td><code>zna</code></td>
 </tr>
 <tr class="odd">
+<td><code>menu_hidden</code></td>
+<td>abgewählte Menüpunkte links: <code>Verlauf</code>,
+<code>Übergabe</code>, <code>Wortschatz</code> (Einstellungen,
+Prompts)</td>
+<td>leer</td>
+</tr>
+<tr class="even">
 <td><code>spoken_punctuation</code></td>
 <td>„Punkt“, „Komma“, „neue Zeile“ als Zeichen schreiben</td>
 <td>aus</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>llm</code>, <code>llm_fix</code></td>
 <td>Sprachmodell-Server und Fachkorrektur. Die Fachkorrektur nimmt bei
 OpenRouter und Noirdoc das schnelle Modell aus <code>llm.QUICK</code>,
 sonst das gewählte</td>
 <td>aus</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>llm_profiles</code>, <code>llm_models</code></td>
 <td>gespeicherte Anbieter (Name, Adresse, Modell; der Schlüssel liegt im
 Windows-Schlüsselspeicher) und eigene Modellnamen je Server. Die kurze
@@ -939,26 +949,31 @@ Liste je Anbieter steht in <code>llm.PICKS</code>, das erste ist die
 Vorgabe</td>
 <td>leer</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>prompts</code></td>
-<td>Aufträge an das Sprachmodell: Name, Anweisung, Taste, und
-<code>record</code> (als Knopf auf der Seite Aufnahme). Mitgeliefert:
-Glätten, E-Mail, Stichpunkte, Arztbrief, Zusammenfassung,
-Meeting-Protokoll, Visite (SOAP), Pflegebericht. Beim Wechsel auf 1.7.1
-kommen die zwei neuen einmal dazu; die Zeile der Aufnahme wird nur
-umgestellt, wenn sie noch der Vorgabe entsprach
-(<code>config._prompts_v8</code>)</td>
+<td>Prompts an das Sprachmodell: Name, Anweisung, Taste,
+<code>record</code> (Knopf auf der Seite Aufnahme), <code>list</code>
+(in der Auswahlliste „Meine Prompts“; ohne Angabe alles, was kein Knopf
+ist) und <code>pin</code> (eigener Menüpunkt links; nach dem Stopp läuft
+der Prompt von selbst). Das Zeichen neben „Eigener Prompt“ formuliert
+eine kurze Eingabe mit <code>config.SPARK</code> und dem schnellen
+Modell des Anbieters aus; das Sprachmodell sieht dazu Eingabe und Anfang
+des Transkripts nach dem Schutz. Mitgeliefert: Glätten, E-Mail,
+Stichpunkte, Arztbrief, Zusammenfassung, Meeting-Protokoll, Visite
+(SOAP), Pflegebericht. Beim Wechsel auf 1.7.1 kommen die zwei neuen
+einmal dazu; die Zeile der Aufnahme wird nur umgestellt, wenn sie noch
+der Vorgabe entsprach (<code>config._prompts_v8</code>)</td>
 <td>Aufnahme zeigt Visite, Meeting-Protokoll, Arztbrief,
 Pflegebericht</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>visite_prompt</code></td>
 <td>eigene Anweisung für den Rahmen Notaufnahme; leer = die
-mitgelieferte. Station und Intensiv haben feste Aufträge
+mitgelieferte. Normalstation und Intensivstation haben feste Prompts
 (<code>visite.STATION</code>, <code>visite.ITS</code>)</td>
 <td>leer</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>visite_model</code>, <code>visite_jev</code>,
 <code>visite_rules</code></td>
 <td>Modell für Arztbrief, Visiteneintrag und Übergabe (leer: bei
@@ -971,47 +986,47 @@ Jev-Modell (leer: <code>~typesafe/jev-latest</code>), Hausregeln für
 Jev</td>
 <td>leer</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>update_check</code></td>
 <td>einmal am Tag von selbst bei GitHub nach einer neueren Fassung
 fragen</td>
 <td>aus</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>profile_name</code></td>
 <td>gewähltes Profil am Programmordner; leer = die Daten dieses
 Rechners</td>
 <td>leer</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>training_keep</code></td>
 <td>vorgelesene Übungs- und Prüfsätze als Ton aufheben (kein Schalter im
 Fenster; für eine zentrale Vorgabe)</td>
 <td>an (seit 1.6.0)</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>field</code>, <code>training_scores</code></td>
 <td>Fachrichtung im Stimmtraining; Messungen mit Prüfsätzen (Zeitpunkt,
 Wortfehler, Trainingsminuten)</td>
 <td>leer</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>phone</code></td>
 <td>Handy als Mikrofon</td>
 <td>aus</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>model_dir</code></td>
 <td>eigener Ordner mit den Sprachmodellen, zum Beispiel ein
 Netzlaufwerk</td>
 <td>leer</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>live_preview</code> (nur Datei)</td>
 <td>Vorschau auf die laufende Äußerung in der Aufnahme</td>
 <td>an</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>threads</code> (nur Datei)</td>
 <td>Zahl der Rechen-Threads; 0 überlässt es der Laufzeit</td>
 <td>0</td>

@@ -36,7 +36,7 @@ Mehrere Personen
 ----------------
 Liegt dieser Ordner auf einem Netzlaufwerk, aus dem viele Rechner arbeiten,
 steht unten links im Fenster, wer diktiert. Ein Klick dort legt ein eigenes
-Profil an oder wählt eines: Wörterbuch, Textbausteine, Aufträge, Tasten und
+Profil an oder wählt eines: Wörterbuch, Textbausteine, Prompts, Tasten und
 Stimmaufnahmen liegen dann hier im Ordner "profile" und folgen der Person an
 jeden Rechner. Verlauf, Fälle und Schlüssel bleiben auf dem jeweiligen
 Rechner. Profile haben kein Passwort.

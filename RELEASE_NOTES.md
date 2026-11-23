@@ -1,3 +1,27 @@
+## LocalScribe 2.0.0
+
+- **Eine Liste „Anbieter“.** Unter Einstellungen, LLM, stehen OpenRouter, Noirdoc, IONOS, STACKIT, Ollama und LM Studio
+  jetzt in einer einzigen Liste; darunter eigene Anbieter und „Eigene Adresse …“. Die zweite Liste „Server“ und
+  „Speichern als …“ gibt es nicht mehr: Wählen, Schlüssel einfügen, speichern. Jeder Anbieter behält seinen Schlüssel.
+- **Prompts heißen wieder Prompts** und haben einen eigenen Reiter in den Einstellungen. Je Prompt drei Haken: Knopf
+  auf der Seite Aufnahme, in der Auswahlliste „Meine Prompts“, als Menüpunkt links angepinnt.
+- **Seite Aufnahme:** Hinter den Knöpfen steht die Auswahlliste „Meine Prompts“. Darunter die Zeile „Eigener Prompt“:
+  kurz hinschreiben, was aus dem Text werden soll, und „Ausführen“. Das Zeichen links daneben formuliert die kurze
+  Eingabe zu einem vollständigen Prompt aus, passend zum Transkript; der Text bleibt änderbar. „In die Sammlung“
+  merkt ihn.
+- **Angepinnte Prompts** stehen als eigene Menüpunkte links. Dort aufnehmen, und nach dem Stopp schreibt LocalScribe
+  das Ergebnis von selbst. Verlauf, Übergabe und Wortschatz lassen sich aus der Leiste nehmen (Einstellungen, Prompts).
+- **Neue Aufnahme, neuer Fall:** Der Knopf steht jetzt neben der Überschrift, auch in den Listen.
+- **Löschen ohne Umweg.** In „Gespeichert“ und „Fälle“ öffnet ein Klick; beim Überfahren stehen rechts ein Stift
+  (umbenennen) und ein X (in den Papierkorb). Im Papierkorb entsprechend zurückholen und endgültig löschen.
+- **Übergabe mit dem Bereich Pflege.** Neben Notaufnahme, Normalstation und Intensivstation gibt es Pflege: ein Knopf
+  schreibt aus Text und Ablage den Pflegebericht. Ersteinschätzung, Sicherheitsnetz und Rückfragen gibt es dort nicht.
+- **Weniger Text auf den Seiten.** Erklärtexte stehen nicht mehr unter den Überschriften und in den Karten, sondern
+  beim Überfahren eines kleinen i daneben.
+- Behoben: Das Mausrad über einem Auswahlfeld verstellte unbemerkt dessen Wert, zum Beispiel das Modell, wenn man die
+  Seite rollte. Auswahlfelder reagieren jetzt nicht mehr auf das Rad; die Seite rollt weiter.
+- Behoben: In den Listen „Gespeichert“ und „Fälle“ erschien bei langen Texten ein heller Rollbalken am unteren Rand.
+
 ## LocalScribe 1.8.1
 
 - **Noirdoc als Anbieter.** Unter Einstellungen, LLM, steht in der Liste „Server“ jetzt Noirdoc (`api.noirdoc.de`,

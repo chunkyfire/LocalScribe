@@ -81,21 +81,24 @@ beendet sie nicht; sie bleibt im Infobereich (Rechtsklick → Beenden).
   Fachwörter aus deinen Diktaten mit; über **Aus eigenen Texten lernen** (Wortschatz, Reiter Stimmtraining) liest es sie aus eigenen
   Briefen und Befunden, nur einzelne Lexikonwörter, keine Sätze, keine Namen. An echten Arztdiktaten mit passendem
   Wortschatz: 16,6 → 11,1 % Wortfehler.
-- **Aufnahme mit Aufträgen** – aufnehmen oder eine Datei laden; das Transkript wird gespeichert. Darunter ein Klick auf
+- **Aufnahme mit Prompts** – aufnehmen oder eine Datei laden; das Transkript wird gespeichert. Darunter ein Klick auf
   Visite (Eintrag nach dem SOAP-Schema), Meeting-Protokoll, Arztbrief oder Pflegebericht (Beobachtung, Maßnahme,
-  Wirkung, Weitergabe; sachlich, ohne Wertung). Alle übernehmen nur, was gesagt wurde. Glätten, Zusammenfassung und
-  eigene Prompts lassen sich dazuschalten. Die Erkennung läuft lokal; Aufträge gehen an das eingestellte Sprachmodell.
+  Wirkung, Weitergabe; sachlich, ohne Wertung). Alle übernehmen nur, was gesagt wurde. Weitere Prompts stehen in der
+  Auswahlliste „Meine Prompts“; einen eigenen schreibt man in die Zeile darunter, auf Wunsch formuliert das
+  Sprachmodell ihn aus einer kurzen Eingabe aus. Ein angepinnter Prompt bekommt einen eigenen Menüpunkt und läuft
+  nach der Aufnahme von selbst. Die Erkennung läuft lokal; Prompts gehen an das eingestellte Sprachmodell.
 - **Übergabe** – eigener Bereich für Visite und Übergabe, mit einer Ablage je Fall, direkt beantwortbaren Rückfragen
   und „Neu erzeugen“.
-  Drei Rahmen, oben rechts wählbar: **Notaufnahme**, **Station**, **Intensiv**.
+  Vier Bereiche, oben rechts wählbar: **Notaufnahme**, **Normalstation**, **Intensivstation** und **Pflege** (dort
+  schreibt ein Knopf den Pflegebericht, ohne Einschätzung, Sicherheitsnetz und Rückfragen).
   Jev (TypeSafe, über OpenRouter) antwortet in etwa einer halben Sekunde mit Wahrscheinlichkeiten. In der Notaufnahme
   als Ersteinschätzung: Notaufnahme oder Notdienstpraxis, Schockraum, fallführende Abteilung, Bett, EKG, Zugang, Labor,
   Bildgebung. Auf Station und Intensiv als Tages-Check: droht eine Verschlechterung oder Eskalation, ist Entlassung
   oder Verlegung realistisch, und was heute zu prüfen ist (Antibiotika, Medikation, Katheter, Prophylaxen,
-  Aufwachversuch, Therapieziel …). Ein Sprachmodell schreibt je nach Rahmen Arztbrief, Visiteneintrag oder Übergabe
+  Aufwachversuch, Therapieziel …). Ein Sprachmodell schreibt je nach Bereich Arztbrief, Visiteneintrag oder Übergabe
   nach Organsystemen, dazu Sicherheitsnetz, gezielte Rückfragen, Kodiervorschlag und Patienteninfo (auf Intensiv:
   Text für Angehörige), jeweils als eigener Block zum Auf- und Zuklappen und Kopieren; alles liegt unter „Fälle“
-  (umbenennen, Papierkorb). Verhörte Arzneimittel, Dosen und fehlende Vorzeichen meldet das Sicherheitsnetz.
+  (Klick öffnet; Stift und X beim Überfahren). Verhörte Arzneimittel, Dosen und fehlende Vorzeichen meldet das Sicherheitsnetz.
   Nur für Forschung, Lehre und den Vergleich von Modellen, kein Medizinprodukt. Die Anweisung ist unter Einstellungen
   änderbar.
 - **Wörterbuch** – falsch Erkanntes automatisch ersetzen. Mit **Hinzufügen** und nur der rechten Spalte reicht die richtige Schreibweise
@@ -285,12 +288,12 @@ Zahlen bleiben unberührt, umformuliert wird nichts. Gemessen mit Gemini Flash L
 Sekunde je Diktat: eigene Diktate 9,0 → 7,5 %, Med-Dictate 16,7 → 13,7 %, Arztbrief-Sätze 10,2 → 8,4 %,
 MultiMed 12,3 → 12,2 % (dort neun richtige, zwei falsche Ersetzungen). Mit einem kleinen lokalen Modell bringt es nichts.
 
-**Anbieter speichern und wechseln.** Mehrere Server lassen sich unter eigenem Namen ablegen (OpenRouter, Noirdoc,
-IONOS, lokal) und in der Auswahl „Anbieter“ wechseln; jeder hat seinen eigenen Schlüssel im Windows-Schlüsselspeicher.
-Wer in der Liste „Server“ einen bekannten Anbieter wählt und speichert, bekommt den Eintrag von selbst.
+**Anbieter wählen und wechseln.** In der Liste „Anbieter“ stehen OpenRouter, Noirdoc, IONOS, STACKIT, Ollama und
+LM Studio, darunter eigene Server („Eigene Adresse …“). Wählen, Schlüssel einfügen, speichern; jeder Anbieter hat
+seinen eigenen Schlüssel im Windows-Schlüsselspeicher, und ein Wechsel holt sein Modell und seinen Schlüssel zurück.
 
 **Modell wählen.** Bei OpenRouter und Noirdoc steht oben eine kurze Liste, die Vorgabe ist Gemini 4 Hydrogen mit wenig
-Nachdenken (5 bis 14 Sekunden je Auftrag; Gemini 3.1 Flash Lite 1 bis 4). „Modelle abrufen“ ergänzt, was der Server
+Nachdenken (5 bis 14 Sekunden je Prompt; Gemini 3.1 Flash Lite 1 bis 4). „Modelle abrufen“ ergänzt, was der Server
 meldet, „+“ einen eigenen Modellnamen. Die Fachkorrektur nimmt bei beiden immer das schnelle Modell. Bei Noirdoc
 fehlen die Modelle zweier Unteranbieter ohne Verschwiegenheitsverpflichtung mit Absicht.
 
@@ -362,14 +365,14 @@ Wortschatz. Der Ton wird nur gelesen.
 
 **Mehrere Personen: Profile.** Liegt das Programm auf einem Netzlaufwerk, aus dem viele Rechner arbeiten, steht
 unten links im Fenster, wer diktiert: „Dieser Rechner“ oder ein Profil. Ein Klick dort wählt ein Profil oder legt
-eines an (auch über das Symbol neben der Uhr). Im Profil liegen Wörterbuch, Wortschatz, Textbausteine, Aufträge,
+eines an (auch über das Symbol neben der Uhr). Im Profil liegen Wörterbuch, Wortschatz, Textbausteine, Prompts,
 Tasten und das Stimmtraining mit seinen Aufnahmen, im Programmordner unter `profile\<Name>`; es folgt der Person an
 jeden Rechner. Verlauf, Fälle, Protokoll, Mikrofon, Server und Schlüssel bleiben auf dem jeweiligen Rechner. Profile
 haben kein Passwort. Fehlt das Laufwerk, arbeitet die App mit der letzten Kopie weiter und führt später zusammen.
 Für einen einzelnen Rechner lässt sich das unter Einstellungen einschalten („Mehrere Personen an diesem Programm“).
 
 **Profil sichern.** Unter Einstellungen schreibt „Profil sichern …“ Wörterbuch, Wortschatz, Textbausteine,
-Aufträge, Tasten, Server und deine Stimmaufnahmen in eine Datei (`.lsprofil`). „Profil zurückholen …“ liest sie an
+Prompts, Tasten, Server und deine Stimmaufnahmen in eine Datei (`.lsprofil`). „Profil zurückholen …“ liest sie an
 diesem oder einem anderen Rechner wieder ein. Nicht enthalten: Diktate, Fälle und der Schlüssel für ein
 Sprachmodell-Konto. Updates fassen das Profil nicht an.
 

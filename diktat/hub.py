@@ -166,6 +166,24 @@ QPushButton#recHero:disabled { background: #2A2A2A; color: #6A6A6A; }
 QPushButton#recPillOn { background: #FF7A4D; color: #16100D; border: none; border-radius: 18px; padding: 9px 20px; font-weight: 700; }
 QPushButton#recPillOn:hover { background: #FF9068; }
 QPushButton#fileBtn { padding: 9px 18px; border-radius: 12px; }
+QPushButton#newBtn { color: #C6FF3D; background: rgba(198, 255, 61, 0.08); border: 1px solid rgba(198, 255, 61, 0.45);
+                     border-radius: 12px; padding: 6px 14px; font-weight: 600; }
+QPushButton#newBtn:hover { background: rgba(198, 255, 61, 0.16); }
+QPushButton#spark { color: #C6FF3D; background: rgba(198, 255, 61, 0.08); border: 1px solid rgba(198, 255, 61, 0.45);
+                    border-radius: 11px; font-size: 13pt; padding: 0; }
+QPushButton#spark:hover { background: rgba(198, 255, 61, 0.16); }
+QPushButton#spark:disabled { color: #6A6F75; border-color: rgba(255, 255, 255, 0.12); background: transparent; }
+QLabel#info { border: 1px solid rgba(255, 255, 255, 0.30); border-radius: 10px; color: #9AA0A6; font-size: 8.5pt; font-weight: 700; }
+QLabel#info:hover { color: #C6FF3D; border-color: rgba(198, 255, 61, 0.6); }
+QFrame#case { background: transparent; border: none; border-bottom: 1px solid rgba(255, 255, 255, 0.06); }
+QFrame#case:hover { background: rgba(198, 255, 61, 0.07); }
+QFrame#case QLabel { background: transparent; }
+QFrame#case QPushButton { background: transparent; border: none; color: #C9CED4; font-size: 11pt; padding: 0; }
+QFrame#case QPushButton:hover { color: #C6FF3D; }
+QFrame#case QPushButton#drop { background: rgba(255, 122, 107, 0.14); border: 1px solid rgba(255, 122, 107, 0.50); border-radius: 7px;
+                               color: #FF7A6B; font-size: 10pt; font-weight: 700; }
+QFrame#case QPushButton#drop:hover { background: rgba(255, 122, 107, 0.30); color: #FFB0A6; }
+QFrame#cases { background: rgba(0, 0, 0, 0.24); border: 1px solid rgba(255, 255, 255, 0.10); border-radius: 14px; }
 QPushButton#recPill:disabled { background: #2A2A2A; color: #6A6A6A; }
 QScrollBar:vertical { background: transparent; width: 10px; margin: 2px; }
 QScrollBar::handle:vertical { background: rgba(255, 255, 255, 0.14); border-radius: 4px; min-height: 30px; }
@@ -174,13 +192,13 @@ QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }
 QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical { background: transparent; }
 """
 
-PRESETS = [("Ollama (lokal)", "http://localhost:11434/v1"),
-           ("LM Studio (lokal)", "http://localhost:1234/v1"),
-           ("OpenRouter", "https://openrouter.ai/api/v1"),
+PRESETS = [("OpenRouter", "https://openrouter.ai/api/v1"),
            ("Noirdoc", "https://api.noirdoc.de/v1"),
            ("IONOS AI Model Hub", "https://openai.inference.de-txl.ionos.com/v1"),
            ("STACKIT AI Model Serving", "https://api.openai-compat.model-serving.eu01.onstackit.cloud/v1"),
-           ("Eigene Adresse", "")]
+           ("Ollama (lokal)", "http://localhost:11434/v1"),
+           ("LM Studio (lokal)", "http://localhost:1234/v1"),
+           ("Eigene Adresse …", "")]
 # Welches Modell wofür: gemessen am 19.11.2026 an erfundenen Fällen (werkzeug/messen/ERGEBNIS.md)
 ADVICE = (("noirdoc", "Noirdoc verarbeitet in der EU. Die Maskierung dort ist ab Werk aus: Lass den Schutz unten an. Modelle "
                       "zweier Unteranbieter ohne Verschwiegenheitsverpflichtung fehlen in der Liste mit Absicht."),
@@ -190,7 +208,7 @@ ADVICE = (("noirdoc", "Noirdoc verarbeitet in der EU. Die Maskierung dort ist ab
                       "einen Arztbrief in 6 bis 17 Sekunden; verhörte Arzneimittelnamen bemerken sie seltener als das "
                       "Standardmodell bei OpenRouter."))
 # Kurze Liste der Modelle: gemessen am 23.11.2026 an sechs erfundenen Diktaten (Visite, Pflegebericht) über OpenRouter
-MODEL_TIP = ("Das oberste Modell ist die Vorgabe. Gemessen an kurzen Aufträgen: Gemini 4 Hydrogen 5 bis 14 Sekunden, "
+MODEL_TIP = ("Das oberste Modell ist die Vorgabe. Gemessen an kurzen Prompts: Gemini 4 Hydrogen 5 bis 14 Sekunden, "
              "Gemini 3.1 Flash Lite 1 bis 4 Sekunden, dafür übersieht das kleine Modell eher einen Hörfehler.")
 ADVICE_LOCAL = ("Auf dem eigenen Rechner: Für Glätten und Zusammenfassen genügt ein Modell um 9 Milliarden Parameter (etwa "
                 "Qwen3.5 9B, braucht rund 8 GB Grafikspeicher). Für Arztbrief und Übergabe sind so kleine Modelle zu ungenau: "
@@ -295,6 +313,9 @@ def nav_icon(kind, size=18):
             p.drawPath(path)
             p.drawLine(P(9, 9), P(15, 9))
             p.drawLine(P(9, 13), P(13, 13))
+        elif kind == "Pin":                                 # Pinnnadel: angepinnter Prompt
+            p.drawPolyline([P(9, 4), P(15, 4), P(14.2, 10), P(17, 13.5), P(7, 13.5), P(9.8, 10), P(9, 4)])
+            p.drawLine(P(12, 13.5), P(12, 20))
         else:                                               # Einstellungen: zwei Schieberegler
             p.drawLine(P(4, 7), P(14, 7))
             p.drawLine(P(18, 7), P(20, 7))
@@ -422,7 +443,9 @@ class Hero(QtWidgets.QWidget):
         self.go.setGraphicsEffect(glow)
         self.file = button("Datei laden …", load, "fileBtn")
         self.file.setToolTip("Audio- oder Videodatei transkribieren. Sie verlässt diesen Rechner nicht.")
-        self.hint = label("Ein zweiter Klick beendet. Der Text läuft live mit und wird gespeichert.", "muted")
+        self.go.setToolTip("Ein zweiter Klick beendet. Der Text läuft live mit und wird gespeichert.")
+        self.hint = label("", "muted")           # steht nur da, wenn ein angepinnter Prompt nach der Aufnahme läuft
+        self.hint.hide()
         self.note = label("", "bad")
         self.note.setAlignment(Qt.AlignHCenter)
         self.note.setWordWrap(True)
@@ -443,6 +466,10 @@ class Hero(QtWidgets.QWidget):
     def say(self, text):
         self.note.setText(text)
         self.note.setVisible(bool(text))
+
+    def tell(self, text):
+        self.hint.setText(text)
+        self.hint.setVisible(bool(text))
         self._refit()
 
     def need(self, s, wave):
@@ -491,6 +518,52 @@ def label(text, name=None, wrap=False):
     return w
 
 
+def tip(text: str) -> str:
+    """Hinweis beim Überfahren, der umbricht (Qt bricht nur formatierten Text um)."""
+    return "<qt>" + text.replace("&", "&amp;").replace("<", "&lt;").replace("\n", "<br>") + "</qt>"
+
+
+class Note(QtWidgets.QLabel):
+    """Meldezeile, die nur Platz braucht, wenn etwas dasteht."""
+
+    def __init__(self, name="muted"):
+        super().__init__(objectName=name)
+        self.setWordWrap(True)
+        self.hide()
+
+    def setText(self, text):
+        super().setText(text)
+        self.setVisible(bool(text))
+
+
+def info(text):
+    """Kleines Info-Zeichen: Der Erklärtext steht beim Überfahren da, nicht auf der Seite."""
+    w = QtWidgets.QLabel("i", objectName="info")
+    w.setFixedSize(20, 20)
+    w.setAlignment(Qt.AlignCenter)
+    w.setToolTip(tip(text))
+    return w
+
+
+class NoWheel(QtCore.QObject):
+    """Auswahlfelder und Zahlenfelder ändern ihren Wert nicht mit dem Mausrad: Wer die Seite rollt und dabei über
+    einem Feld steht, verstellt sonst unbemerkt eine Einstellung. Das Rad rollt stattdessen die Seite."""
+
+    def eventFilter(self, obj, event):
+        if event.type() == QtCore.QEvent.Wheel:
+            parent = obj.parentWidget()
+            if parent is not None:
+                QtCore.QCoreApplication.sendEvent(parent, event)
+            return True
+        return False
+
+    def guard(self, root):
+        for kind in (QtWidgets.QComboBox, QtWidgets.QAbstractSpinBox):
+            for w in root.findChildren(kind):
+                w.setFocusPolicy(Qt.StrongFocus)
+                w.installEventFilter(self)
+
+
 SITE = "https://cemmec.ai"
 LINKEDIN = "https://www.linkedin.com/in/cem-%C3%B6zel-ab0b37113"
 REPO = "https://github.com/chunkyfire/LocalScribe"
@@ -512,6 +585,11 @@ def button(text, slot=None, name=None):
     if slot:
         b.clicked.connect(slot)
     return b
+
+
+def head(title, text):
+    """Überschrift einer Karte mit Info-Zeichen: Der Erklärtext steht beim Überfahren da."""
+    return hbox(label(title, "h2"), info(text), None, spacing=8)
 
 
 def card(*rows, spacing=10):
@@ -637,7 +715,7 @@ class KeyField(QtWidgets.QLineEdit):
 
 
 class Page(QtWidgets.QWidget):
-    """Seite mit Überschrift, optionalem Untertitel und scrollbarem Inhalt."""
+    """Seite mit Überschrift, optionalem Erklärtext (als Info-Zeichen) und scrollbarem Inhalt."""
 
     def __init__(self, title, subtitle="", scroll=True):
         super().__init__()
@@ -645,11 +723,13 @@ class Page(QtWidgets.QWidget):
         outer.setContentsMargins(30, 26, 30, 20)
         outer.setSpacing(14)
         self.head = QtWidgets.QHBoxLayout()
-        self.head.addWidget(label(title, "h1"))
+        self.title = label(title, "h1")
+        self.head.addWidget(self.title)
+        if subtitle:                              # der Erklärtext steht beim Überfahren da, nicht auf der Seite
+            self.head.addSpacing(2)
+            self.head.addWidget(info(subtitle))
         self.head.addStretch(1)
         outer.addLayout(self.head)
-        if subtitle:
-            outer.addWidget(label(subtitle, "muted", wrap=True))
         self.body = QtWidgets.QVBoxLayout()
         self.body.setSpacing(14)
         if scroll:
@@ -1058,10 +1138,13 @@ class MapPage(Page):
             self.speak = button("Halten und sprechen", name="primary")
             self.speak.pressed.connect(self._listen)
             self.speak.released.connect(self.ctl.listen_stop)
-            self.heard = label("Wort eintippen, Knopf halten und es so sprechen wie im Diktat. Was die Erkennung daraus "
-                               "macht, wird künftig ersetzt. Ohne Einsprechen: unten „Hinzufügen“ und nur die rechte Spalte "
-                               "ausfüllen; LocalScribe erkennt den Begriff dann am Klang (Riba wird RIVA).", "muted", wrap=True)
-            self.body.addWidget(card(label("Wort einsprechen", "h2"), hbox((self.word, 1), self.speak), self.heard))
+            self.heard = Note()
+            self.body.addWidget(card(
+                head("Wort einsprechen",
+                     "Wort eintippen, Knopf halten und es so sprechen wie im Diktat. Was die Erkennung daraus macht, wird "
+                     "künftig ersetzt. Ohne Einsprechen: unten „Hinzufügen“ und nur die rechte Spalte ausfüllen; "
+                     "LocalScribe erkennt den Begriff dann am Klang (Riba wird RIVA)."),
+                hbox((self.word, 1), self.speak), self.heard))
             self.ctl.sig_heard.connect(self._heard)
             self.base = QtWidgets.QCheckBox()
             self.base.toggled.connect(self._base)
@@ -1142,8 +1225,9 @@ class MapPage(Page):
         self.loading = True
         if hasattr(self, "base"):
             n, m = len(engine.base_dictionary()), len(fach.load()[0])
-            self.base.setText(f"Medizinisches Basiswörterbuch anwenden: {m:,} Fachbegriffe werden am Klang erkannt, "
-                              f"dazu {n:,} bekannte Fehlschreibungen".replace(",", "."))
+            self.base.setText("Medizinisches Basiswörterbuch anwenden")
+            self.base.setToolTip(tip(f"{m:,}".replace(",", ".") + " Fachbegriffe werden am Klang erkannt, dazu "
+                                     + f"{n:,}".replace(",", ".") + " bekannte Fehlschreibungen."))
             self.base.setChecked(bool(self.ctl.cfg.get("base_dictionary", True)))
         data = self.ctl.cfg.get(self.key) or {}
         self.table.setRowCount(0)
@@ -1368,13 +1452,76 @@ class Fold(QtWidgets.QWidget):
         self.toggle.setText(("▾  " if self.opened else "▸  ") + self.title)
 
 
+class Elided(QtWidgets.QWidget):
+    """Eine Zeile Text, die am rechten Rand mit „…“ endet, statt die Liste breiter zu machen."""
+
+    def __init__(self, text):
+        super().__init__()
+        self.text = text
+        self.setAttribute(Qt.WA_TransparentForMouseEvents)
+
+    def paintEvent(self, _):
+        p = QtGui.QPainter(self)
+        p.setPen(QtGui.QColor("#F1F3F2"))
+        p.drawText(self.rect(), Qt.AlignVCenter | Qt.AlignLeft,
+                   self.fontMetrics().elidedText(self.text, Qt.ElideRight, self.width()))
+        p.end()
+
+
+class CaseRow(QtWidgets.QFrame):
+    """Eine Zeile in „Gespeichert“, „Fälle“ oder im Papierkorb. Ein Klick öffnet; beim Überfahren stehen rechts die
+    Zeichen, etwa Stift (umbenennen) und X (in den Papierkorb). actions: [(Zeichen, Hinweis, Funktion, Stilname)]."""
+
+    def __init__(self, text, on_open, actions):
+        super().__init__(objectName="case")
+        self.on_open = on_open
+        self.setFixedHeight(40)
+        if on_open:
+            self.setCursor(Qt.PointingHandCursor)
+        lay = QtWidgets.QHBoxLayout(self)
+        lay.setContentsMargins(14, 0, 8, 0)
+        lay.setSpacing(4)
+        lay.addWidget(Elided(text), 1)
+        self.signs = []
+        for sign, hint, call, name in actions:
+            b = QtWidgets.QPushButton(sign)
+            b.setFixedSize(28, 24)
+            b.setToolTip(hint)
+            b.setCursor(Qt.PointingHandCursor)
+            if name:
+                b.setObjectName(name)
+            b.clicked.connect(lambda _=False, c=call: c())
+            b.hide()
+            lay.addWidget(b)
+            self.signs.append(b)
+
+    def enterEvent(self, e):
+        for b in self.signs:
+            b.show()
+        super().enterEvent(e)
+
+    def leaveEvent(self, e):
+        for b in self.signs:
+            b.hide()
+        super().leaveEvent(e)
+
+    def mouseReleaseEvent(self, e):
+        if e.button() == Qt.LeftButton and self.on_open and self.rect().contains(e.position().toPoint()):
+            self.on_open()
+
+
 class VisitPage(Page):
     """Fall aufnehmen oder tippen, korrigieren, auswerten: Jev-Ersteinschätzung, Arztbrief-Entwurf, Sicherheitsnetz,
     Rückfragen. Jeder Teil steht in einem eigenen Block."""
     sig_done = Signal(object, str, int)
     sig_jev = Signal(object, str, int)
     sig_voice = Signal(str)
-    sig_text = Signal(str, str, str, int)        # Name des Auftrags, Ergebnis, Fehler, Fall
+    sig_text = Signal(str, str, str, int)        # Name des Prompts, Ergebnis, Fehler, Fall
+    sig_spark = Signal(str, str)                 # ausformulierter eigener Prompt, Fehler
+    OWN = "Eigener Prompt"                       # Überschrift des Ergebnisses eines frei geschriebenen Prompts
+    CARE = "Pflegebericht"
+    # Übergabe: die Bereiche. Die ersten drei kennt Jev (jev.FRAMES); Pflege schreibt nur den Pflegebericht.
+    FRAMES = (("zna", "Notaufnahme"), ("station", "Normalstation"), ("its", "Intensivstation"), ("pflege", "Pflege"))
     PRIORITY = {"critical": ("entscheidend", "chipRed"), "high": ("wichtig", "chipWarn"), "medium": ("ergänzend", "chipOff")}
 
     SHOWN = config.ON_RECORD     # ab Werk auf der Seite Aufnahme: Visite, Meeting-Protokoll, Arztbrief, Pflegebericht
@@ -1383,6 +1530,8 @@ class VisitPage(Page):
         "zna": "Notaufnahme: Ersteinschätzung (wohin, welche Abteilung, Bett, Schockraum, erste Maßnahmen) und Arztbrief.",
         "station": "Station: Tages-Check (Verschlechterung, Entlassung, was heute zu prüfen ist) und Visiteneintrag.",
         "its": "Intensiv: Tages-Check (Eskalation, Verlegung, Aufwachversuch, Tagesroutine) und Übergabe nach Organsystemen.",
+        "pflege": "Pflege: Pflegebericht aus dem Gesagten (Beobachtung, Maßnahme, Wirkung, Weitergabe). Keine Pflegediagnosen, "
+                  "Ziele oder Maßnahmen als Vorschlag.",
     }
     FRAME_HINTS = {
         "zna": "Diktat oder Text zum Fall: Anamnese, Befund, Verlauf, Vormedikation, geplantes Vorgehen. Mehrere Teile "
@@ -1391,6 +1540,8 @@ class VisitPage(Page):
                    "Ein mitgeschnittenes Visitengespräch geht auch.",
         "its": "Übergabe oder Visite: Kurzvorstellung, dann nach Organsystemen. Perfusoren mit Rate, Antiinfektiva mit Tag, "
                "Katheter, offene Punkte.",
+        "pflege": "Diktat oder Text aus der Schicht: was zu sehen, zu hören und zu messen war, was getan wurde und wer "
+                  "informiert ist.",
     }
 
     def __init__(self, ctl, mode="record"):
@@ -1404,8 +1555,14 @@ class VisitPage(Page):
                              "Ausgaben sind Entwürfe und Wahrscheinlichkeiten von Modellen und vor jeder Verwendung zu "
                              "prüfen.", scroll=False)
         else:
-            super().__init__("Aufnahme", scroll=False)
+            super().__init__("Aufnahme", "Aufnehmen, eine Datei laden oder tippen. Der Text wird gespeichert; darunter "
+                                         "wählst du, was daraus werden soll.", scroll=False)
         self.ctl = ctl
+        self.pin = ""                                    # angepinnter Prompt: läuft nach der Aufnahme von selbst
+        self.new_btn = button("＋ Neuer Fall" if handover else "＋ Neue Aufnahme", lambda: self._new(), "newBtn")
+        at = self.head.count() - 1                       # vor dem Abstand, der die Reiter nach rechts schiebt
+        self.head.insertSpacing(at, 12)
+        self.head.insertWidget(at + 1, self.new_btn)
         self.tab_names = ("Fall", "Fälle", "Papierkorb") if handover else ("Aufnahme", "Gespeichert", "Papierkorb")
         self.store = visite.Store(config.DIR / ("visite.sqlite" if handover else "aufnahme.sqlite"))
         self.case, self.result, self.waiting, self.errors = None, None, set(), {}
@@ -1425,10 +1582,10 @@ class VisitPage(Page):
             fl = QtWidgets.QHBoxLayout(self.frame_bar)
             fl.setContentsMargins(0, 0, 0, 0)
             fl.setSpacing(4)
-            for i, (key, name) in enumerate(jev.FRAMES):
+            for i, (key, name) in enumerate(self.FRAMES):
                 b = QtWidgets.QPushButton(name, checkable=True, objectName="seg")
                 b.setCursor(Qt.PointingHandCursor)
-                b.setToolTip(self.FRAME_TIPS[key])
+                b.setToolTip(tip(self.FRAME_TIPS[key]))
                 self.frames.addButton(b, i)
                 fl.addWidget(b)
             self.frames.idClicked.connect(self._frame_picked)
@@ -1457,7 +1614,7 @@ class VisitPage(Page):
         self.note = label("", "muted")
         self.load = button("Datei …", self._file)
         self.load.setToolTip("Audio- oder Videodatei transkribieren. Sie verlässt diesen Rechner nicht.")
-        self.tasks = QtWidgets.QWidget()                 # Zeile der Aufträge, wird aus den Einstellungen gefüllt
+        self.tasks = QtWidgets.QWidget()                 # Zeile der Prompts, wird aus den Einstellungen gefüllt
         self.task_row = Flow(gap=8)
         self.tasks.setLayout(self.task_row)
         # Übergabe: die Ablage des Falls. Jedes Diktat, jeder Text und jede beantwortete Rückfrage ist ein Eintrag;
@@ -1482,7 +1639,7 @@ class VisitPage(Page):
         top.setContentsMargins(0, 0, 0, 0)
         top.setSpacing(8)
         self.bar = QtWidgets.QWidget()
-        self.bar.setLayout(hbox(self.rec, self.load, (self.name, 1), self.split, button("Neu", self._new)))
+        self.bar.setLayout(hbox(self.rec, self.load, (self.name, 1), self.split))
         top.addWidget(self.bar)
         self.live_clock = Clock(30)
         self.live_wave = Wave(96, 44)
@@ -1506,11 +1663,36 @@ class VisitPage(Page):
             self.name.setPlaceholderText("Titel, z. B. Besprechung Montag")
             self.text.setPlaceholderText("Hier steht nach der Aufnahme das Transkript. Korrigieren und tippen geht auch.")
         top.addWidget(self.tasks)
+        # Aufnahme: eigener Prompt. Kurz hinschreiben, mit dem Zeichen links ausformulieren lassen, ausführen.
+        self.spark = button("✦", self._spark, "spark")
+        self.spark.setFixedSize(40, 40)
+        self.spark.setToolTip(tip("Aus der kurzen Eingabe einen ausformulierten Prompt machen, passend zum Transkript. "
+                                  "Der Text bleibt änderbar."))
+        self.own_text = QtWidgets.QPlainTextEdit(placeholderText="Eigener Prompt, zum Beispiel: Zusammenfassung mit Fokus auf die Medikation")
+        self.own_text.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.own_text.textChanged.connect(self._own_changed)
+        self.own_run = button("Ausführen", self._own_run, "primary")
+        self.own_keep = button("In die Sammlung", self._own_keep)
+        self.own_keep.setToolTip("Als Prompt speichern: Er steht dann unter „Meine Prompts“ und in den Einstellungen.")
+        side = QtWidgets.QVBoxLayout()
+        side.setSpacing(6)
+        side.addWidget(self.own_run)
+        side.addWidget(self.own_keep)
+        side.addStretch(1)
+        self.own = QtWidgets.QWidget()
+        own_lay = hbox(self.spark, (self.own_text, 1), side, spacing=8)
+        own_lay.setContentsMargins(0, 0, 0, 0)
+        own_lay.setAlignment(self.spark, Qt.AlignTop)
+        self.own.setLayout(own_lay)
+        self.own.setVisible(not handover)
+        top.addWidget(self.own)
+        self.sig_spark.connect(self._sparked)
+        self._own_changed()
         inner = Tall()
         col = QtWidgets.QVBoxLayout(inner)
         col.setContentsMargins(0, 0, 8, 0)
         col.setSpacing(12)
-        self.texts = QtWidgets.QVBoxLayout()             # Ergebnisse der Aufträge, je ein Block über die ganze Breite
+        self.texts = QtWidgets.QVBoxLayout()             # Ergebnisse der Prompts, je ein Block über die ganze Breite
         self.texts.setSpacing(12)
         self.cards = QtWidgets.QGridLayout()
         self.cards.setSpacing(12)
@@ -1545,23 +1727,28 @@ class VisitPage(Page):
         self.lists = []
         for trash in (False, True):
             search = QtWidgets.QLineEdit(placeholderText="Suchen")
-            items = QtWidgets.QListWidget()
-            items.itemDoubleClicked.connect(lambda item, t=trash: None if t else self._open(item.data(Qt.UserRole)))
             search.textChanged.connect(lambda _: self._fill())
+            rows = QtWidgets.QVBoxLayout()
+            rows.setContentsMargins(0, 6, 0, 6)
+            rows.setSpacing(0)
+            rows.addStretch(1)
+            holder = QtWidgets.QWidget()
+            holder.setLayout(rows)
+            area = QtWidgets.QScrollArea(widgetResizable=True)
+            area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+            area.setWidget(holder)
+            frame = QtWidgets.QFrame(objectName="cases")
+            fl = QtWidgets.QVBoxLayout(frame)
+            fl.setContentsMargins(1, 1, 1, 1)
+            fl.addWidget(area)
             w = QtWidgets.QWidget()
             lay = QtWidgets.QVBoxLayout(w)
             lay.setContentsMargins(0, 0, 0, 0)
             lay.addWidget(search)
-            lay.addWidget(items, 1)
+            lay.addWidget(frame, 1)
             if trash:
-                lay.addLayout(hbox(button("Wiederherstellen", lambda: self._each(1, lambda i: self.store.trash(i, False))),
-                                   button("Endgültig löschen", lambda: self._each(1, self.store.purge)),
-                                   None, button("Papierkorb leeren", self._empty)))
-            else:
-                lay.addLayout(hbox(button("Öffnen", lambda: self._each(0, self._open), name="primary"),
-                                   button("Umbenennen …", self._rename),
-                                   button("In den Papierkorb", lambda: self._each(0, self.store.trash)), None))
-            self.lists.append((search, items))
+                lay.addLayout(hbox(None, button("Papierkorb leeren", self._empty)))
+            self.lists.append((search, rows))
             self.stack.addWidget(w)
         self.tabs.idClicked.connect(self._tab)
         self.sig_done.connect(self._done)
@@ -1574,19 +1761,27 @@ class VisitPage(Page):
     # ----- Übergabe: Rahmen
     def frame(self) -> str:
         i = self.frames.checkedId()
-        return jev.FRAMES[i][0] if self.handover and 0 <= i < len(jev.FRAMES) else "zna"
+        return self.FRAMES[i][0] if self.handover and 0 <= i < len(self.FRAMES) else "zna"
 
     def _set_frame(self, key):
         if not self.handover:
             return
-        key = visite.frame_of(key)
-        self.frames.button([k for k, _ in jev.FRAMES].index(key)).setChecked(True)
-        names = visite.NAMES[key]
+        key = key if key in dict(self.FRAMES) else "zna"
+        self.frames.button([k for k, _ in self.FRAMES].index(key)).setChecked(True)
         self.text.setPlaceholderText(self.FRAME_HINTS[key])
-        self.go.setToolTip(f"{names['jev']}, {names['brief']}, Sicherheitsnetz und Rückfragen aus dem Text und der Ablage.")
+        if key == "pflege":
+            self.go.setToolTip("Schreibt aus dem Text und der Ablage einen Eintrag für den Pflegebericht.")
+        else:
+            names = visite.NAMES[key]
+            self.go.setToolTip(f"{names['jev']}, {names['brief']}, Sicherheitsnetz und Rückfragen aus dem Text und der Ablage.")
+        self._go_text()
+
+    def _go_text(self):
+        made = (self.result or {}).get("visit") or (self.result or {}).get("documentation")
+        self.go.setText("Pflegebericht schreiben" if self.frame() == "pflege" else "Neu erzeugen" if made else "Auswerten")
 
     def _frame_picked(self, i):
-        key = jev.FRAMES[i][0]
+        key = self.FRAMES[i][0]
         self._set_frame(key)
         if key != self.ctl.cfg.get("handover_frame", "zna"):
             self.ctl.cfg["handover_frame"] = key            # gilt auch für den nächsten Fall
@@ -1596,9 +1791,9 @@ class VisitPage(Page):
             row = self.store.get(self.case)
             if row:
                 self.store.save(self.case, row[0], row[1], {**(row[2] or {}), "frame_next": key})
-        if (self.result or {}).get("visit") and key != shown:
+        if (self.result or {}).get("visit") and key not in (shown, "pflege"):
             restyle(self.note, "muted")
-            self.note.setText(f"Rahmen {dict(jev.FRAMES)[key]} gewählt. „Neu erzeugen“ wertet den Fall so aus.")
+            self.note.setText(f"Bereich {dict(self.FRAMES)[key]} gewählt. „Neu erzeugen“ wertet den Fall so aus.")
 
     def refresh(self):
         self._fill()
@@ -1623,16 +1818,18 @@ class VisitPage(Page):
         self._state()
 
     def _tasks(self):
-        """Aufnahme: die Aufträge als Knöpfe. Gezeigt wird, was in den Einstellungen (LLM) dafür angekreuzt ist."""
+        """Aufnahme: die Prompts als Knöpfe, dahinter die Auswahlliste „Meine Prompts“. Was wo steht, regeln die
+        Einstellungen (Reiter Prompts)."""
         if self.handover:
             return
-        names = [p.get("name", "") for p in self.ctl.cfg.get("prompts") or []
-                 if (p.get("text") or "").strip() and p.get("record", p.get("name") in self.SHOWN)]
+        usable = [p for p in self.ctl.cfg.get("prompts") or [] if p.get("name") and (p.get("text") or "").strip()]
+        names = [p["name"] for p in usable if on_record(p)]
+        listed = [p["name"] for p in usable if on_list(p)]
         first = {n: i for i, n in enumerate(self.SHOWN)}
         names.sort(key=lambda n: first.get(n, len(first)))      # die vier ab Werk vorn, in fester Reihenfolge
-        if getattr(self, "task_names", None) == names:
+        if getattr(self, "task_names", None) == names and getattr(self, "task_listed", None) == listed:
             return
-        self.task_names = names
+        self.task_names, self.task_listed = names, listed
         while self.task_row.count():
             w = self.task_row.takeAt(0).widget()
             w.hide()
@@ -1641,20 +1838,27 @@ class VisitPage(Page):
         self.task_row.addWidget(label("Daraus machen:", "muted"))
         for name in names:
             self.task_row.addWidget(button(name.replace("&", "&&"), lambda _=False, n=name: self._task(n)))
-        if not names:
-            self.task_row.addWidget(label("Kein Auftrag angekreuzt (Einstellungen, LLM).", "muted"))
+        self.more = button("Meine Prompts  ▾")
+        menu = QtWidgets.QMenu(self.more)
+        for name in listed:
+            menu.addAction(name.replace("&", "&&"), lambda n=name: self._task(n))
+        if listed:
+            menu.addSeparator()
+        menu.addAction("Sammlung bearbeiten …", lambda: getattr(self.window(), "show_prompts", lambda: None)())
+        self.more.setMenu(menu)
+        self.task_row.addWidget(self.more)
 
     def _state(self):
-        """Aufnahme ohne Inhalt zeigt nur den großen Knopf; sobald aufgenommen oder getippt wird, Text und Aufträge."""
+        """Aufnahme ohne Inhalt zeigt nur den großen Knopf; sobald aufgenommen oder getippt wird, Text und Prompts."""
         empty = (not self.handover and not self.recording and not self.job.running and self.result is None
                  and not self.text.toPlainText().strip() and not self.typing)
         self.hero.setVisible(empty)
         self.pulse.setVisible(self.recording)
         for w in (self.bar, self.state, self.note, self.text, self.tasks):
             w.setVisible(not empty)
+        self.own.setVisible(not empty and not self.handover)
         if self.handover:
-            self.go.setText("Neu erzeugen" if (self.result or {}).get("visit") or (self.result or {}).get("documentation")
-                            else "Auswerten")
+            self._go_text()
 
     # ----- Übergabe: Ablage
     def _input(self) -> str:
@@ -1785,26 +1989,29 @@ class VisitPage(Page):
         except Exception as e:
             self._recorded("", 0.0, str(e))
 
-    def _task(self, name):
-        """Einen Auftrag aus den Einstellungen auf den Text anwenden; das Ergebnis kommt als eigener Block."""
-        text = self.text.toPlainText().strip()
-        prompt = config.prompt_by_name(self.ctl.cfg, name)
+    def _task(self, name, instruction=None, text=None):
+        """Einen Prompt auf den Text anwenden; das Ergebnis kommt als eigener Block. Ohne instruction gilt der Prompt
+        dieses Namens aus den Einstellungen; text ersetzt den Inhalt des Feldes (Übergabe: Ablage und Feld zusammen)."""
+        text = (self.text.toPlainText() if text is None else text).strip()
+        if instruction is None:
+            instruction = (config.prompt_by_name(self.ctl.cfg, name) or {}).get("text") or ""
         restyle(self.note, "bad")
         if not text:
             return self.note.setText("Erst aufnehmen, eine Datei laden oder tippen.")
         server = copy.deepcopy(self.ctl.cfg.get("llm") or {})
-        if not prompt or not (server.get("base_url") or "").strip() or not (server.get("model") or "").strip():
-            return self.note.setText("Kein Sprachmodell eingestellt. Unter Einstellungen, LLM, Server und Modell wählen.")
+        if not instruction.strip() or not (server.get("base_url") or "").strip() or not (server.get("model") or "").strip():
+            return self.note.setText("Kein Sprachmodell eingestellt. Unter Einstellungen, LLM, Anbieter und Modell wählen."
+                                     if instruction.strip() else "Diesen Prompt gibt es nicht mehr.")
         if name in self.waiting:
             return
-        if schutz.blocked(server) and self.window().shield_wait(lambda n=name: self._task(n)):
+        if schutz.blocked(server) and self.window().shield_wait(lambda: self._task(name, instruction, text)):
             restyle(self.note, "muted")           # statt einer Fehlermeldung: laden und danach von selbst weitermachen
-            return self.note.setText("Die Namenserkennung wird einmalig geladen. Der Auftrag startet danach von selbst.")
+            return self.note.setText("Die Namenserkennung wird einmalig geladen. Der Prompt startet danach von selbst.")
         self.saver.stop()
         self._save()
         restyle(self.note, "muted")
         self.note.setText("Läuft …")
-        case, instruction = self.case, prompt["text"]
+        case = self.case
         self.waiting.add(name)
         self._show({**(self.result or {}), **self.errors})
 
@@ -1812,9 +2019,84 @@ class VisitPage(Page):
             try:
                 self.sig_text.emit(name, llm.run(server, instruction, text), "", case)
             except Exception as e:
-                log.warning("Auftrag fehlgeschlagen: %s", type(e).__name__)
+                log.warning("Prompt fehlgeschlagen: %s", type(e).__name__)
                 self.sig_text.emit(name, "", str(e) or type(e).__name__, case)
         threading.Thread(target=run, daemon=True).start()
+
+    def _care(self):
+        """Übergabe, Bereich Pflege: aus Ablage und Feld den Pflegebericht schreiben. Der Prompt „Pflegebericht“ aus
+        den Einstellungen gilt, sonst der mitgelieferte."""
+        own = (config.prompt_by_name(self.ctl.cfg, self.CARE) or {}).get("text") or ""
+        self._task(self.CARE, own.strip() or config.NURSING, self._input())
+        if self.case is not None:                            # der Fall merkt sich seinen Bereich
+            row = self.store.get(self.case)
+            if row:
+                self.store.save(self.case, row[0], row[1], {**(row[2] or {}), "frame_next": "pflege"})
+
+    # ----- Aufnahme: eigener Prompt
+    def _own_changed(self):
+        text = self.own_text.toPlainText()
+        tall = "\n" in text or len(text) > 80
+        self.own_text.setFixedHeight(104 if tall else 40)
+        self.own_run.setEnabled(bool(text.strip()))
+        self.own_keep.setVisible(bool(text.strip()))
+
+    def _own_run(self):
+        self._task(self.OWN, self.own_text.toPlainText().strip())
+
+    def _own_keep(self):
+        text = self.own_text.toPlainText().strip()
+        name, ok = QtWidgets.QInputDialog.getText(self, "Prompt speichern", "Name für diesen Prompt:")
+        name = (name or "").strip()
+        if not ok or not name or not text:
+            return
+        prompts = self.ctl.cfg.setdefault("prompts", [])
+        if any(p.get("name") == name for p in prompts):
+            restyle(self.note, "bad")
+            return self.note.setText(f"Einen Prompt „{name}“ gibt es schon.")
+        prompts.append({"name": name, "hotkey": [], "text": text, "record": False, "list": True, "pin": False})
+        self.ctl.apply_cfg()
+        self._tasks()
+        restyle(self.note, "ok")
+        self.note.setText(f"„{name}“ steht jetzt unter „Meine Prompts“.")
+
+    def _spark(self):
+        """Aus der kurzen Eingabe einen ausformulierten Prompt machen. Das Sprachmodell sieht dazu die Eingabe und den
+        Anfang des Transkripts, beides nach dem Schutz; es läuft das schnelle Modell des Anbieters."""
+        short, text = self.own_text.toPlainText().strip(), self.text.toPlainText().strip()
+        restyle(self.note, "bad")
+        if not short:
+            return self.note.setText("Erst kurz hinschreiben, was aus dem Text werden soll.")
+        server = llm.quick(copy.deepcopy(self.ctl.cfg.get("llm") or {}))
+        if not (server.get("base_url") or "").strip() or not (server.get("model") or "").strip():
+            return self.note.setText("Kein Sprachmodell eingestellt. Unter Einstellungen, LLM, Anbieter und Modell wählen.")
+        if schutz.blocked(server) and self.window().shield_wait(self._spark):
+            restyle(self.note, "muted")
+            return self.note.setText("Die Namenserkennung wird einmalig geladen. Danach geht es von selbst weiter.")
+        self.spark.setEnabled(False)
+        restyle(self.note, "muted")
+        self.note.setText("Formuliert …")
+
+        def run():
+            try:
+                shield = schutz.Mask() if schutz.needed(server) else None
+                ask = f"Kurze Eingabe:\n{short}\n\nTranskript (Anfang):\n{text[:3000]}"
+                out = llm.chat(server, config.SPARK, shield.hide(ask) if shield else ask)
+                out = re.sub(r"<think>.*?</think>", "", out, flags=re.DOTALL | re.IGNORECASE).strip().strip("„“\"")
+                self.sig_spark.emit(shield.show(out) if shield else out, "")
+            except Exception as e:
+                log.warning("Prompt ausformulieren fehlgeschlagen: %s", type(e).__name__)
+                self.sig_spark.emit("", str(e) or type(e).__name__)
+        threading.Thread(target=run, daemon=True).start()
+
+    def _sparked(self, text, error):
+        self.spark.setEnabled(True)
+        if error or not text:
+            restyle(self.note, "bad")
+            return self.note.setText(f"Nicht geklappt: {error or 'keine Antwort'}")
+        self.own_text.setPlainText(text)
+        restyle(self.note, "muted")
+        self.note.setText("Ausformuliert. Der Text bleibt änderbar.")
 
     def _text_done(self, name, text, error, case):
         row = self.store.get(case)
@@ -1848,28 +2130,47 @@ class VisitPage(Page):
         self._fill()
 
     def _fill(self):
-        for trash, (search, items) in enumerate(self.lists):
-            items.clear()
-            rows = self.store.rows(bool(trash), search.text())
-            for case_id, name, text, created, _ in rows:
-                first = " ".join((text or "").split())[:80]
-                item = QtWidgets.QListWidgetItem(f"{name or 'ohne Bezeichnung'}   ·   "
-                                                 f"{time.strftime('%d.%m.%Y %H:%M', time.localtime(created))}   ·   {first}")
-                item.setData(Qt.UserRole, case_id)
-                items.addItem(item)
-            self.tabs.button(1 + trash).setText(self.tab_names[1 + trash] + (f" ({len(rows)})" if rows else ""))
+        for trash, (search, rows) in enumerate(self.lists):
+            while rows.count() > 1:                              # der Abstand am Ende bleibt
+                w = rows.takeAt(0).widget()
+                w.hide()
+                w.setParent(None)
+                w.deleteLater()
+            found = self.store.rows(bool(trash), search.text())
+            for case_id, name, text, created, _ in found:
+                first = " ".join((text or "").split())[:200]
+                line = (f"{name or 'ohne Bezeichnung'}   ·   {time.strftime('%d.%m.%Y %H:%M', time.localtime(created))}"
+                        f"   ·   {first}")
+                if trash:
+                    row = CaseRow(line, None, [("↺", "Zurückholen", lambda i=case_id: self._restore(i), ""),
+                                               ("✕", "Endgültig löschen", lambda i=case_id: self._purge(i), "drop")])
+                else:
+                    row = CaseRow(line, lambda i=case_id: self._open(i),
+                                  [("✎", "Umbenennen", lambda i=case_id: self._rename(i), ""),
+                                   ("✕", "In den Papierkorb", lambda i=case_id: self._trash(i), "drop")])
+                rows.insertWidget(rows.count() - 1, row)
+            self.tabs.button(1 + trash).setText(self.tab_names[1 + trash] + (f" ({len(found)})" if found else ""))
 
-    def _each(self, which, action):
-        for item in self.lists[which][1].selectedItems() or ([self.lists[which][1].currentItem()] if self.lists[which][1].currentItem() else []):
-            action(item.data(Qt.UserRole))
+    def _trash(self, case_id):
+        if case_id == self.case:                            # der offene Fall: Seite leeren, ohne ihn neu zu sichern
+            if self.recording or self.job.running:
+                return self.info("Erst die Aufnahme beenden.", bad=True)
+            self.saver.stop()
+            self.store.trash(case_id)
+            return self._reset(tab=self.stack.currentIndex())
+        self.store.trash(case_id)
         self._fill()
 
-    def _rename(self):
-        item = self.lists[0][1].currentItem()
-        if not item:
-            return
-        case_id = item.data(Qt.UserRole)
-        name, ok = QtWidgets.QInputDialog.getText(self, "Fall umbenennen", "Bezeichnung:",
+    def _restore(self, case_id):
+        self.store.trash(case_id, False)
+        self._fill()
+
+    def _purge(self, case_id):
+        self.store.purge(case_id)
+        self._fill()
+
+    def _rename(self, case_id):
+        name, ok = QtWidgets.QInputDialog.getText(self, "Umbenennen", "Bezeichnung:",
                                                   text=(self.store.get(case_id) or [""])[0] or "")
         if ok:
             self.store.rename(case_id, name)
@@ -1902,7 +2203,12 @@ class VisitPage(Page):
             return self.info("Erst die Aufnahme beenden.", bad=True)
         self.saver.stop()
         self._save()
+        self._reset()
+
+    def _reset(self, tab=0):
+        """Die Seite leeren: bereit für eine neue Aufnahme oder einen neuen Fall."""
         self.case, self.result, self.waiting, self.items, self.typing = None, None, set(), [], False
+        self.errors = {}
         self._tray()
         for w in (self.name, self.text):
             w.blockSignals(True)
@@ -1912,7 +2218,19 @@ class VisitPage(Page):
         self.info("Aufnehmen oder in das Feld tippen.")
         self._set_frame(self.ctl.cfg.get("handover_frame"))
         self._show(None)
-        self._tab(0)
+        self._tab(tab)
+
+    def set_pin(self, name):
+        """Angepinnter Prompt als Menüpunkt: dieselbe Seite, aber nach dem Stopp läuft dieser Prompt von selbst.
+        Ein Wechsel beginnt eine neue Aufnahme; die bisherige liegt unter „Gespeichert“."""
+        if self.handover or name == self.pin:
+            return
+        self.pin = name
+        self._new()
+        self.title.setText(name or "Aufnahme")
+        self.title.setToolTip(name)
+        self._fit_head()                                 # ein langer Name endet mit „…“, statt die Kopfzeile zu sprengen
+        self.hero.tell(f"Nach der Aufnahme schreibt LocalScribe „{name}“ von selbst." if name else "")
 
     def _open(self, case_id):
         self._new()
@@ -2022,14 +2340,16 @@ class VisitPage(Page):
         elif text.strip():
             n = self.job.speakers
             who = f" {n} Sprecher erkannt." if self.ctl.cfg.get("speakers") and n > 1 else ""
-            then = "„Auswerten“" if self.handover else "unten wählen, was daraus werden soll"
-            self.info(f"Fertig – {clock(seconds)}, {len(text.split())} Wörter.{who} Text prüfen und korrigieren, dann "
-                      f"{then}. Die Tonaufnahme ist gelöscht.")
+            self.info(f"Fertig – {clock(seconds)}, {len(text.split())} Wörter.{who} Die Tonaufnahme ist gelöscht.")
+            if self.pin:                                 # angepinnter Prompt: läuft von selbst
+                QTimer.singleShot(0, lambda: self._task(self.pin))
         else:
             self.info("Kein Text erkannt. Die Tonaufnahme ist gelöscht.")
 
     # ----- Auswerten
     def _analyse(self):
+        if self.frame() == "pflege":
+            return self._care()
         text = self._input()
         restyle(self.note, "bad")
         if not text:
@@ -2037,7 +2357,7 @@ class VisitPage(Page):
         cfg = copy.deepcopy(self.ctl.cfg)
         server = visite.writer(cfg)
         if not (server.get("base_url") or "").strip() or not (server.get("model") or "").strip():
-            return self.note.setText("Kein Sprachmodell eingestellt. Unter Einstellungen, LLM, Server und Modell wählen.")
+            return self.note.setText("Kein Sprachmodell eingestellt. Unter Einstellungen, LLM, Anbieter und Modell wählen.")
         self.saver.stop()
         self._save()
         if self.waiting & {"brief", "jev"}:
@@ -2165,7 +2485,20 @@ class VisitPage(Page):
 
     def resizeEvent(self, e):
         super().resizeEvent(e)
+        self._fit_head()
         self._place()
+
+    def _fit_head(self):
+        """Aufnahme: Im schmalen Fenster wird der Knopf für eine neue Aufnahme zum Pluszeichen, und ein langer Name
+        eines angepinnten Prompts endet früher mit „…“, damit Überschrift und Reiter nebeneinander Platz haben."""
+        if self.handover:
+            return
+        narrow = self.width() < 720
+        self.new_btn.setText("＋" if narrow else "＋ Neue Aufnahme")
+        self.new_btn.setToolTip("Neue Aufnahme" if narrow else "")
+        if self.pin:
+            self.title.ensurePolished()
+            self.title.setText(self.title.fontMetrics().elidedText(self.pin, Qt.ElideRight, 120 if narrow else 190))
 
     def _place(self):
         """Blöcke ins Raster legen: drei Spalten im breiten Fenster, zwei im schmalen, eine im sehr schmalen."""
@@ -2350,28 +2683,31 @@ class TrainPage(Page):
         self.speak = button("Halten und vorlesen", name="primary")
         self.speak.pressed.connect(self._listen)
         self.speak.released.connect(self.ctl.listen_stop)
-        self.result = label("Knopf gedrückt halten, den Satz in deinem normalen Diktiertempo vorlesen, loslassen. "
-                            "Zahlen und Einheiten so sprechen, wie du es sonst auch tust.", "muted", wrap=True)
+        self.result = Note()
         self.test_btn = button("Messen …", self._test)
         self.test_btn.setToolTip("Liest Prüfsätze, die im Training nie vorkommen, und zeigt deine Wortfehlerquote. "
                                  "Einmal vor dem Training und später wieder: So siehst du, was das Vorlesen gebracht hat.")
         self.scores = label("", "muted", wrap=True)
-        self.body.addWidget(card(hbox(label("Fachrichtung"), (self.topic, 1), self.count),
+        self.body.addWidget(card(hbox(label("Fachrichtung"), (self.topic, 1),
+                                      info("Knopf gedrückt halten, den Satz in deinem normalen Diktiertempo vorlesen, "
+                                           "loslassen. Zahlen und Einheiten so sprechen, wie du es sonst auch tust."),
+                                      self.count),
                                  self.sentence,
                                  hbox(self.speak, button("Überspringen", self._skip),
                                       button("Zurück", lambda: self.next(-1)), None, self.test_btn),
                                  self.result, self.scores))
         self.learned = label("", "muted", wrap=True)
         self.learned.hide()                              # steht im Wörterbuch; hier nur die Meldung nach jedem Satz
-        self.pairs = label("Diktate mit fertigem Text: Tondateien wählen, das Transkript liegt als Textdatei gleichen "
-                           "Namens daneben oder wird im zweiten Schritt gewählt. Eigene Briefe und Befunde: LocalScribe "
-                           "liest daraus nur einzelne Fachwörter. Ton und Texte werden nur gelesen, nicht gespeichert.",
-                           "muted", wrap=True)
+        self.pairs = Note()
         self.pair_btn = button("Aufnahmen mit Transkript wählen …", self._pairs)
         self.words = label("", "muted", wrap=True)
         self.words.setMaximumHeight(40)
         self.words_n = label("", "muted")
-        self.body.addWidget(card(label("Aus eigenem Material lernen", "h2"), self.pairs,
+        self.body.addWidget(card(head("Aus eigenem Material lernen",
+                                      "Diktate mit fertigem Text: Tondateien wählen, das Transkript liegt als Textdatei "
+                                      "gleichen Namens daneben oder wird im zweiten Schritt gewählt. Eigene Briefe und "
+                                      "Befunde: LocalScribe liest daraus nur einzelne Fachwörter. Ton und Texte werden nur "
+                                      "gelesen, nicht gespeichert."), self.pairs,
                                  hbox(self.pair_btn, button("Aus eigenen Texten lernen …", self._learn_files), None,
                                       self.words_n, button("Leeren", self._learn_clear)), self.words))
         self.kept = label("", "muted", wrap=True)
@@ -2664,49 +3000,41 @@ class TrainPage(Page):
 # ---------------------------------------------------------------- KI
 class LlmPage(Page):
     sig_models = Signal(object, str)
-    sig_test = Signal(str, str, float)
     sig_shield = Signal(float, str)
 
     def __init__(self, ctl):
         super().__init__("LLM",
-                         "Das Sprachmodell für die KI-Nachbearbeitung (Transkript mit einem deiner Prompts überarbeiten), "
-                         "die Fachkorrektur und die Übergabe. Funktioniert mit jedem Server, der die "
-                         "OpenAI-Schnittstelle spricht – auf diesem Rechner oder bei einem Anbieter deiner Wahl.")
+                         "Das Sprachmodell für Prompts, Fachkorrektur und Übergabe. Funktioniert mit jedem Server, der die "
+                         "OpenAI-Schnittstelle spricht: auf diesem Rechner oder bei einem Anbieter deiner Wahl.")
         self.ctl = ctl
-        self.prompts, self.current = [], -1
         self.note = label("")
         self.head.addWidget(self.note)
         self.head.addWidget(button("Speichern", self.save, "primary"))
 
         # Verbindung
-        self.active = ""                  # Name des gewählten gespeicherten Anbieters
-        self.profile = QtWidgets.QComboBox()
-        self.profile.setMinimumWidth(220)
-        self.profile.activated.connect(self._pick)
+        self.active = ""                  # Name des gewählten Anbieters; unter diesem Namen liegt sein Schlüssel
+        self.provider = QtWidgets.QComboBox()             # eine Liste: bekannte Anbieter, eigene, „Eigene Adresse“
+        self.provider.setMinimumWidth(220)
+        self.provider.activated.connect(self._provider_picked)
+        self.delete = button("Löschen", self._delete, "ghost")
+        self.delete.setToolTip("Diesen eigenen Anbieter samt Schlüssel entfernen.")
         self.protect = QtWidgets.QCheckBox("Vor dem Versand schützen: Namen, Daten, Nummern und Anschriften durch Platzhalter ersetzen")
         self.protect.setToolTip("Gilt für jeden Server außerhalb dieses Rechners. Der Server sieht „[NAME_1] kam am "
                                 "[DATUM_1]“; die Antwort wird hier zurückübersetzt.")
         self.shield = label("", "muted", wrap=True)
         self.shield_btn = button("Namenserkennung laden (293 MB)", self._shield_load)
         self.enabled = QtWidgets.QCheckBox("KI-Nachbearbeitung einschalten")
-        self.preset = QtWidgets.QComboBox()
-        for name, _ in PRESETS:
-            self.preset.addItem(name)
-        self.preset.activated.connect(self._preset)
-        self.url = QtWidgets.QLineEdit(placeholderText="https://…/v1")
-        self.url.textEdited.connect(lambda: self.preset.setCurrentIndex(len(PRESETS) - 1))
+        self.url = QtWidgets.QLineEdit(placeholderText="Adresse des Servers: https://…/v1")
         self.url.textChanged.connect(self._where)
         self.url.editingFinished.connect(lambda: self._fill_models())
         self.where = label("", "muted", wrap=True)
-        self.advice = label("", "muted", wrap=True)
-        self.advice.hide()
+        self.advice = info(MODEL_TIP)           # Empfehlung zum Anbieter und gemessene Zeiten, beim Überfahren
         self.key = QtWidgets.QLineEdit()
         self.key.setEchoMode(QtWidgets.QLineEdit.Password)
         self.remote = {}                  # Server -> Modelle, die er in diesem Programmlauf gemeldet hat
         self.model = QtWidgets.QComboBox()
         self.model.setMaxVisibleItems(14)
         self.model.setPlaceholderText("Modelle abrufen oder mit + eintragen")
-        self.model.setToolTip(MODEL_TIP)
         self.model.currentIndexChanged.connect(self._model_picked)
         self.add = button("+", self._add_model)
         self.add.setToolTip("Eigenen Modellnamen hinzufügen, so wie ihn der Server kennt. Der Zusatz @low hinter dem "
@@ -2724,35 +3052,11 @@ class LlmPage(Page):
         self.body.addWidget(card(
             self.enabled,
             self.fix,
-            form(("Anbieter", hbox((self.profile, 1), button("Speichern als …", self._save_as),
-                                   button("Löschen", self._delete, "ghost"))),
-                 ("Server", hbox(self.preset, (self.url, 1))),
+            form(("Anbieter", hbox((self.provider, 1), (self.url, 1), self.delete)),
                  ("API-Schlüssel", hbox((self.key, 1), button("Entfernen", self.drop_key, "ghost"))),
-                 ("Modell", hbox((self.model, 1), self.add, self.drop, self.fetch))),
-            self.where, self.advice, self.status,
+                 ("Modell", hbox((self.model, 1), self.advice, self.add, self.drop, self.fetch))),
+            self.where, self.status,
             self.protect, hbox((self.shield, 1), self.shield_btn)))
-
-        # Prompts
-        self.list = QtWidgets.QListWidget()
-        self.list.setFixedWidth(190)
-        self.list.currentRowChanged.connect(self._select)
-        self.name = QtWidgets.QLineEdit()
-        self.name.textEdited.connect(self._rename)
-        self.hotkey = KeyField(ctl)
-        self.text = QtWidgets.QPlainTextEdit()
-        self.text.setMinimumHeight(110)
-        self.auto = QtWidgets.QComboBox()
-        left = QtWidgets.QVBoxLayout()
-        left.addWidget(self.list, 1)
-        left.addLayout(hbox(button("Neu", self.new_prompt), button("Löschen", self.del_prompt), None, spacing=6))
-        self.on_record = QtWidgets.QCheckBox("Auf der Seite Aufnahme als Knopf anbieten")
-        right = form(("Name", self.name), ("Halte-Taste", self.hotkey), ("Anweisung", self.text), ("", self.on_record))
-        self.body.addWidget(card(
-            label("Aufträge (Prompts)", "h2"),
-            label("Aufträge stehen im Verlauf unter „KI“ und, wenn angekreuzt, auf der Seite Aufnahme als Knopf unter "
-                  "dem Transkript. Mit einer Halte-Taste wendet sich ein Auftrag gleich beim Diktieren an.", "muted", wrap=True),
-            hbox(left, (self._wrap(right), 1), spacing=16),
-            form(("Bei jedem Diktat", self.auto))))
 
         # Visite & Übergabe
         self.v_prompt = QtWidgets.QPlainTextEdit()
@@ -2761,7 +3065,7 @@ class LlmPage(Page):
         self.v_writer = QtWidgets.QComboBox(editable=True)
         for name, model in visite.WRITERS:
             self.v_writer.addItem(name, model)
-        for box in (self.v_writer, self.model, self.profile):    # lange Einträge dürfen die Karte nicht breiter machen
+        for box in (self.v_writer, self.model, self.provider):    # lange Einträge dürfen die Karte nicht breiter machen
             box.setSizeAdjustPolicy(QtWidgets.QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
             box.setMinimumContentsLength(18)
         self.v_writer.view().setMinimumWidth(self.v_writer.view().sizeHintForColumn(0) + 28)   # aufgeklappt ganz lesbar
@@ -2772,34 +3076,21 @@ class LlmPage(Page):
                                                 "Schockraum-Kriterien, Laborprofile, Zuständigkeiten. Jev entscheidet danach, wo sie eine Regel enthalten.")
         self.v_rules.setFixedHeight(84)
         self.body.addWidget(card(
-            label("Übergabe", "h2"),
-            label("Ersteinschätzung und Tages-Check kommen von Jev (TypeSafe, nur über OpenRouter). Arztbrief, "
-                  "Visiteneintrag und Übergabe schreibt ein Sprachmodell über den Server von oben.", "muted", wrap=True),
+            hbox(label("Übergabe", "h2"),
+                 info("Ersteinschätzung und Tages-Check kommen von Jev (TypeSafe, nur über OpenRouter). Arztbrief, "
+                      "Visiteneintrag und Übergabe schreibt ein Sprachmodell über den Anbieter von oben."), None, spacing=8),
             form(("Modell für Brief und Übergabe", self.v_writer), ("Hausregeln für Jev", self.v_rules)),
-            label("Prompt für den Rahmen Notaufnahme: bestimmt, was aus einem Fall erzeugt wird (Arztbrief-Entwurf, "
-                  "Sicherheitsnetz, Rückfragen, Kodierung, Patienteninfo). Die Namen der Felder im JSON-Schema am Ende "
-                  "müssen bleiben, sonst kann LocalScribe das Ergebnis nicht anzeigen. Station und Intensiv haben "
-                  "eigene, fest eingebaute Aufträge.", "muted", wrap=True),
+            hbox(label("Prompt für die Notaufnahme", "muted"),
+                 info("Bestimmt, was aus einem Fall erzeugt wird (Arztbrief-Entwurf, Sicherheitsnetz, Rückfragen, Kodierung, "
+                      "Patienteninfo). Die Namen der Felder im JSON-Schema am Ende müssen bleiben, sonst kann LocalScribe "
+                      "das Ergebnis nicht anzeigen. Normalstation und Intensivstation haben eigene, fest eingebaute Prompts."),
+                 None, spacing=8),
             self.v_prompt,
             hbox(button("Speichern", self._visit_save, name="primary"),
                  button("Standard wiederherstellen", self._visit_reset), None, self.v_note)))
 
-        # Ausprobieren
-        self.sample = QtWidgets.QPlainTextEdit(
-            "Ähm, also ich wollte nur kurz sagen, dass wir uns morgen, also am Dienstag, "
-            "um zehn treffen, ja, im Besprechungsraum.")
-        self.sample.setFixedHeight(74)
-        self.result = QtWidgets.QPlainTextEdit(readOnly=True, placeholderText="Ergebnis")
-        self.result.setFixedHeight(96)
-        self.try_btn = button("Ausprobieren", self.try_prompt)
-        self.try_note = label("", "muted")
-        self.body.addWidget(card(
-            label("Ausprobieren", "h2"),
-            self.sample, hbox(self.try_btn, self.try_note, None), self.result))
         self.body.addStretch(1)
-
         self.sig_models.connect(self._models)
-        self.sig_test.connect(self._tested)
         self.sig_shield.connect(self._shield_progress)
 
     def _visit_save(self):
@@ -2841,28 +3132,61 @@ class LlmPage(Page):
         l["profile"] = name
         self.ctl.apply_cfg()
 
-    def _fill_profiles(self):
-        self.profile.blockSignals(True)
-        self.profile.clear()
-        self.profile.addItem("– nicht gespeichert –", "")
-        for p in self._profiles():
-            self.profile.addItem(f"{p['name']} · {p.get('model', '')}", p["name"])
-        self.profile.setCurrentIndex(max(0, self.profile.findData(self.active)))
-        self.profile.blockSignals(False)
+    def _free(self, name) -> str:
+        """Ein Name, den noch kein gespeicherter Anbieter trägt."""
+        taken = {p["name"] for p in self._profiles()}
+        return next(n for n in [name] + [f"{name} {k}" for k in range(2, 99)] if n not in taken)
 
-    def _pick(self, _=None):
-        """Einen gespeicherten Anbieter wählen: Adresse, Modell und Schlüssel wechseln mit."""
-        name = self.profile.currentData() or ""
-        p = next((p for p in self._profiles() if p["name"] == name), None)
-        self.active = name
-        if p:
-            self.url.setText(p.get("base_url", ""))
-            self._fill_models(p.get("model", ""))
-            urls = [u for _, u in PRESETS]
-            self.preset.setCurrentIndex(urls.index(self.url.text()) if self.url.text() in urls[:-1] else len(urls) - 1)
+    def _fill_providers(self):
+        """Die eine Liste „Anbieter“: die bekannten, darunter eigene gespeicherte, zuletzt „Eigene Adresse“."""
+        known = [u for _, u in PRESETS if u]
+        self.provider.blockSignals(True)
+        self.provider.clear()
+        for name, url in PRESETS[:-1]:
+            self.provider.addItem(name, ["preset", name, url])
+        own = [p for p in self._profiles() if p.get("base_url") not in known]
+        if own:
+            self.provider.insertSeparator(self.provider.count())
+        for p in own:
+            self.provider.addItem(p["name"], ["saved", p["name"], p.get("base_url", "")])
+        self.provider.insertSeparator(self.provider.count())
+        self.provider.addItem(PRESETS[-1][0], ["own", "", ""])
+        self.provider.blockSignals(False)
+        self._sync_provider()
+
+    def _sync_provider(self):
+        """In der Liste zeigen, was gerade gilt. Die Adresse steht nur bei eigenen Servern daneben."""
+        url, rows = self.url.text().strip(), [self.provider.itemData(i) or ["", "", ""] for i in range(self.provider.count())]
+        pick = next((i for i, d in enumerate(rows) if d[0] == "preset" and d[2] == url), -1)
+        if pick < 0:
+            pick = next((i for i, d in enumerate(rows) if d[0] == "saved" and d[1] == self.active), len(rows) - 1)
+        self.provider.blockSignals(True)
+        self.provider.setCurrentIndex(pick)
+        self.provider.blockSignals(False)
+        self.url.setVisible(rows[pick][0] != "preset")
+        self.delete.setVisible(rows[pick][0] == "saved")
+
+    def _provider_picked(self, i):
+        """Einen Anbieter wählen: Ist er schon gespeichert, kommen sein Modell und sein Schlüssel mit; sonst gilt die
+        Vorgabe des Anbieters, und der Schlüssel eines anderen bleibt, wo er ist."""
+        kind, name, url = self.provider.itemData(i) or ["own", "", ""]
+        if kind == "own":
+            self.active = ""
+            self.url.clear()
+            self._sync_provider()
+            self._key_hint()
+            self._fill_models("")
+            return self.url.setFocus()
+        if kind == "preset" and url == self.url.text().strip():
+            return
+        self.url.setText(url)
+        known = next((p for p in self._profiles() if (p["name"] == name if kind == "saved" else p.get("base_url") == url)), None)
+        self.active = known["name"] if known else self._free(name)
+        self._sync_provider()
         self._key_hint()
-        if p:
-            self.saved(self.note, f"„{name}“ gewählt – mit Speichern übernehmen")
+        self._fill_models(known.get("model", "") if known else "")
+        if llm._is_local(url) or "openrouter.ai" in url or (known and llm.get_key(self.active)):
+            self.load_models(quiet=True)
 
     # ----- Modellwahl
     def model_name(self) -> str:
@@ -2932,7 +3256,8 @@ class LlmPage(Page):
 
     def _own_key(self) -> bool:
         """Gehört der gespeicherte Schlüssel zu dem Server, der gerade im Feld steht?"""
-        return llm.host_of(self._home(self.active)) == llm.host_of(self.url.text())
+        host = llm.host_of(self.url.text())
+        return bool(host) and llm.host_of(self._home(self.active)) == host
 
     def _key_hint(self):
         self.key.clear()
@@ -2947,29 +3272,8 @@ class LlmPage(Page):
         key = self.typed_key()
         return self.llm_cfg(), key if key is not None or self._own_key() else ""
 
-    def _save_as(self):
-        url, model = self.url.text().strip(), self.model_name()
-        if not url or not model:
-            return self.saved(self.note, "Erst Server und Modell wählen.", ok=False)
-        host = llm.urllib.parse.urlsplit(url).hostname or "Server"
-        suggestion = next((n for n, u in PRESETS if u and u == url), host)
-        name, ok = QtWidgets.QInputDialog.getText(self, "Anbieter speichern", "Name für diesen Anbieter:", text=suggestion)
-        name = (name or "").strip()
-        if not ok or not name:
-            return
-        key = self.typed_key() or (llm.get_key(self.active) if self._own_key() else "")
-        profiles = [p for p in self._profiles() if p["name"] != name] + [{"name": name, "base_url": url, "model": model}]
-        self.ctl.cfg["llm_profiles"] = profiles
-        try:
-            if key:
-                llm.set_key(key, name)
-        except Exception as e:
-            return self.saved(self.note, f"Schlüssel nicht speicherbar: {e}", ok=False)
-        self.active = name
-        self.save()
-
     def _delete(self):
-        name = self.profile.currentData() or ""
+        name = self.active
         if not name:
             return
         self.ctl.cfg["llm_profiles"] = [p for p in self._profiles() if p["name"] != name]
@@ -2985,8 +3289,8 @@ class LlmPage(Page):
     def _shield_state(self):
         ready = schutz.ready()
         self.shield_btn.setVisible(not ready)
-        self.shield.setText("Namenserkennung geladen: Namen werden auch ohne Anrede erkannt. Kein Verfahren findet alles."
-                            if ready else
+        self.shield.setVisible(not ready)
+        self.shield.setText("" if ready else
                             "Die Namenserkennung fehlt auf diesem Rechner. Solange der Schutz eingeschaltet ist, geht "
                             "deshalb nichts an einen Server außerhalb: Die Regeln allein lassen Namen ohne Anrede durch. "
                             "Im Komplettpaket liegt sie bei.")
@@ -3015,13 +3319,6 @@ class LlmPage(Page):
         else:
             self.shield.setText(f"Lade Namenserkennung … {fraction * 100:.0f} %")
 
-    @staticmethod
-    def _wrap(layout):
-        w = QtWidgets.QWidget()
-        layout.setContentsMargins(0, 0, 0, 0)
-        w.setLayout(layout)
-        return w
-
     # ----- Laden / Speichern
     def refresh(self):
         self._migrate()
@@ -3037,38 +3334,19 @@ class LlmPage(Page):
         self.v_rules.setPlainText(cfg.get("visite_rules") or "")
         l = cfg["llm"]
         self.active = l.get("profile") or ""
-        self._fill_profiles()
         self.protect.setChecked(bool(l.get("protect", True)))
         self._shield_state()
         self.enabled.setChecked(bool(l.get("enabled")))
         self.fix.setChecked(bool(cfg.get("llm_fix")))
         self.url.setText(l.get("base_url") or "")
-        urls = [u for _, u in PRESETS]
-        self.preset.setCurrentIndex(urls.index(self.url.text()) if self.url.text() in urls[:-1] else len(urls) - 1)
+        self._fill_providers()
         self._key_hint()
         self._fill_models(l.get("model") or "")
-        self.prompts = copy.deepcopy(cfg.get("prompts") or [])
-        self.current = -1
-        self.list.clear()
-        for p in self.prompts:
-            self.list.addItem(p.get("name") or "Ohne Namen")
-        self._fill_auto(l.get("auto_prompt") or "")
-        self.list.setCurrentRow(0 if self.prompts else -1)
-        self._enable_form(bool(self.prompts))
-
-    def _fill_auto(self, selected):
-        self.auto.clear()
-        self.auto.addItem("nur der diktierte Text", "")
-        for p in self.prompts:
-            self.auto.addItem(f"„{p.get('name', '')}“ anwenden", p.get("name", ""))
-        i = self.auto.findData(selected)
-        self.auto.setCurrentIndex(max(0, i))
 
     def llm_cfg(self):
         l = dict(self.ctl.cfg["llm"])
         l.update(enabled=self.enabled.isChecked(), base_url=self.url.text().strip(),
-                 model=self.model_name(), auto_prompt=self.auto.currentData() or "",
-                 profile=self.active, protect=self.protect.isChecked())
+                 model=self.model_name(), profile=self.active, protect=self.protect.isChecked())
         return l
 
     def typed_key(self):
@@ -3076,15 +3354,14 @@ class LlmPage(Page):
         return self.key.text().strip() or None
 
     def save(self):
-        if not self._commit():
-            return
-        names = [p["name"] for p in self.prompts]
-        if len(set(names)) != len(names) or not all(names):
-            return self.saved(self.note, "Jeder Prompt braucht einen eigenen Namen.", ok=False)
-        typed = self.typed_key()
-        if self.active and self.url.text().strip() and all(p["name"] != self.active for p in self._profiles()):
-            # ein Anbieter aus der Liste „Server“ bekommt beim ersten Speichern seinen eigenen Eintrag samt Schlüssel
-            self._profiles().append({"name": self.active, "base_url": self.url.text().strip(), "model": self.model_name()})
+        typed, url = self.typed_key(), self.url.text().strip()
+        if not self.active and url and (self._profiles() or typed):
+            # eine eigene Adresse wird beim ersten Speichern ein Anbieter mit eigenem Namen und eigenem Schlüssel
+            typed = typed or (llm.get_key("") if self._own_key() else "") or None
+            self.active = self._free(llm.host_of(url) or "Server")
+        if self.active and url and all(p["name"] != self.active for p in self._profiles()):
+            # ein Anbieter aus der Liste bekommt beim ersten Speichern seinen eigenen Eintrag samt Schlüssel
+            self._profiles().append({"name": self.active, "base_url": url, "model": self.model_name()})
         if typed:
             try:
                 llm.set_key(typed, self.active)
@@ -3095,11 +3372,8 @@ class LlmPage(Page):
             if p["name"] == self.active:
                 p.update(base_url=self.ctl.cfg["llm"]["base_url"], model=self.ctl.cfg["llm"]["model"])
         self.ctl.cfg["llm_fix"] = self.fix.isChecked()
-        self.ctl.cfg["prompts"] = copy.deepcopy(self.prompts)
         self.ctl.apply_cfg()
-        selected = self.current
         self.refresh()
-        self.list.setCurrentRow(selected)
         self.saved(self.note)
         if typed:                                  # ein neuer Schlüssel zeigt gleich, ob er gilt
             self.load_models()
@@ -3111,9 +3385,9 @@ class LlmPage(Page):
 
     def _where(self, url):
         url = url.strip()
-        tip = ADVICE_LOCAL if url and llm._is_local(url) else next((text for part, text in ADVICE if part in url.lower()), "")
-        self.advice.setText(tip)
-        self.advice.setVisible(bool(tip))
+        hint = ADVICE_LOCAL if url and llm._is_local(url) else next((text for part, text in ADVICE if part in url.lower()), "")
+        self.advice.setToolTip(tip((hint + "\n\n" if hint else "") + (MODEL_TIP if llm.picks(url) else "")
+                                   or "Modelle abrufen und eines wählen, oder mit + einen Modellnamen eintragen."))
         if not url:
             return self.where.setText("")
         if llm._is_local(url):
@@ -3123,85 +3397,6 @@ class LlmPage(Page):
             host = llm.urllib.parse.urlsplit(url).hostname or url
             restyle(self.where, "bad")
             self.where.setText(f"Mit dieser Adresse verlassen die Texte diesen Rechner und gehen an {host}.")
-
-    def _preset(self, i):
-        """Einen Server aus der Liste wählen: Ist er schon als Anbieter gespeichert, kommen dessen Modell und Schlüssel
-        mit; sonst gilt die Vorgabe des Anbieters, und der Schlüssel eines anderen bleibt, wo er ist."""
-        name, url = PRESETS[i]
-        if not url:
-            return self.url.setFocus()
-        if url == self.url.text().strip():
-            return
-        self.url.setText(url)
-        known = next((p for p in self._profiles() if p.get("base_url") == url), None)
-        taken = {p["name"] for p in self._profiles()}
-        self.active = known["name"] if known else next(n for n in [name] + [f"{name} {k}" for k in range(2, 99)]
-                                                       if n not in taken)
-        self._fill_profiles()
-        self._key_hint()
-        self._fill_models(known.get("model", "") if known else "")
-        if llm._is_local(url) or "openrouter.ai" in url or (known and llm.get_key(self.active)):
-            self.load_models(quiet=True)
-
-    # ----- Prompts
-    def _enable_form(self, on):
-        for w in (self.name, self.hotkey, self.text):
-            w.setEnabled(on)
-            if not on:
-                w.clear()
-
-    def _commit(self) -> bool:
-        """Formular in den aktuell gewählten Prompt übernehmen."""
-        if 0 <= self.current < len(self.prompts):
-            keys = self.ctl.parse_keys(self.hotkey.text())
-            if keys is None:
-                self.saved(self.note, "Unbekannte Taste in der Halte-Taste.", ok=False)
-                return False
-            self.prompts[self.current] = {"name": self.name.text().strip(), "hotkey": keys,
-                                          "text": self.text.toPlainText().strip(), "record": self.on_record.isChecked()}
-        return True
-
-    def _select(self, row):
-        if row == self.current:
-            return
-        if not self._commit():
-            self.list.blockSignals(True)
-            self.list.setCurrentRow(self.current)
-            self.list.blockSignals(False)
-            return
-        self.current = row
-        if 0 <= row < len(self.prompts):
-            p = self.prompts[row]
-            self._enable_form(True)
-            self.name.setText(p.get("name", ""))
-            self.hotkey.setText(keys_text(p.get("hotkey") or []))
-            self.text.setPlainText(p.get("text", ""))
-            self.on_record.setChecked(bool(p.get("record", p.get("name") in VisitPage.SHOWN)))
-        else:
-            self._enable_form(False)
-
-    def _rename(self, text):
-        if self.list.currentItem():
-            self.list.currentItem().setText(text or "Ohne Namen")
-
-    def new_prompt(self):
-        if not self._commit():
-            return
-        self.prompts.append({"name": f"Prompt {len(self.prompts) + 1}", "hotkey": [], "text": ""})
-        self.list.addItem(self.prompts[-1]["name"])
-        self.list.setCurrentRow(len(self.prompts) - 1)
-        self.name.setFocus()
-        self.name.selectAll()
-
-    def del_prompt(self):
-        row = self.list.currentRow()
-        if row < 0:
-            return
-        self.current = -1
-        del self.prompts[row]
-        self.list.takeItem(row)
-        self.list.setCurrentRow(min(row, len(self.prompts) - 1))
-        self._enable_form(bool(self.prompts))
 
     # ----- Netz
     def load_models(self, _=None, quiet=False):
@@ -3238,18 +3433,207 @@ class LlmPage(Page):
                             else "Verbunden, aber der Server meldet keine Modelle.")
         self.status.show()
 
+# ---------------------------------------------------------------- Prompts
+def on_record(p: dict) -> bool:
+    """Steht dieser Prompt als Knopf auf der Seite Aufnahme?"""
+    return bool(p.get("record", p.get("name") in config.ON_RECORD))
+
+
+def on_list(p: dict) -> bool:
+    """Steht er in der Auswahlliste „Meine Prompts“? Ohne eigene Angabe: alles, was kein Knopf ist."""
+    return bool(p.get("list", not on_record(p)))
+
+
+def wrapped(layout):
+    w = QtWidgets.QWidget()
+    layout.setContentsMargins(0, 0, 0, 0)
+    w.setLayout(layout)
+    return w
+
+
+class PromptPage(Page):
+    """Einstellungen, Reiter Prompts: die Sammlung, wo jeder Prompt erscheint, und welche Menüpunkte links stehen."""
+    sig_test = Signal(str, str, float)
+    MENU = ("Verlauf", "Übergabe", "Wortschatz")        # abwählbar; Aufnahme und Einstellungen bleiben immer
+
+    def __init__(self, ctl):
+        super().__init__("Prompts",
+                         "Ein Prompt wendet eine Anweisung auf ein Transkript an. Prompts stehen im Verlauf unter „KI“ und "
+                         "dort, wo du sie hier ankreuzt. Mit einer Halte-Taste wendet sich ein Prompt gleich beim Diktieren an.")
+        self.ctl = ctl
+        self.prompts, self.current = [], -1
+        self.note = label("")
+        self.head.addWidget(self.note)
+        self.head.addWidget(button("Speichern", self.save, "primary"))
+        self.list = QtWidgets.QListWidget()
+        self.list.setFixedWidth(210)
+        self.list.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.list.currentRowChanged.connect(self._select)
+        self.name = QtWidgets.QLineEdit()
+        self.name.textEdited.connect(self._rename)
+        self.hotkey = KeyField(ctl)
+        self.text = QtWidgets.QPlainTextEdit()
+        self.text.setMinimumHeight(120)
+        self.auto = QtWidgets.QComboBox()
+        self.on_record = QtWidgets.QCheckBox("Knopf auf der Seite Aufnahme")
+        self.on_list = QtWidgets.QCheckBox("In der Auswahlliste „Meine Prompts“")
+        self.on_pin = QtWidgets.QCheckBox("Als Menüpunkt links anpinnen")
+        self.on_pin.setToolTip(tip("Der Prompt bekommt einen eigenen Menüpunkt. Dort aufnehmen, und nach dem Stopp schreibt "
+                                   "LocalScribe das Ergebnis von selbst."))
+        left = QtWidgets.QVBoxLayout()
+        left.addWidget(self.list, 1)
+        left.addLayout(hbox(button("Neu", self.new_prompt), button("Löschen", self.del_prompt), None, spacing=6))
+        shows = QtWidgets.QVBoxLayout()
+        shows.setSpacing(8)
+        for box in (self.on_record, self.on_list, self.on_pin):
+            shows.addWidget(box)
+        right = form(("Name", self.name), ("Halte-Taste", self.hotkey), ("Anweisung", self.text), ("Zeigen", shows))
+        self.body.addWidget(card(hbox(left, (wrapped(right), 1), spacing=16), form(("Bei jedem Diktat", self.auto))))
+
+        # Menüpunkte links
+        self.menu = {name: QtWidgets.QCheckBox(name) for name in self.MENU}
+        self.body.addWidget(card(
+            hbox(label("Menüpunkte links", "h2"),
+                 info("Abgewählte Menüpunkte verschwinden aus der Leiste links. Aufnahme und Einstellungen bleiben immer."),
+                 None, spacing=8),
+            hbox(*self.menu.values(), None, spacing=26)))
+
+        # Ausprobieren
+        self.sample = QtWidgets.QPlainTextEdit(
+            "Ähm, also ich wollte nur kurz sagen, dass wir uns morgen, also am Dienstag, "
+            "um zehn treffen, ja, im Besprechungsraum.")
+        self.sample.setFixedHeight(74)
+        self.result = QtWidgets.QPlainTextEdit(readOnly=True, placeholderText="Ergebnis")
+        self.result.setFixedHeight(96)
+        self.try_btn = button("Ausprobieren", self.try_prompt)
+        self.try_note = label("", "muted")
+        self.body.addWidget(card(
+            hbox(label("Ausprobieren", "h2"),
+                 info("Wendet den links gewählten Prompt auf den Beispieltext an, mit dem Sprachmodell aus dem Reiter LLM."),
+                 None, spacing=8),
+            self.sample, hbox(self.try_btn, self.try_note, None), self.result))
+        self.body.addStretch(1)
+        self.sig_test.connect(self._tested)
+
+    def refresh(self):
+        cfg = self.ctl.cfg
+        self.prompts = copy.deepcopy(cfg.get("prompts") or [])
+        self.current = -1
+        self.list.clear()
+        for p in self.prompts:
+            self.list.addItem(p.get("name") or "Ohne Namen")
+        self._fill_auto(cfg["llm"].get("auto_prompt") or "")
+        self.list.setCurrentRow(0 if self.prompts else -1)
+        self._enable_form(bool(self.prompts))
+        hidden = cfg.get("menu_hidden") or []
+        for name, box in self.menu.items():
+            box.setChecked(name not in hidden)
+
+    def save(self):
+        if not self._commit():
+            return
+        names = [p["name"] for p in self.prompts]
+        if len(set(names)) != len(names) or not all(names):
+            return self.saved(self.note, "Jeder Prompt braucht einen eigenen Namen.", ok=False)
+        cfg = self.ctl.cfg
+        cfg["prompts"] = copy.deepcopy(self.prompts)
+        cfg["llm"]["auto_prompt"] = self.auto.currentData() or ""
+        cfg["menu_hidden"] = [name for name, box in self.menu.items() if not box.isChecked()]
+        self.ctl.apply_cfg()
+        if hasattr(self.window(), "rebuild_nav"):
+            self.window().rebuild_nav()
+        selected = self.current
+        self.refresh()
+        self.list.setCurrentRow(selected)
+        self.saved(self.note)
+
+    def _fill_auto(self, selected):
+        self.auto.clear()
+        self.auto.addItem("nur der diktierte Text", "")
+        for p in self.prompts:
+            self.auto.addItem(f"„{p.get('name', '')}“ anwenden", p.get("name", ""))
+        i = self.auto.findData(selected)
+        self.auto.setCurrentIndex(max(0, i))
+
+    def _enable_form(self, on):
+        for w in (self.name, self.hotkey, self.text, self.on_record, self.on_list, self.on_pin):
+            w.setEnabled(on)
+        if not on:
+            for w in (self.name, self.hotkey, self.text):
+                w.clear()
+
+    def _commit(self) -> bool:
+        """Formular in den aktuell gewählten Prompt übernehmen."""
+        if 0 <= self.current < len(self.prompts):
+            keys = self.ctl.parse_keys(self.hotkey.text())
+            if keys is None:
+                self.saved(self.note, "Unbekannte Taste in der Halte-Taste.", ok=False)
+                return False
+            self.prompts[self.current] = {"name": self.name.text().strip(), "hotkey": keys,
+                                          "text": self.text.toPlainText().strip(), "record": self.on_record.isChecked(),
+                                          "list": self.on_list.isChecked(), "pin": self.on_pin.isChecked()}
+        return True
+
+    def _select(self, row):
+        if row == self.current:
+            return
+        if not self._commit():
+            self.list.blockSignals(True)
+            self.list.setCurrentRow(self.current)
+            self.list.blockSignals(False)
+            return
+        self.current = row
+        if 0 <= row < len(self.prompts):
+            p = self.prompts[row]
+            self._enable_form(True)
+            self.name.setText(p.get("name", ""))
+            self.hotkey.setText(keys_text(p.get("hotkey") or []))
+            self.text.setPlainText(p.get("text", ""))
+            self.on_record.setChecked(on_record(p))
+            self.on_list.setChecked(on_list(p))
+            self.on_pin.setChecked(bool(p.get("pin")))
+        else:
+            self._enable_form(False)
+
+    def _rename(self, text):
+        if self.list.currentItem():
+            self.list.currentItem().setText(text or "Ohne Namen")
+
+    def new_prompt(self, _=False, name="", text=""):
+        """Neuen Prompt anlegen; name und text kommen mit, wenn die Seite Aufnahme einen eigenen in die Sammlung legt."""
+        if not self._commit():
+            return
+        taken = {p.get("name") for p in self.prompts}
+        base = name or f"Prompt {len(self.prompts) + 1}"
+        name = next(n for n in [base] + [f"{base} {k}" for k in range(2, 99)] if n not in taken)
+        self.prompts.append({"name": name, "hotkey": [], "text": text, "record": False, "list": True, "pin": False})
+        self.list.addItem(name)
+        self.list.setCurrentRow(len(self.prompts) - 1)
+        self.name.setFocus()
+        self.name.selectAll()
+
+    def del_prompt(self):
+        row = self.list.currentRow()
+        if row < 0:
+            return
+        self.current = -1
+        del self.prompts[row]
+        self.list.takeItem(row)
+        self.list.setCurrentRow(min(row, len(self.prompts) - 1))
+        self._enable_form(bool(self.prompts))
+
     def try_prompt(self):
         instruction = self.text.toPlainText().strip()
         if not instruction:
             return self.try_note.setText("Erst links einen Prompt wählen.")
         self.try_btn.setEnabled(False)
         self.try_note.setText("Modell arbeitet …")
-        (cfg, key), sample = self._live(), self.sample.toPlainText()
+        cfg, sample = copy.deepcopy(self.ctl.cfg.get("llm") or {}), self.sample.toPlainText()
 
         def work():
             t = time.time()
             try:
-                self.sig_test.emit(llm.run(cfg, instruction, sample, key), "", time.time() - t)
+                self.sig_test.emit(llm.run(cfg, instruction, sample), "", time.time() - t)
             except Exception as e:
                 self.sig_test.emit("", str(e) or type(e).__name__, time.time() - t)
         threading.Thread(target=work, daemon=True).start()
@@ -3290,74 +3674,66 @@ class SettingsPage(Page):
             self.model.addItem(m["label"], key)
         self.model_dir = QtWidgets.QLineEdit(placeholderText="leer: Modelle liegen beim Programm oder in deinem Konto")
         self.body.addWidget(card(
-            label("Sprachmodell", "h2"), form(("Modell", self.model)),
-            label("Deutsch ist für Diktate und Gespräche auf Deutsch gedacht; dafür gelten das medizinische "
-                  "Basiswörterbuch und die deutsche Nachbearbeitung. Mehrsprachig erkennt die gesprochene Sprache "
-                  "selbst, darunter Englisch, Französisch und Spanisch (einmalig 670 MB).",
-                  "muted", wrap=True),
-            form(("Modellordner", hbox(self.model_dir, button("Ordner wählen …", self._pick_models)))),
-            label("Optional: ein gemeinsamer Ordner mit den Sprachmodellen, zum Beispiel auf einem Netzlaufwerk. "
-                  "Gemeint ist der Ordner „modelle“ aus dem Komplettpaket. Dann braucht nicht jeder Programmordner "
-                  "sein eigenes Modell. Ohne Einstellung geht dasselbe, wenn ein Ordner „modelle“ direkt neben den "
-                  "Programmordnern liegt. Gilt ab dem nächsten Start.", "muted", wrap=True)))
+            head("Sprachmodell", "Deutsch ist für Diktate und Gespräche auf Deutsch gedacht; dafür gelten das medizinische "
+                 "Basiswörterbuch und die deutsche Nachbearbeitung. Mehrsprachig erkennt die gesprochene Sprache "
+                 "selbst, darunter Englisch, Französisch und Spanisch (einmalig 670 MB).\n\n"
+                 "Optional: ein gemeinsamer Ordner mit den Sprachmodellen, zum Beispiel auf einem Netzlaufwerk. "
+                 "Gemeint ist der Ordner „modelle“ aus dem Komplettpaket. Dann braucht nicht jeder Programmordner "
+                 "sein eigenes Modell. Ohne Einstellung geht dasselbe, wenn ein Ordner „modelle“ direkt neben den "
+                 "Programmordnern liegt. Gilt ab dem nächsten Start."), form(("Modell", self.model)),
+                        form(("Modellordner", hbox(self.model_dir, button("Ordner wählen …", self._pick_models)))),
+            ))
         self.body.addWidget(card(
-            label("Tasten", "h2"),
+            head("Tasten", "In ein Feld klicken und die gewünschte Kombination drücken, dann oben „Speichern“. Eine einzelne "
+                 "Taste wie Strg startet nach kurzem Halten; Strg+C, Strg+Klick und andere Kürzel funktionieren "
+                 "weiter wie gewohnt. Esc bricht eine laufende Aufnahme ab."),
             form(("Diktieren (halten)", self.hold), ("Freihand (dazu drücken)", self.lock),
                  ("Letzten Text einfügen", self.paste),
                  ("Nächste Sprungmarke [ ]", self.field),
                  ("Zielfenster merken / lösen", self.target)),
-            label("In ein Feld klicken und die gewünschte Kombination drücken, dann oben „Speichern“. Eine einzelne "
-                  "Taste wie Strg startet nach kurzem Halten; Strg+C, Strg+Klick und andere Kürzel funktionieren "
-                  "weiter wie gewohnt. Esc bricht eine laufende Aufnahme ab.", "muted", wrap=True)))
+            ))
         self.body.addWidget(card(label("Aufnahme", "h2"), form(("Mikrofon", self.mic)),
                                  self.sounds, self.clip, self.warm, self.signs))
         self.body.addWidget(card(
-            label("Handy als Mikrofon", "h2"), self.phone,
-            label("Einschalten, speichern, dann den QR-Code mit dem Telefon scannen. Das Telefon zeigt einmal eine "
-                  "Zertifikatswarnung (die Seite kommt von diesem Rechner, nicht aus dem Internet): „Erweitert“ und "
-                  "„Trotzdem öffnen“. Fragt Windows beim Einschalten nach der Firewall, den Zugriff im privaten Netz "
-                  "erlauben. Der Ton geht nur vom Telefon zu diesem Rechner und wird nicht gespeichert.",
-                  "muted", wrap=True),
-            hbox(button("QR-Code zeigen", self.show_qr), None)))
-        self.body.addWidget(card(label("Verlauf und Start", "h2"),
+            head("Handy als Mikrofon", "Einschalten, speichern, dann den QR-Code mit dem Telefon scannen. Das Telefon zeigt einmal eine "
+                 "Zertifikatswarnung (die Seite kommt von diesem Rechner, nicht aus dem Internet): „Erweitert“ und "
+                 "„Trotzdem öffnen“. Fragt Windows beim Einschalten nach der Firewall, den Zugriff im privaten Netz "
+                 "erlauben. Der Ton geht nur vom Telefon zu diesem Rechner und wird nicht gespeichert."), self.phone,
+                        hbox(button("QR-Code zeigen", self.show_qr), None)))
+        self.body.addWidget(card(head("Verlauf und Start", "Tonaufnahmen werden nie aufbewahrt: Diktate per Taste bleiben im Arbeitsspeicher, "
+                                      "lange Aufnahmen werden nach dem Transkribieren gelöscht."),
                                  self.history, form(("Einträge löschen nach", hbox(self.days, None))),
-                                 label("Tonaufnahmen werden nie aufbewahrt: Diktate per Taste bleiben im Arbeitsspeicher, "
-                                       "lange Aufnahmen werden nach dem Transkribieren gelöscht.", "muted", wrap=True),
-                                 self.auto,
+                                                                  self.auto,
                                  hbox(button("Verknüpfungen auf Desktop und im Startmenü anlegen", self.shortcuts),
                                       None)))
         self.own_note = label("", "muted", wrap=True)
         self.body.addWidget(card(
-            label("Eigene Daten", "h2"),
-            label("Einstellungen, Verlauf, Wörterbuch und alles Gelernte liegen in deinem Windows-Konto. Teilen sich "
-                  "mehrere ein Konto, teilen sie auch das. Wer seine eigene Fassung will, legt die Daten in diesen "
-                  "Programmordner: Dann gehört zu jedem Programmordner ein eigener Wortschatz, ein eigener Verlauf "
-                  "und eigene Einstellungen. Nur in einem Ordner sinnvoll, den nur du öffnen kannst, denn dort "
-                  "liegen dann auch Verlauf und Fälle.", "muted", wrap=True),
-            hbox(button("Daten in diesem Programmordner ablegen", self._own), None),
+            head("Eigene Daten", "Einstellungen, Verlauf, Wörterbuch und alles Gelernte liegen in deinem Windows-Konto. Teilen sich "
+                 "mehrere ein Konto, teilen sie auch das. Wer seine eigene Fassung will, legt die Daten in diesen "
+                 "Programmordner: Dann gehört zu jedem Programmordner ein eigener Wortschatz, ein eigener Verlauf "
+                 "und eigene Einstellungen. Nur in einem Ordner sinnvoll, den nur du öffnen kannst, denn dort "
+                 "liegen dann auch Verlauf und Fälle."),
+                        hbox(button("Daten in diesem Programmordner ablegen", self._own), None),
             self.own_note))
         self.keep_note = label("", "muted", wrap=True)
         self.body.addWidget(card(
-            label("Profil sichern", "h2"),
-            label("Dein Profil in eine Datei schreiben und daraus zurückholen, etwa für einen anderen Rechner: Wörterbuch, "
-                  "gelernter Wortschatz, Textbausteine, Aufträge, Tasten, Server und die Stimmaufnahmen aus dem "
-                  "Stimmtraining. Updates fassen das Profil nicht an; vor jedem Wechsel der Fassung legt LocalScribe "
-                  "zusätzlich eine Kopie der Einstellungen ab (Ordner „sicherung“, die letzten zehn). API-Schlüssel "
-                  "stehen nicht in der Datei: Die liegen im Schlüsselspeicher von Windows.", "muted", wrap=True),
-            hbox(button("Profil sichern …", self._keep), button("Profil zurückholen …", self._bring),
+            head("Profil sichern", "Dein Profil in eine Datei schreiben und daraus zurückholen, etwa für einen anderen Rechner: Wörterbuch, "
+                 "gelernter Wortschatz, Textbausteine, Prompts, Tasten, Server und die Stimmaufnahmen aus dem "
+                 "Stimmtraining. Updates fassen das Profil nicht an; vor jedem Wechsel der Fassung legt LocalScribe "
+                 "zusätzlich eine Kopie der Einstellungen ab (Ordner „sicherung“, die letzten zehn). API-Schlüssel "
+                 "stehen nicht in der Datei: Die liegen im Schlüsselspeicher von Windows."),
+                        hbox(button("Profil sichern …", self._keep), button("Profil zurückholen …", self._bring),
                  button("Ordner mit den Sicherungen öffnen", self._kept_open), None),
             self.keep_note))
         self.many_note = label("", "muted", wrap=True)
         self.many_btn = button("Profile einschalten", self._many)
         self.many = card(
-            label("Mehrere Personen an diesem Programm", "h2"),
-            label("Arbeiten mehrere Personen mit diesem Programmordner (gemeinsamer Rechner, Netzlaufwerk, viele Rechner), "
-                  "bekommt jede ein eigenes Profil: Wörterbuch, Wortschatz, Textbausteine, Aufträge, Tasten und "
-                  "Stimmaufnahmen liegen dann im Programmordner unter „profile“ und folgen der Person an jeden Rechner. "
-                  "Gewählt wird unten links im Fenster. Profile haben kein Passwort; Verlauf, Fälle und Schlüssel "
-                  "bleiben auf dem jeweiligen Rechner. Liegt das Programm auf einem Netzlaufwerk, ist das von selbst an.",
-                  "muted", wrap=True),
-            hbox(self.many_btn, None), self.many_note)
+            head("Mehrere Personen an diesem Programm", "Arbeiten mehrere Personen mit diesem Programmordner (gemeinsamer Rechner, Netzlaufwerk, viele Rechner), "
+                 "bekommt jede ein eigenes Profil: Wörterbuch, Wortschatz, Textbausteine, Prompts, Tasten und "
+                 "Stimmaufnahmen liegen dann im Programmordner unter „profile“ und folgen der Person an jeden Rechner. "
+                 "Gewählt wird unten links im Fenster. Profile haben kein Passwort; Verlauf, Fälle und Schlüssel "
+                 "bleiben auf dem jeweiligen Rechner. Liegt das Programm auf einem Netzlaufwerk, ist das von selbst an."),
+                        hbox(self.many_btn, None), self.many_note)
         self.body.addWidget(self.many)
         self.care_note = label("", "muted", wrap=True)
         self.auto_check = QtWidgets.QCheckBox("Einmal am Tag von selbst nach Updates fragen (bei GitHub; von dir wird dabei nichts "
@@ -3367,14 +3743,12 @@ class SettingsPage(Page):
         self.found = None                    # neuere Fassung bei GitHub, sobald gefunden
         self.notes_button = button("Was ist neu", self._notes)
         self.body.addWidget(card(
-            label("Aktualisieren und entfernen", "h2"),
-            label(f"Installiert ist Fassung {__version__}. „Nach Updates suchen“ fragt bei GitHub nach der neuesten "
-                  "Fassung und lädt auf Wunsch nur die Dateien, die sich geändert haben. Erreicht der Rechner GitHub "
-                  "nicht (häufig in Kliniken): die ZIP-Datei an einem anderen Rechner laden und hier auswählen, das "
-                  "kleine Paket genügt. Ein Update richtet die neue Fassung neben der laufenden ein: Du arbeitest "
-                  "weiter, sie gilt ab dem nächsten Start. Einstellungen, Verlauf, Wörterbuch und Sprachmodell bleiben.",
-                  "muted", wrap=True),
-            hbox(self.check_button, self.notes_button, button("Aus ZIP-Datei aktualisieren …", self._update),
+            head("Aktualisieren und entfernen", f"Installiert ist Fassung {__version__}. „Nach Updates suchen“ fragt bei GitHub nach der neuesten "
+                 "Fassung und lädt auf Wunsch nur die Dateien, die sich geändert haben. Erreicht der Rechner GitHub "
+                 "nicht (häufig in Kliniken): die ZIP-Datei an einem anderen Rechner laden und hier auswählen, das "
+                 "kleine Paket genügt. Ein Update richtet die neue Fassung neben der laufenden ein: Du arbeitest "
+                 "weiter, sie gilt ab dem nächsten Start. Einstellungen, Verlauf, Wörterbuch und Sprachmodell bleiben."),
+                        hbox(self.check_button, self.notes_button, button("Aus ZIP-Datei aktualisieren …", self._update),
                  button("LocalScribe entfernen …", self._remove), None),
             self.auto_check, self.care_note))
         self.quiet = False                   # läuft gerade die stille tägliche Nachfrage?
@@ -3787,7 +4161,7 @@ class Hub(QtWidgets.QWidget):
                                       "Für einen Zeilenumbruch \\n schreiben.",
                                       "snippets", ["Stichwort", "Text"],
                                       starter=("Normalbefunde hinzufügen", NORMAL)))])),
-            ("Einstellungen", Tabs([("Allgemein", SettingsPage(ctl)), ("LLM", LlmPage(ctl))])),
+            ("Einstellungen", Tabs([("Allgemein", SettingsPage(ctl)), ("LLM", LlmPage(ctl)), ("Prompts", PromptPage(ctl))])),
         ]
         self.buttons = QtWidgets.QButtonGroup(self)
         for i, (name, page) in enumerate(self.pages):
@@ -3798,7 +4172,8 @@ class Hub(QtWidgets.QWidget):
             self.buttons.addButton(b, i)
             nav.addWidget(b)
             self.stack.addWidget(page)
-        self.buttons.idClicked.connect(self.show_page)
+        self.buttons.idClicked.connect(self._nav)
+        self.nav, self.pins = nav, []
         nav.addStretch(1)
         # Update-Bereich unten links: erscheint nur, wenn es etwas zu tun gibt. Ein Klick lädt, ein zweiter startet neu.
         self.settings = self.pages[-1][1].pages[0]
@@ -3895,7 +4270,10 @@ class Hub(QtWidgets.QWidget):
         lay.setSpacing(0)
         lay.addWidget(side)
         lay.addLayout(right, 1)
+        self.nowheel = NoWheel(self)
+        self.nowheel.guard(self)
         self.show_page(0)
+        self.rebuild_nav()
 
     def paintEvent(self, _):
         """Hintergrund: fast schwarz mit drei weichen Lichtflecken. Die halb durchsichtigen Karten davor wirken dadurch
@@ -3927,7 +4305,7 @@ class Hub(QtWidgets.QWidget):
             tip = ("Der Programmordner mit den Profilen ist gerade nicht erreichbar. LocalScribe arbeitet mit der Kopie von "
                    "diesem Rechner weiter und führt beides zusammen, sobald der Ordner wieder da ist.")
         elif config.ACTIVE:
-            tip = (f"Es diktiert: {config.ACTIVE}. Wörterbuch, Wortschatz, Textbausteine, Aufträge, Tasten und "
+            tip = (f"Es diktiert: {config.ACTIVE}. Wörterbuch, Wortschatz, Textbausteine, Prompts, Tasten und "
                    "Stimmaufnahmen kommen aus diesem Profil. Klick: Profil wechseln.")
         else:
             tip = ("Kein Profil gewählt: Es gelten die Einstellungen dieses Rechners, für alle, die hier diktieren. "
@@ -3966,6 +4344,7 @@ class Hub(QtWidgets.QWidget):
             return self.profile_refresh()
         self.ctl.apply_cfg()
         self.profile_refresh()
+        self.rebuild_nav()                           # das Profil bringt seine Prompts mit, auch die angepinnten
         self.pages[self.stack.currentIndex()][1].refresh()
 
     def profile_new(self):
@@ -3976,7 +4355,7 @@ class Hub(QtWidgets.QWidget):
         name = QtWidgets.QLineEdit(os.environ.get("USERNAME", ""))
         name.selectAll()
         take = QtWidgets.QCheckBox("Mit den Einstellungen beginnen, die hier gerade gelten")
-        take.setToolTip("Wörterbuch, Wortschatz, Textbausteine, Aufträge und Tasten gehen als Startstand ins neue Profil. "
+        take.setToolTip("Wörterbuch, Wortschatz, Textbausteine, Prompts und Tasten gehen als Startstand ins neue Profil. "
                         "Ohne Haken beginnt es mit der Werkseinstellung.")
         take.setChecked(not config.ACTIVE)
         note = label("", "bad", wrap=True)
@@ -3994,7 +4373,7 @@ class Hub(QtWidgets.QWidget):
         lay.setContentsMargins(22, 18, 22, 16)
         lay.setSpacing(10)
         lay.addWidget(label("Neues Profil", "h2"))
-        about = label("Ein Profil gehört einer Person: Wörterbuch, Wortschatz, Textbausteine, Aufträge, Tasten und "
+        about = label("Ein Profil gehört einer Person: Wörterbuch, Wortschatz, Textbausteine, Prompts, Tasten und "
                       "Stimmaufnahmen. Es liegt im Programmordner und folgt dir an jeden Rechner, der LocalScribe "
                       "von dort startet. Es hat kein Passwort: Jede Person an diesem Programmordner kann es wählen. "
                       "Verlauf, Fälle und Schlüssel bleiben auf dem jeweiligen Rechner.", "muted", wrap=True)
@@ -4098,13 +4477,73 @@ class Hub(QtWidgets.QWidget):
         if not self.news_version:
             self.ctl.seen()
 
-    def show_page(self, i):
-        self.buttons.button(i).setChecked(True)
+    PIN = 100          # Nummern der angepinnten Prompts in der Leiste links
+
+    def _nav(self, i):
+        if i >= self.PIN:
+            return self.show_page(1, self.buttons.button(i).property("prompt") or "")
+        self.show_page(i)
+
+    def show_page(self, i, pin=""):
+        """Seite zeigen. pin: Die Seite Aufnahme für einen angepinnten Prompt, er läuft nach dem Stopp von selbst."""
+        if i == 1:
+            record = self.pages[1][1]
+            if not (record.recording or record.job.running):      # läuft gerade etwas, bleibt die Seite, wie sie ist
+                record.set_pin(pin)
+            pin = record.pin
+        mark = next((b for b in self.pins if pin and b.property("prompt") == pin), None) if i == 1 else None
+        (mark or self.buttons.button(i)).setChecked(True)
         self.pages[i][1].refresh()
         self.stack.setCurrentIndex(i)
 
+    def show_prompts(self):
+        """Einstellungen, Reiter Prompts: die Sammlung bearbeiten."""
+        self.show_page(len(self.pages) - 1)
+        self.pages[-1][1].show_tab(2)
+
+    def rebuild_nav(self):
+        """Leiste links nach den Einstellungen richten: abgewählte Menüpunkte ausblenden, angepinnte Prompts als eigene
+        Punkte unter „Übergabe“ zeigen."""
+        hidden = set(self.ctl.cfg.get("menu_hidden") or []) & set(PromptPage.MENU)
+        names = [p["name"] for p in self.ctl.cfg.get("prompts") or []
+                 if p.get("pin") and p.get("name") and (p.get("text") or "").strip()]
+        if getattr(self, "nav_state", None) == (hidden, names):
+            return                                                # nichts geändert
+        self.nav_state = (hidden, names)
+        for i, (name, _) in enumerate(self.pages):
+            self.buttons.button(i).setVisible(name not in hidden)
+        for b in self.pins:
+            self.buttons.removeButton(b)
+            b.hide()
+            b.setParent(None)
+            b.deleteLater()
+        self.pins = []
+        at = self.nav.indexOf(self.buttons.button(2)) + 1
+        for k, name in enumerate(names):
+            b = QtWidgets.QPushButton(checkable=True)
+            font = QtGui.QFont(b.font())
+            font.setPointSizeF(10.5)                              # die Schrift der Leiste; ein langer Name endet mit „…“
+            b.setText("  " + QtGui.QFontMetrics(font).elidedText(name, Qt.ElideRight, 118).replace("&", "&&"))
+            b.setToolTip(tip(f"„{name}“: aufnehmen, und nach dem Stopp schreibt LocalScribe das Ergebnis von selbst."))
+            b.setIcon(nav_icon("Pin"))
+            b.setIconSize(QtCore.QSize(18, 18))
+            b.setCursor(Qt.PointingHandCursor)
+            b.setProperty("prompt", name)
+            self.buttons.addButton(b, self.PIN + k)
+            self.nav.insertWidget(at + k, b)
+            self.pins.append(b)
+        record, now = self.pages[1][1], self.stack.currentIndex()
+        if record.pin and record.pin not in names and not (record.recording or record.job.running):
+            record.set_pin("")                                    # der angepinnte Prompt ist nicht mehr angepinnt
+        if self.pages[now][0] in hidden:
+            return self.show_page(1)
+        if now == 1:                                              # Markierung in der Leiste zur Seite passend setzen
+            mark = next((b for b in self.pins if record.pin and b.property("prompt") == record.pin), None)
+            (mark or self.buttons.button(1)).setChecked(True)
+
     def refresh(self):
         """Aktuelle Seite neu laden, wenn das Fenster sichtbar ist (z. B. nach neuem Diktat)."""
+        self.rebuild_nav()
         if self.isVisible() and self.stack.currentIndex() == 0:
             self.pages[0][1].refresh()
 
@@ -4147,7 +4586,7 @@ class Hub(QtWidgets.QWidget):
         self.shield_note.setText(f"Namenserkennung nicht geladen: {text[:140]}" if text else "")
         page._shield_progress(1.0, text)
         waiting, self.shield_queue = self.shield_queue, []
-        for then in waiting:                                  # die Aufträge, die darauf gewartet haben
+        for then in waiting:                                  # die Prompts, die darauf gewartet haben
             then()
 
     def set_error(self, error):

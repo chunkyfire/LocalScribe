@@ -116,6 +116,17 @@ NURSING = ("Schreibe aus dem Text einen Eintrag für den Pflegebericht, den Verl
            "(Sturzprotokoll, Wunddokumentation, Schmerzerfassung, Fixierungsprotokoll, Fehlermeldung).\n"
            "Kurze ganze Sätze. " + UNCLEAR)
 
+# Seite Aufnahme, Zeichen neben dem eigenen Prompt: aus einer kurzen Eingabe einen ausformulierten Prompt machen
+SPARK = ("Du schreibst Prompts für ein Sprachmodell, das ein Transkript bearbeitet. Mache aus der kurzen Eingabe einen "
+         "ausformulierten Prompt in drei bis fünf Sätzen: was entstehen soll, für wen, in welcher Form und Länge und "
+         "worauf der Schwerpunkt liegt. Bleib bei dem, was die Eingabe verlangt: Die Form (etwa Mail, Liste, "
+         "Zusammenfassung) nicht austauschen und den Umfang nicht ausweiten; steht dort „kurz“, bleibt es kurz. "
+         "Richte dich nach der Art des Transkripts (Diktat, Gespräch, Besprechung), übernimm aber keine Inhalte "
+         "daraus. Platzhalter in eckigen Klammern wie [NAME_1] stehen für geschützte Angaben; lass sie weg. "
+         "Der Prompt endet mit diesen zwei Sätzen: Übernimm nur, was gesagt wurde, und erfinde nichts. Ergänze keine "
+         "Einheit, keine Dosis, keine Bewertung und kein Datum. "
+         "Gib nur den Prompt zurück, auf Deutsch, ohne Einleitung und ohne Anführungszeichen.")
+
 DEFAULTS = {
     # Tasten gedrückt halten = aufnehmen, loslassen = einfügen
     "hotkey_hold": ["ctrl", "win"],
@@ -144,7 +155,8 @@ DEFAULTS = {
     "training_scores": [],        # Messungen mit Prüfsätzen: Zeitpunkt, Fachrichtung, Wortfehler, Trainingsminuten
     "live_preview": True,         # Aufnahme: laufende Äußerung schon beim Sprechen vorläufig anzeigen
     "model_dir": "",              # eigener Ordner mit Sprachmodellen (z. B. ein gemeinsames Netzlaufwerk); leer = keiner
-    "handover_frame": "zna",      # Übergabe: zuletzt gewählter Rahmen (zna, station, its); gilt für den nächsten Fall
+    "handover_frame": "zna",      # Übergabe: zuletzt gewählter Bereich (zna, station, its, pflege); gilt für den nächsten Fall
+    "menu_hidden": [],            # abgewählte Menüpunkte links: "Verlauf", "Übergabe", "Wortschatz"
     "visite_prompt": "",          # Visite & Übergabe: eigene Anweisung an das Sprachmodell; leer = die mitgelieferte
     "visite_model": "",           # Modell für den Arztbrief; leer = visite.WRITER bei OpenRouter, sonst das LLM-Modell
     "visite_jev": "",             # Jev-Modell für die Ersteinschätzung; leer = ~typesafe/jev-latest
