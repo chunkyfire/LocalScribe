@@ -1,3 +1,9 @@
+## LocalScribe 2.0.1
+
+- Behoben: Schrieb das Modell nichts, weil im Text nichts für den Prompt stand (etwa ein Testsatz und „Visite“),
+  meldete LocalScribe bei Noirdoc „Antwort des Servers hat ein unerwartetes Format“. Jetzt steht dort, dass das Modell
+  nichts geschrieben hat. Mit einem Diktat, das etwas hergibt, kam das Ergebnis auch vorher.
+
 ## LocalScribe 2.0.0
 
 - **Eine Liste „Anbieter“.** Unter Einstellungen, LLM, stehen OpenRouter, Noirdoc, IONOS, STACKIT, Ollama und LM Studio

@@ -222,6 +222,23 @@ def _ask(llm: dict, body: dict, key=None):
         return _request(llm, "/chat/completions", {k: v for k, v in body.items() if k != "reasoning_effort"}, key=key)
 
 
+EMPTY = "Das Modell hat nichts geschrieben; im Text steht vermutlich nichts dafür."
+
+
+def _text(data) -> str:
+    """Der Text einer Antwort. Hat das Modell nichts geschrieben, lassen manche Server „message“ oder „content“ ganz
+    weg (Noirdoc mit Gemini): Das ist eine leere Antwort, kein Formatfehler."""
+    try:
+        choice = data["choices"][0]
+    except (KeyError, IndexError, TypeError) as e:
+        raise LlmError("Antwort des Servers hat ein unerwartetes Format.") from e
+    message = choice.get("message") if isinstance(choice, dict) else None
+    content = message.get("content") if isinstance(message, dict) else None
+    if isinstance(content, list):                # Teile statt eines Textes
+        content = "".join(part.get("text") or "" for part in content if isinstance(part, dict))
+    return content if isinstance(content, str) else ""
+
+
 def chat(llm: dict, system: str, user: str, json_mode: bool = False, key=None) -> str:
     """Eine einzelne Anfrage ohne den Nachbearbeitungs-Rahmen; für die Fachkorrektur."""
     if not (llm.get("model") or "").strip():
@@ -229,11 +246,7 @@ def chat(llm: dict, system: str, user: str, json_mode: bool = False, key=None) -
     body = _body(llm, [{"role": "system", "content": system}, {"role": "user", "content": user}], temperature=0)
     if json_mode:
         body["response_format"] = {"type": "json_object"}
-    data = _ask(llm, body, key=key)
-    try:
-        return data["choices"][0]["message"]["content"] or ""
-    except (KeyError, IndexError, TypeError) as e:
-        raise LlmError("Antwort des Servers hat ein unerwartetes Format.") from e
+    return _text(_ask(llm, body, key=key))
 
 
 def run(llm: dict, instruction: str, transcript: str, key=None) -> str:
@@ -253,15 +266,11 @@ def run(llm: dict, instruction: str, transcript: str, key=None) -> str:
                        "Platzhalter und erfinde keine neuen.")
     body = _body(llm, [{"role": "system", "content": system}, {"role": "user", "content": transcript.strip()}],
                  temperature=float(llm.get("temperature", 0.2)))
-    data = _ask(llm, body, key=key)
-    try:
-        text = data["choices"][0]["message"]["content"] or ""
-    except (KeyError, IndexError, TypeError) as e:
-        raise LlmError("Antwort des Servers hat ein unerwartetes Format.") from e
+    text = _text(_ask(llm, body, key=key))
     # Denkblöcke lokaler Modelle gehören nicht in den Text
     text = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL | re.IGNORECASE).strip()
     if not text:
-        raise LlmError("Das Modell hat keinen Text geliefert.")
+        raise LlmError(EMPTY)
     if shield:
         text = shield.show(text)
         text = re.sub(r"\[[A-ZÄÖÜ]{3,}_\d+\]", "[?]", text)      # ein Platzhalter, den es nie gab: sichtbar als Lücke

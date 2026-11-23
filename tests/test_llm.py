@@ -36,6 +36,11 @@ class Fake(BaseHTTPRequestHandler):
         if seen.get("strict") and "reasoning_effort" in req:
             return self._send(400, {"error": "Unknown parameter: reasoning_effort"})
         user = req["messages"][1]["content"]
+        if user in ("ohne", "ohne-inhalt", "teile", "kaputt"):        # so antworten manche Server wirklich
+            return self._send(200, {"ohne": {"choices": [{"finish_reason": "stop", "index": 0}]},
+                                    "ohne-inhalt": {"choices": [{"message": {"role": "assistant"}}]},
+                                    "teile": {"choices": [{"message": {"content": [{"type": "text", "text": "Teil A"}]}}]},
+                                    "kaputt": {"error": "x"}}[user])
         reply = {"leer": "", "denkt": "<think>hm, mal sehen</think>\n Fertig. "}.get(user, "BEARBEITET: " + user)
         self._send(200, {"choices": [{"message": {"content": reply}}]})
 
@@ -71,7 +76,13 @@ check("Anweisung im Systemtext, Transkript getrennt",
       msgs[0]["role"] == "system" and msgs[0]["content"].endswith("Mach es kürzer.") and msgs[1]["content"] == "Hallo Welt")
 check("Modell und Temperatur übergeben", seen["req"]["model"] == "modell-a" and seen["req"]["temperature"] == 0.2)
 check("Denkblock entfernt", llm.run(cfg, "x", "denkt", key="") == "Fertig.")
-check("leere Antwort -> Fehler", fails(lambda: llm.run(cfg, "x", "leer", key=""), "keinen Text"))
+check("leere Antwort -> Fehler", fails(lambda: llm.run(cfg, "x", "leer", key=""), "nichts geschrieben"))
+check("Antwort ohne message (Noirdoc, Gemini schreibt nichts) ist eine leere Antwort, kein Formatfehler",
+      fails(lambda: llm.run(cfg, "x", "ohne", key=""), "nichts geschrieben")
+      and fails(lambda: llm.run(cfg, "x", "ohne-inhalt", key=""), "nichts geschrieben")
+      and llm.chat(cfg, "x", "ohne", key="") == "")
+check("Inhalt in Teilen wird zusammengesetzt", llm.run(cfg, "x", "teile", key="") == "Teil A")
+check("Antwort ohne choices bleibt ein Formatfehler", fails(lambda: llm.run(cfg, "x", "kaputt", key=""), "unerwartetes Format"))
 check("ohne Modell -> Fehler", fails(lambda: llm.run({**cfg, "model": ""}, "x", "y", key=""), "Kein Modell"))
 check("Server aus -> Fehler", fails(lambda: llm.run({**cfg, "base_url": "http://127.0.0.1:9/v1"}, "x", "y", key=""), "nicht erreichbar"))
 check("Adresse ohne http -> Fehler", fails(lambda: llm.run({**cfg, "base_url": "localhost:1"}, "x", "y", key=""), "http"))
