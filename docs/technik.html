@@ -172,7 +172,7 @@
 <body>
 <h1 id="localscribe--technische-dokumentation">LocalScribe – Technische
 Dokumentation</h1>
-<p>Stand: Version 2.1.0. Für Betrieb, IT und alle, die den Code lesen
+<p>Stand: Version 2.1.1. Für Betrieb, IT und alle, die den Code lesen
 oder prüfen wollen. Die Bedienung steht im <a
 href="https://chunkyfire.github.io/LocalScribe/LocalScribe-Handbuch.pdf">Handbuch</a>,
 die Messwerte mit Methode in <a
@@ -938,7 +938,13 @@ Prompts)</td>
 <td><code>llm</code>, <code>llm_fix</code></td>
 <td>Sprachmodell-Server und Fachkorrektur. Die Fachkorrektur nimmt bei
 OpenRouter und Noirdoc das schnelle Modell aus <code>llm.QUICK</code>,
-sonst das gewählte</td>
+sonst das gewählte. Sie fragt nur an, wenn der Text ein unbekanntes
+Wort, eine eigene Berichtigung oder Fachsprache enthält
+(<code>korrektor.clinical</code>): Alltagstext wie eine Mail geht nicht
+hinaus und wartet nicht. Beim Start lädt <code>korrektor.warm</code> im
+Hintergrund Lexikon und Namenserkennung, damit das erste Diktat nicht
+darauf wartet. Den API-Schlüssel liest <code>llm.get_key</code> je
+Programmlauf einmal aus dem Schlüsselspeicher</td>
 <td>aus</td>
 </tr>
 <tr class="even">
@@ -970,10 +976,12 @@ die mit <code>config.NOTES</code> beginnen („Nicht diktiert:“,
 zeigt sie unter dem Ergebnis, kopiert und eingefügt wird nur der
 Eintrag. Beim Wechsel auf 2.1.0 ersetzt <code>config._prompts_v9</code>
 die Texte ab Werk, die nie geändert wurden (Prüfsummen in
-<code>OLD_V9</code>); eigene Texte bleiben. Beim Wechsel auf 1.7.1
-kommen die zwei neuen einmal dazu; die Zeile der Aufnahme wird nur
-umgestellt, wenn sie noch der Vorgabe entsprach
-(<code>config._prompts_v8</code>)</td>
+<code>OLD_V9</code>); eigene Texte bleiben. Im Reiter Prompts formuliert
+das Zeichen neben der Anweisung Stichworte aus oder verbessert einen
+Prompt (<code>config.POLISH</code>, eingestelltes Modell; hinaus gehen
+Name und Anweisung nach dem Schutz). Beim Wechsel auf 1.7.1 kommen die
+zwei neuen einmal dazu; die Zeile der Aufnahme wird nur umgestellt, wenn
+sie noch der Vorgabe entsprach (<code>config._prompts_v8</code>)</td>
 <td>Aufnahme zeigt Visite, Meeting-Protokoll, Arztbrief,
 Pflegebericht</td>
 </tr>

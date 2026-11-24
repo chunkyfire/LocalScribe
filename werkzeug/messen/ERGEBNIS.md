@@ -572,3 +572,31 @@ Messung am Zielgerät steht aus.
 | alle Kerne | 0,27 s | 0,71 s | 1,31 s | 2,67 s |
 | 4 | 0,34 s | 0,91 s | 1,76 s | 3,60 s |
 | 2 | 0,51 s | 1,37 s | 2,85 s | 5,43 s |
+
+## Fachkorrektur am eingestellten Anbieter und ihre Wartezeit (24.11.2026, ab 2.1.1)
+
+Gemessen über den Weg der App (Schutz, schnelles Modell, Stücke gleichzeitig; `tests/_cem/kc_noir.py`) an den neun
+Corti-Diktaten, Anbieter Noirdoc:
+
+| Korrektor | Wortfehler | Fachbegriffe | je Diktat (180 bis 580 Wörter) |
+|---|---|---|---|
+| ohne | 16,65 % | 65,0 % | – |
+| Gemini 3.1 Flash Lite | 13,72 % | 71,7 % | 1,6 s |
+| Gemini 3.8 Flash, wenig Nachdenken | 13,03 % | 74,6 % | 4,7 s |
+| GPT-OSS 120B | 16,36 % | 65,8 % | fast jede Anfrage über 6 s, also verworfen |
+
+Es bleibt bei Gemini 3.1 Flash Lite: derselbe Gewinn wie über OpenRouter, und nur dieses Modell bleibt in der
+Wartezeit, die ein Diktat verträgt.
+
+Wo die Zeit eines kurzen Diktats blieb (`tests/_cem/takt.py`, ein Satz mit drei Hörfehlern): Lexikon und bekannte
+Wörter beim ersten Mal 0,87 s, Namenserkennung beim ersten Mal 1,50 s (danach 0,07 s), Schlüssel aus dem
+Windows-Schlüsselspeicher 0,14 s je Anfrage, die Anfrage selbst 0,65 bis 0,93 s; eine offen gehaltene Verbindung
+spart nur 0,08 s und ist deshalb nicht eingebaut. Seit 2.1.1 lädt die App Lexikon und Namenserkennung beim Start
+und liest den Schlüssel einmal je Programmlauf.
+
+Alltagstext geht nicht mehr hinaus: Ohne unbekanntes Wort, ohne eigene Berichtigung und ohne Fachsprache
+(`korrektor.clinical`) entfällt die Anfrage. Geprüft an gespeicherten Läufen (`tests/_cem/lohnt.py`): Von 395
+Arztbrief-Sätzen entfielen 90 Anfragen, von 359 Aufnahmen in Laiensprache 201; keine der dort übernommenen
+Ersetzungen ging verloren. 20 Alltagssätze (Mail, Notiz, Einkaufsliste) lösen keine Anfrage mehr aus.
+
+Ein neueres deutsches Modell als das eingebaute gab es zum Stand 24.11.2026 nicht.

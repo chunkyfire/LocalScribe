@@ -170,10 +170,10 @@ QPushButton#fileBtn { padding: 9px 18px; border-radius: 12px; }
 QPushButton#newBtn { color: #C6FF3D; background: rgba(198, 255, 61, 0.08); border: 1px solid rgba(198, 255, 61, 0.45);
                      border-radius: 12px; padding: 6px 14px; font-weight: 600; }
 QPushButton#newBtn:hover { background: rgba(198, 255, 61, 0.16); }
-QPushButton#spark { color: #C6FF3D; background: rgba(198, 255, 61, 0.08); border: 1px solid rgba(198, 255, 61, 0.45);
+QPushButton#spark, QFrame#card QPushButton#spark { color: #C6FF3D; background: rgba(198, 255, 61, 0.08); border: 1px solid rgba(198, 255, 61, 0.45);
                     border-radius: 11px; font-size: 13pt; padding: 0; }
-QPushButton#spark:hover { background: rgba(198, 255, 61, 0.16); }
-QPushButton#spark:disabled { color: #6A6F75; border-color: rgba(255, 255, 255, 0.12); background: transparent; }
+QPushButton#spark:hover, QFrame#card QPushButton#spark:hover { background: rgba(198, 255, 61, 0.16); }
+QPushButton#spark:disabled, QFrame#card QPushButton#spark:disabled { color: #6A6F75; border-color: rgba(255, 255, 255, 0.12); background: transparent; }
 QLabel#info { border: 1px solid rgba(255, 255, 255, 0.30); border-radius: 10px; color: #9AA0A6; font-size: 8.5pt; font-weight: 700; }
 QLabel#info:hover { color: #C6FF3D; border-color: rgba(198, 255, 61, 0.6); }
 QFrame#case { background: transparent; border: none; border-bottom: 1px solid rgba(255, 255, 255, 0.06); }
@@ -628,7 +628,7 @@ def form(*pairs):
     g.setColumnStretch(1, 1)
     for i, (name, field) in enumerate(pairs):
         top = isinstance(field, QtWidgets.QPlainTextEdit)
-        cap = label(name, "muted")
+        cap = name if isinstance(name, QtWidgets.QWidget) else label(name, "muted")
         if top:
             cap.setContentsMargins(0, 7, 0, 0)
         g.addWidget(cap, i, 0, Qt.AlignLeft | (Qt.AlignTop if top else Qt.AlignVCenter))
@@ -3461,6 +3461,7 @@ def wrapped(layout):
 class PromptPage(Page):
     """Einstellungen, Reiter Prompts: die Sammlung, wo jeder Prompt erscheint, und welche Menüpunkte links stehen."""
     sig_test = Signal(str, str, float)
+    sig_spark = Signal(str, str, int)                   # ausformulierte Anweisung, Fehler, Zeile des Prompts
     MENU = ("Verlauf", "Übergabe", "Wortschatz")        # abwählbar; Aufnahme und Einstellungen bleiben immer
 
     def __init__(self, ctl):
@@ -3494,7 +3495,19 @@ class PromptPage(Page):
         shows.setSpacing(8)
         for box in (self.on_record, self.on_list, self.on_pin):
             shows.addWidget(box)
-        right = form(("Name", self.name), ("Halte-Taste", self.hotkey), ("Anweisung", self.text), ("Zeigen", shows))
+        # wie auf der Seite Aufnahme: Das Zeichen formuliert Stichworte aus oder verbessert einen Prompt
+        self.spark = button("✦", self._spark, "spark")
+        self.spark.setFixedSize(40, 40)
+        self.spark.setToolTip(tip("Vom Sprachmodell ausformulieren oder verbessern lassen: Stichworte genügen, ein fertiger "
+                                  "Prompt wird klarer. Strg + Z holt den alten Text zurück."))
+        cap = QtWidgets.QWidget()
+        cap_lay = QtWidgets.QVBoxLayout(cap)
+        cap_lay.setContentsMargins(0, 0, 0, 0)
+        cap_lay.setSpacing(10)
+        cap_lay.addWidget(label("Anweisung", "muted"))
+        cap_lay.addWidget(self.spark)
+        cap_lay.addStretch(1)
+        right = form(("Name", self.name), ("Halte-Taste", self.hotkey), (cap, self.text), ("Zeigen", shows))
         self.body.addWidget(card(hbox(left, (wrapped(right), 1), spacing=16), form(("Bei jedem Diktat", self.auto))))
 
         # Menüpunkte links
@@ -3521,6 +3534,50 @@ class PromptPage(Page):
             self.sample, hbox(self.try_btn, self.try_note, None), self.result))
         self.body.addStretch(1)
         self.sig_test.connect(self._tested)
+        self.sig_spark.connect(self._sparked)
+
+    def _spark(self):
+        """Die Anweisung vom Sprachmodell ausformulieren oder verbessern lassen. Hinaus gehen Name und Anweisung, nach
+        dem Schutz; es schreibt das eingestellte Modell, hier zählt die Güte mehr als die Sekunde."""
+        draft, row = self.text.toPlainText().strip(), self.current
+        if not draft:
+            return self.saved(self.note, "Erst Stichworte oder einen Prompt in das Feld schreiben.", ok=False)
+        server = copy.deepcopy(self.ctl.cfg.get("llm") or {})
+        if not (server.get("base_url") or "").strip() or not (server.get("model") or "").strip():
+            return self.saved(self.note, "Kein Sprachmodell eingestellt: im Reiter LLM Anbieter und Modell wählen.", ok=False)
+        if schutz.blocked(server) and self.window().shield_wait(self._spark):
+            restyle(self.note, "muted")
+            return self.note.setText("Die Namenserkennung wird einmalig geladen. Danach geht es von selbst weiter.")
+        self.spark.setEnabled(False)
+        restyle(self.note, "muted")
+        self.note.setText("Formuliert …")
+        name = self.name.text().strip()
+
+        def run():
+            try:
+                shield = schutz.Mask() if schutz.needed(server) else None
+                ask = f"Name des Prompts: {name or 'ohne Namen'}\n\nEingabe:\n{draft}"
+                out = llm.chat(server, config.POLISH, shield.hide(ask) if shield else ask)
+                out = re.sub(r"<think>.*?</think>", "", out, flags=re.DOTALL | re.IGNORECASE).strip().strip("„“\"")
+                self.sig_spark.emit(shield.show(out) if shield else out, "", row)
+            except Exception as e:
+                log.warning("Prompt verbessern fehlgeschlagen: %s", type(e).__name__)
+                self.sig_spark.emit("", str(e) or type(e).__name__, row)
+        threading.Thread(target=run, daemon=True).start()
+
+    def _sparked(self, text, error, row):
+        self.spark.setEnabled(0 <= self.current < len(self.prompts))
+        if error or not text:
+            return self.saved(self.note, f"Nicht geklappt: {error or 'keine Antwort'}"[:140], ok=False)
+        if row != self.current:                          # inzwischen ein anderer Prompt gewählt: nichts überschreiben
+            return self.note.setText("")
+        cursor = self.text.textCursor()                  # als ein Schritt, damit Strg + Z den alten Text zurückholt
+        cursor.beginEditBlock()
+        cursor.select(QtGui.QTextCursor.Document)
+        cursor.insertText(text)
+        cursor.endEditBlock()
+        restyle(self.note, "muted")
+        self.note.setText("Ausformuliert, noch nicht gespeichert. Strg + Z holt den alten Text zurück.")
 
     def refresh(self):
         cfg = self.ctl.cfg
@@ -3563,7 +3620,7 @@ class PromptPage(Page):
         self.auto.setCurrentIndex(max(0, i))
 
     def _enable_form(self, on):
-        for w in (self.name, self.hotkey, self.text, self.on_record, self.on_list, self.on_pin):
+        for w in (self.name, self.hotkey, self.text, self.on_record, self.on_list, self.on_pin, self.spark):
             w.setEnabled(on)
         if not on:
             for w in (self.name, self.hotkey, self.text):

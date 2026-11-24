@@ -307,6 +307,26 @@ P.menu["Wortschatz"].setChecked(True)
 P.save()
 check("Wieder angekreuzt, steht er wieder da", not hub.buttons.button(3).isHidden() and ctl.cfg["menu_hidden"] == [])
 
+# Einstellungen, Prompts: Das Zeichen neben der Anweisung formuliert aus oder verbessert (wie auf der Seite Aufnahme)
+hub.show_page(4)
+S.show_tab(2)
+P.list.setCurrentRow(P.list.count() - 1)
+polished = []
+llm.chat = lambda server, system, user, json_mode=False, key=None: polished.append((server["model"], system, user)) or "„Schreibe eine kurze Notiz für das Tumorboard. Übernimm nur, was gesagt wurde, und erfinde nichts.“"
+before = P.text.toPlainText()
+P._spark()
+check("Reiter Prompts: Das KI-Zeichen schreibt die Anweisung neu, mit dem eingestellten Modell, Name und Eingabe gehen mit",
+      wait(lambda: P.text.toPlainText().startswith("Schreibe eine kurze Notiz")) and polished[-1][1] == config.POLISH
+      and polished[-1][0] == ctl.cfg["llm"]["model"] and before in polished[-1][2] and P.name.text() in polished[-1][2]
+      and P.spark.isEnabled() and "nicht gespeichert" in P.note.text(), (polished[-1:], P.note.text()))
+P.text.undo()
+check("Strg + Z holt die alte Anweisung zurück", P.text.toPlainText() == before, P.text.toPlainText())
+P.text.setPlainText("")
+P._spark()
+check("Ohne Text fragt das Zeichen niemanden", len(polished) == 1 and "Erst Stichworte" in P.note.text(), P.note.text())
+P.text.setPlainText(before)
+hub.show_page(1)
+
 # Seite Aufnahme: Auswahlliste, eigener Prompt, angepinnter Prompt
 ran = []
 llm.run = lambda server, instruction, text, key=None: ran.append((instruction, text)) or "ERGEBNIS"

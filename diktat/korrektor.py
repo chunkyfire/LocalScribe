@@ -63,6 +63,48 @@ VOWELS = set("aeiouäöüy")
 ENDINGS = ("es", "en", "er", "em", "e", "s", "n")
 
 
+# Fachsprache am Wortbild: Endungen und Vorsilben, Körper und Klinik. Zusammen mit fach.CLINICAL und der Kernliste
+# entscheidet das, ob ein Text ohne unbekanntes Wort überhaupt an das Sprachmodell geht.
+MEDICAL = re.compile(
+    r"(?:itis|itiden|ämie|ämien|pathie|ektomie|tomie|stomie|skopie|grafie|graphie|plastie|urie|pnoe|penie|zytose|"
+    r"zyten|plegie|parese|sklerose|stenose|thrombose|embolie|infarkt|karzinom|sarkom|lymphom|adenom|ödem|ödeme|fraktur|"
+    r"ruptur|insuffizienz|syndrom|therapie|diagnose|anamnese|befund|befunde|medikation|dosis|tablette|tabletten|"
+    r"infusion|injektion|katheter|drainage|biopsie|punktion|narkose|sedierung|dialyse|transfusion|\w{3}pril|sartan|"
+    r"statin|olol|prazol|mab|nib|zillin|mycin|floxacin|parin|xaban|gliptin|gliflozin|dipin|insulin|kortison|cortison|"
+    r"prednisolon)\b|"
+    r"\b(?:hyper(?!link)|hypo(?!the)|tachy|brady|dys|hämat|kardi|pulmo|pneumo|nephr|hepat|gastr(?!onom)|neuro|onko|"
+    r"zerebr|thorak|abdom|rektal|vaskul|arteri|venös|sept(?!ember)|infekt|tumor|metasta|chirurg|operat|stationär|"
+    r"ambulan|intub|beatm|antibio|röntgen|sonogra|intensivst|intensivmed|visite(?!nkarte)|wunde\b|wunden\b|wundheil|"
+    r"wundversorg|wundinfekt|wundrand|naht\b|nähte|fäden|verbandswechsel|narbe|sehne|muskel|knochen|gelenk|wirbel|"
+    r"schädel|lunge|leber|niere|milz|magen|darm(?!stadt)|harnblase|galle|herz(?!lich)|hüfte|knie|schulter|sprunggelenk|"
+    r"bauch|brustkorb|puls\b|blutdruck|blutzucker|labor|kreatinin|kalium|natrium|leuko|hämoglobin|troponin)\w*|"
+    r"\b(?:EKG|CT|MRT|CRP|INR|NRS|GCS|RR|ZVK)\b",
+    re.IGNORECASE)
+
+
+def clinical(text: str) -> bool:
+    """Klingt der Text nach Klinik? Alltagstext (Mail, Notiz, Einkaufsliste) ohne unbekanntes Wort geht nicht an das
+    Sprachmodell: Dort gibt es nichts zu berichtigen, und das Diktat wartet nicht darauf."""
+    if fach.CLINICAL.search(text) or MEDICAL.search(text):
+        return True
+    kern = core()
+    return any(w.lower() in kern for w in fach.WORD.findall(text))
+
+
+def warm(cfg_llm: dict) -> None:
+    """Beim Start laden, was die erste Fachkorrektur sonst aufhält: Lexikon und bekannte Wörter (0,9 s), die
+    Namenserkennung (1,5 s) und der Schlüssel. Gemessen am eingestellten Anbieter, werkzeug/messen/ERGEBNIS.md."""
+    from . import schutz
+    try:
+        suspects("Patient")
+        clinical("Patient")
+        if schutz.needed(cfg_llm) and schutz.ready():
+            schutz.Mask(lenient=True).hide("Herr Beispiel aus Köln, geboren am 1.1.1950.")
+        llm.get_key(cfg_llm.get("profile") or "")
+    except Exception as e:
+        log.info("Fachkorrektur nicht vorgewärmt: %s", type(e).__name__)
+
+
 def accept(heard: str, proposed) -> bool:
     """Der Türsteher. Das Sprachmodell schlägt vor, übernommen wird nur, was klingt wie das Gehörte:
 
@@ -140,6 +182,8 @@ def _one(text: str, ask, shield, memory=()):
     found = suspects(visible)[:MAX_WORDS]
     low = visible.lower()
     mine = {h: m for h, m in memory if h.lower() in low}            # nur, was in diesem Text vorkommt
+    if not found and not mine and not clinical(visible):
+        return text, []             # Alltagstext ohne unbekanntes Wort: nichts zu berichtigen, also keine Anfrage
     hint = (f"\nFrühere Berichtigungen dieses Nutzers (erkannt -> gemeint), nur anwenden, wenn es hier passt: "
             f"{json.dumps(mine, ensure_ascii=False)}") if mine else ""
     try:

@@ -52,17 +52,29 @@ def _account(profile: str = "") -> str:
     return f"{ACCOUNT}:{profile}" if profile else ACCOUNT
 
 
+_keys = {}          # Konto -> Schlüssel, einmal je Programmlauf gelesen: Der Schlüsselspeicher braucht 0,14 s je Blick
+
+
 def get_key(profile: str = "") -> str:
-    try:
-        import keyring
-        return keyring.get_password(SERVICE, _account(profile)) or ""
-    except Exception:
-        log.exception("API-Schlüssel nicht lesbar")
-        return ""
+    account = _account(profile)
+    if account not in _keys:
+        try:
+            import keyring
+            _keys[account] = keyring.get_password(SERVICE, account) or ""
+        except Exception:
+            log.exception("API-Schlüssel nicht lesbar")
+            return ""
+    return _keys[account]
+
+
+def forget_key(profile: str = "") -> None:
+    """Beim nächsten Mal wieder im Schlüsselspeicher nachsehen (nach „Schlüssel stimmt nicht“ oder einer Änderung)."""
+    _keys.pop(_account(profile), None)
 
 
 def set_key(key: str, profile: str = "") -> None:
     import keyring
+    forget_key(profile)
     if key:
         keyring.set_password(SERVICE, _account(profile), key)
     else:
@@ -128,6 +140,8 @@ def _request(llm: dict, path: str, body=None, key=None):
         hint = {401: "Der API-Schlüssel fehlt oder stimmt nicht. ", 403: "Der API-Schlüssel darf das nicht. "}.get(e.code, "")
         error = LlmError(f"{hint}Server antwortet mit {e.code}. {detail}")
         error.code = e.code
+        if e.code in (401, 403):
+            forget_key(llm.get("profile") or "")     # vielleicht wurde der Schlüssel inzwischen an anderer Stelle geändert
         raise error from e
     except urllib.error.URLError as e:
         raise LlmError(f"Server nicht erreichbar: {e.reason}") from e

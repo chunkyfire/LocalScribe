@@ -248,6 +248,7 @@ class Diktat(QtCore.QObject):
         elif self.ready:
             self.set_status(self.ready_text())
             self.shield_start()
+            self.warm_fix()
 
     def rework(self, text, prompt_name):
         """Einen Verlaufseintrag mit einem Prompt nachbearbeiten; Ergebnis landet in der Zwischenablage."""
@@ -343,6 +344,12 @@ class Diktat(QtCore.QObject):
         self.hub.set_download(self.download, text)
         self.overlay.set_progress(text, self.download)
 
+    def warm_fix(self):
+        """Ist die Fachkorrektur eingeschaltet, im Hintergrund laden, was ihr erster Aufruf braucht: Sonst wartet das
+        erste Diktat nach dem Start gut zwei Sekunden länger als alle folgenden."""
+        if korrektor.enabled(self.cfg):
+            threading.Thread(target=korrektor.warm, args=(dict(self.cfg.get("llm") or {}),), daemon=True).start()
+
     def shield_start(self, force=False, retry=False) -> bool:
         """Die Namenserkennung laden, wenn sie fehlt und ein Server außerhalb dieses Rechners mit eingeschaltetem
         Schutz eingestellt ist (force: immer, wenn sie fehlt; retry: auch kurz nach einem Fehlschlag, per Klick in
@@ -393,6 +400,7 @@ class Diktat(QtCore.QObject):
         self.set_status(self.ready_text())
         self.overlay.flash(f"Bereit – {keys_text(self.cfg['hotkey_hold'])} halten und sprechen", 3500)
         self.shield_start()
+        self.warm_fix()
 
     def _worker(self):
         while True:

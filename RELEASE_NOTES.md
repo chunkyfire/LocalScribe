@@ -1,3 +1,14 @@
+## LocalScribe 2.1.1
+
+- **KI-Zeichen auch bei den Prompts in den Einstellungen.** Im Reiter „Prompts“ steht neben der Anweisung dasselbe
+  Zeichen wie auf der Seite Aufnahme: Stichworte hinschreiben, klicken, und das Sprachmodell formuliert den Prompt
+  aus. Einen fertigen Prompt macht es klarer, ohne den Inhalt zu ändern. Strg + Z holt den alten Text zurück.
+- **Sprecher trennen ist wieder überall die Vorgabe.** Wo es einmal abgeschaltet wurde, etwa weil das Stimmmodell an
+  dem Rechner fehlte, ist es mit diesem Update wieder an. Abschalten geht weiterhin.
+- **Fachkorrektur wartet weniger.** Das erste Diktat nach dem Start braucht rund zwei Sekunden weniger, weil Lexikon
+  und Namenserkennung schon beim Start geladen werden. Alltagstext ohne unbekanntes Wort (eine Mail, eine Notiz) geht
+  gar nicht mehr an das Sprachmodell und kommt ohne Wartezeit. Jede Anfrage spart einen Blick in den Schlüsselspeicher.
+
 ## LocalScribe 2.1.0
 
 - **Visite, Arztbrief und Pflegebericht neu geschrieben, für die Akte eines Krankenhauses.** Aus jedem Diktat entsteht

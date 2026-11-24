@@ -186,6 +186,19 @@ SPARK = ("Du schreibst Prompts für ein Sprachmodell, das ein Transkript bearbei
          "Einheit, keine Dosis, keine Bewertung und kein Datum. "
          "Gib nur den Prompt zurück, auf Deutsch, ohne Einleitung und ohne Anführungszeichen.")
 
+# Einstellungen, Reiter Prompts, Zeichen neben der Anweisung: Stichworte ausformulieren oder einen Prompt verbessern.
+POLISH = ("Du schreibst Prompts für ein Sprachmodell, das ein Transkript bearbeitet (Diktat, Gespräch, Besprechung). Du "
+          "bekommst den Namen eines Prompts und eine Eingabe: Stichworte oder einen schon geschriebenen Prompt. Gib den "
+          "fertigen Prompt zurück. Aus Stichworten machst du drei bis sechs klare Sätze: was entstehen soll, für wen, in "
+          "welcher Form, Gliederung und Länge, und was wegbleibt. Einen schon ausführlichen Prompt verbesserst du "
+          "behutsam: Inhalt, Gliederung und Länge bleiben, Unklares wird eindeutig, Doppeltes fällt weg, Widersprüche "
+          "löst du im Sinn der Eingabe auf; nichts Neues kommt dazu, und Regeln der Eingabe gehen nicht verloren. Bleib "
+          "bei dem, was die Eingabe verlangt: die Form (etwa Mail, Liste, Zusammenfassung) nicht austauschen, den "
+          "Umfang nicht ausweiten. Sprich das Sprachmodell mit „du“ an. Fehlt der Gedanke in der Eingabe, endet der "
+          "Prompt mit diesen zwei Sätzen: Übernimm nur, was gesagt wurde, und erfinde nichts. Ergänze keine Einheit, "
+          "keine Dosis, keine Bewertung und kein Datum. "
+          "Gib nur den Prompt zurück, auf Deutsch, ohne Einleitung, ohne Erklärung und ohne Anführungszeichen.")
+
 DEFAULTS = {
     # Tasten gedrückt halten = aufnehmen, loslassen = einfügen
     "hotkey_hold": ["ctrl", "win"],
@@ -223,7 +236,7 @@ DEFAULTS = {
     "visite_rules": "",           # Hausregeln (Schockraum, Labor, Zuständigkeiten), die Jev mitbekommt; leer = keine
     "training_done": [],          # Stimmtraining: schon gelesene Sätze
     "phone": {"enabled": False, "port": 8765, "token": ""},   # Handy als Mikrofon (Webseite im eigenen Netz)
-    "config_version": 9,
+    "config_version": 10,
     "quantization": "int8",
     "provider": "CPUExecutionProvider",
     "threads": 0,
@@ -415,6 +428,11 @@ def load() -> dict:
             if int(stored.get("config_version") or 1) < 9:
                 cfg["prompts"] = _prompts_v9(cfg.get("prompts"))
                 cfg["config_version"] = 9
+            if int(stored.get("config_version") or 1) < 10:
+                # 2.1.1: Sprecher trennen gilt wieder überall als Vorgabe (einmal umstellen). Wer es an einem Rechner
+                # abgeschaltet hatte, etwa als das Stimmmodell dort noch fehlte, bekommt es zurück; abschaltbar bleibt es.
+                cfg["speakers"] = True
+                cfg["config_version"] = 10
             cfg.pop("model", None)
             cfg.pop("model_revision", None)
         except Exception:
