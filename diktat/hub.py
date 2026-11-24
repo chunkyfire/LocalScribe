@@ -140,6 +140,7 @@ QFrame#box QLabel#kicker { color: #6F6F6F; font-size: 8pt; font-weight: 700; pad
 QFrame#box QLabel#strong { font-weight: 600; }
 QFrame#box QLabel#pct { font-weight: 700; }
 QFrame#box QLabel#warn { color: #FFB454; font-weight: 600; }
+QFrame#box QLabel#hint { color: #FFB454; border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 9px; font-size: 9.5pt; }
 QFrame#box QLabel#chip, QFrame#box QLabel#chipOff, QFrame#box QLabel#chipWarn, QFrame#box QLabel#chipRed {
     border-radius: 10px; padding: 4px 10px; font-weight: 600; }
 QFrame#box QLabel#chip { background: #1D2A0B; color: #C6FF3D; border: 1px solid #3C5412; }
@@ -1000,10 +1001,11 @@ class Transcript(QtWidgets.QWidget):
         threading.Thread(target=work, daemon=True).start()
 
     def _llm_done(self, text, error):
+        body, notes = llm.split(text)
         if not error:
-            self.text.setPlainText(text)
+            self.text.setPlainText(body)
         self.set_busy(False)
-        self.note.setText(error[:120] if error else "Bearbeitet")
+        self.note.setText(error[:120] if error else notes.replace("\n", " · ")[:160] or "Bearbeitet")
 
 
 class LongPage(Page):
@@ -2454,12 +2456,17 @@ class VisitPage(Page):
                               else "Das Sprachmodell schreibt …", "bad" if name in fails and name not in running else "muted",
                               wrap=True))
             else:
-                body = done[name]
+                body, notes = llm.split(done[name])       # Hinweise wie „Nicht diktiert: …“ gehören nicht in die Akte
                 box = Box(name, copy=lambda b=body: b)
                 out = label(body, wrap=True)
                 out.setTextFormat(Qt.PlainText)
                 out.setTextInteractionFlags(Qt.TextSelectableByMouse)
                 box.add(out)
+                if notes:
+                    hint = label(notes, "hint", wrap=True)
+                    hint.setTextFormat(Qt.PlainText)
+                    hint.setToolTip(tip("Hinweis zur Dokumentation. Wird nicht mitkopiert."))
+                    box.add(hint)
             self.texts.addWidget(box)
             self.text_boxes.append(box)
         if not structured:

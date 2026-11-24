@@ -82,6 +82,11 @@ check("Antwort ohne message (Noirdoc, Gemini schreibt nichts) ist eine leere Ant
       and fails(lambda: llm.run(cfg, "x", "ohne-inhalt", key=""), "nichts geschrieben")
       and llm.chat(cfg, "x", "ohne", key="") == "")
 check("Inhalt in Teilen wird zusammengesetzt", llm.run(cfg, "x", "teile", key="") == "Teil A")
+check("Hinweiszeilen am Ende gehören nicht zum Eintrag",
+      llm.split("S:\n- gut\n\nZusätzlich dokumentieren: Sturzprotokoll\nNicht diktiert: Befund, Plan\n")
+      == ("S:\n- gut", "Zusätzlich dokumentieren: Sturzprotokoll\nNicht diktiert: Befund, Plan")
+      and llm.split("Nur Text") == ("Nur Text", "") and llm.split("A: Nicht diktiert: mitten\nP: x")[1] == ""
+      and llm.split("") == ("", ""))
 check("Antwort ohne choices bleibt ein Formatfehler", fails(lambda: llm.run(cfg, "x", "kaputt", key=""), "unerwartetes Format"))
 check("ohne Modell -> Fehler", fails(lambda: llm.run({**cfg, "model": ""}, "x", "y", key=""), "Kein Modell"))
 check("Server aus -> Fehler", fails(lambda: llm.run({**cfg, "base_url": "http://127.0.0.1:9/v1"}, "x", "y", key=""), "nicht erreichbar"))

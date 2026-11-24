@@ -418,7 +418,7 @@ class Diktat(QtCore.QObject):
                     out["prompt"] = ""
                 elif clean.strip():
                     try:
-                        text = llm.run(cfg["llm"], prompt.get("text", ""), clean)
+                        text = llm.split(llm.run(cfg["llm"], prompt.get("text", ""), clean))[0]   # ohne Hinweiszeilen
                         if job["kind"] == "dictation" and cfg.get("trailing_space", True) \
                                 and not text.endswith("\n"):
                             text += " "

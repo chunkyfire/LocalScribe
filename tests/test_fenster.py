@@ -328,6 +328,23 @@ V._own_run()
 check("Eigener Prompt: läuft mit genau diesem Text als Anweisung, Ergebnis als eigener Block",
       wait(lambda: ((V.result or {}).get("texts") or {}).get(V.OWN) == "ERGEBNIS")
       and ran[-1] == ("Zusammenfassung mit Fokus auf den Zeitplan", "Herr Beispiel in Zimmer 12."), ran[-1:])
+# Hinweiszeilen der Klinik-Prompts: unter dem Eintrag zu sehen, aber nicht in dem, was „Kopieren“ nimmt
+import diktat.hub as hubmod
+copies, _button = [], hubmod.copy_button
+hubmod.copy_button = lambda get_text, text="Kopieren": copies.append(get_text) or _button(get_text, text)
+llm.run = lambda server, instruction, text, key=None: "S:\n- Befinden gut\n\nNicht diktiert: Untersuchungsbefund, Beurteilung"
+V._task("Visite")
+wait(lambda: "Nicht diktiert" in (((V.result or {}).get("texts") or {}).get("Visite") or ""))
+settle()
+hubmod.copy_button = _button
+box = next(b for b in V.text_boxes if b.findChild(QtWidgets.QLabel, "boxTitle").text() == "Visite")
+hints = [l.text() for l in box.findChildren(QtWidgets.QLabel, "hint")]
+shown = [l.text() for l in box.findChildren(QtWidgets.QLabel) if l.objectName() not in ("hint", "boxTitle", "muted")]
+copied = [get() for get in copies]
+check("„Nicht diktiert“ steht als Hinweis unter dem Eintrag und wird nicht mitkopiert",
+      hints == ["Nicht diktiert: Untersuchungsbefund, Beurteilung"] and "S:\n- Befinden gut" in shown
+      and "S:\n- Befinden gut" in copied and not [c for c in copied if "Nicht diktiert" in c], (hints, shown, copied))
+llm.run = lambda server, instruction, text, key=None: ran.append((instruction, text)) or "ERGEBNIS"
 sent = []
 llm.chat = lambda server, system, user, json_mode=False, key=None: sent.append((server["model"], system, user)) or "„Fasse zusammen. Übernimm nur, was gesagt wurde, und erfinde nichts.“"
 V._spark()

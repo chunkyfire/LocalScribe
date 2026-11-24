@@ -729,7 +729,7 @@ try:
     _names = [p["name"] for p in _c["prompts"]]
     check("Aufträge: neue kommen einmal dazu, der eigene bleibt",
           _names == ["Arztbrief", "Zusammenfassung", "Meeting-Protokoll", "Visite", "Pflegebericht"]
-          and _c["prompts"][0]["text"] == "mein eigener" and _c["config_version"] == 8, _names)
+          and _c["prompts"][0]["text"] == "mein eigener" and _c["config_version"] == 9, _names)
     check("Aufträge: Aufnahme zeigt Visite, Protokoll, Arztbrief (den eigenen) und Pflegebericht, die Zusammenfassung nicht mehr",
           [p["record"] for p in _c["prompts"]] == [True, False, True, True, True], [p["record"] for p in _c["prompts"]])
     config.FILE.write_text(json.dumps({"config_version": 4, "hotkey_hold": ["ctrl", "win"], "prompts": [
@@ -756,7 +756,7 @@ try:
         Glaetten=True, E_Mail=False, Stichpunkte=False, Arztbrief=False, Zusammenfassung=True, Meeting_Protokoll=True)}), encoding="utf-8")
     _c = config.load()
     check("1.7.0 -> 1.7.1, Auswahl nie geändert: neue Zeile, nichts gelöscht",
-          sorted(_row(_c)) == sorted(config.ON_RECORD) and len(_c["prompts"]) == 8 and _c["config_version"] == 8, _row(_c))
+          sorted(_row(_c)) == sorted(config.ON_RECORD) and len(_c["prompts"]) == 8 and _c["config_version"] == 9, _row(_c))
     check("Glätten bleibt als Auftrag mit seiner Taste", config.prompt_by_name(_c, "Glätten")["hotkey"] == ["f8"] and config.prompt_by_name(_c, "Glätten")["record"] is False)
     config.save(_c); _again = config.load()
     check("Die Umstellung läuft nur einmal", _again["prompts"] == _c["prompts"])
@@ -767,6 +767,27 @@ try:
           _row(_c) == ["Glätten", "E-Mail", "Meeting-Protokoll", "Visite", "Pflegebericht"], _row(_c))
     _c["prompts"] = [p for p in _c["prompts"] if p["name"] != "Pflegebericht"]; config.save(_c)
     check("Gelöschter Pflegebericht kommt nicht wieder", config.prompt_by_name(config.load(), "Pflegebericht") is None)
+    # 2.1.0: Texte für die Akte eines Krankenhauses; unveränderte Texte ab Werk werden nachgezogen, eigene bleiben
+    import hashlib as _hl
+    _keep = dict(config.OLD_V9)
+    config.OLD_V9.update({"Visite": _hl.sha256("alter Text ab Werk".encode()).hexdigest(),
+                          "Pflegebericht": _hl.sha256("alter Pflegetext".encode()).hexdigest()})
+    config.FILE.write_text(json.dumps({"config_version": 8, "hotkey_hold": ["ctrl", "win"], "prompts": [
+        {"name": "Visite", "hotkey": [], "text": "alter Text ab Werk", "record": True, "pin": True},
+        {"name": "Pflegebericht", "hotkey": [], "text": "mein eigener Pflegetext", "record": False},
+        {"name": "Mein Prompt", "hotkey": [], "text": "alter Text ab Werk"}]}), encoding="utf-8")
+    _c = config.load()
+    check("2.0 -> 2.1: unveränderter Text ab Werk wird ersetzt, Haken bleiben; eigener Text und eigener Prompt bleiben",
+          _c["prompts"][0]["text"] == config.SOAP and _c["prompts"][0].get("pin") is True
+          and _c["prompts"][1]["text"] == "mein eigener Pflegetext" and _c["prompts"][2]["text"] == "alter Text ab Werk"
+          and _c["config_version"] == 9, [p["text"][:20] for p in _c["prompts"]])
+    config.OLD_V9.clear(); config.OLD_V9.update(_keep)
+    check("2.1: Prüfsummen der alten Texte für sechs Prompts, keiner davon gilt für den heutigen Text",
+          len(config.OLD_V9) == 6 and all(len(h) == 64 for h in config.OLD_V9.values())
+          and all(_hl.sha256(p["text"].encode()).hexdigest() != config.OLD_V9.get(p["name"]) for p in config.DEFAULTS["prompts"]))
+    check("Klinik-Prompts: immer ein Eintrag, Verneinungen bleiben, Hinweis auf Fehlendes am Ende",
+          all(config.ALWAYS in t and config.EXACT in t and config.MISSING in t for t in (config.SOAP, config.NURSING, config.LETTER))
+          and "Durchführungsnachweis" not in config.NURSING and config.NOTES[0] in config.MISSING)
     check("Visite folgt dem SOAP-Schema und erfindet nichts", all(k in config.SOAP for k in ("S – Subjektiv", "O – Objektiv", "A – Beurteilung", "P – Plan", "erfinde nichts")))
     check("Pflegebericht: wertfrei, keine Vorschläge, Zusatzblätter", all(k in config.NURSING for k in ("ohne Wertung", "Schlage keine Pflegediagnosen", "Beobachtung:", "Maßnahme:", "Wirkung:", "Weitergabe:", "Sturzprotokoll", "[unklar: …]")))
     check("Beide Aufträge ergänzen keine Einheit, Dosis oder Häufigkeit", config.AS_SAID in config.SOAP and config.AS_SAID in config.NURSING and "keine Einheit" in config.AS_SAID)
@@ -787,7 +808,7 @@ try:
                                        "dictionary": {"Riba": "RIVA"}}), encoding="utf-8")
     _c7 = config.load()
     check("1.6.0: Übungssätze werden aufgehoben, Fachrichtung leer", _c7["training_keep"] is True and _c7["field"] == ""
-          and _c7["config_version"] == 8 and _c7["training_scores"] == [])
+          and _c7["config_version"] == 9 and _c7["training_scores"] == [])
     import numpy as _np
     training.keep(_np.zeros(16000, dtype=_np.float32), "Erster Übungssatz.")
     training.keep(_np.zeros(8000, dtype=_np.float32), "Ein Prüfsatz.", test=True)
@@ -810,7 +831,7 @@ try:
                                        "model_choice": "genau"}), encoding="utf-8")
     _c6 = config.load()
     check("1.5.0: Sprecher trennen an, Canary wird Deutsch", _c6["speakers"] is True and _c6["model_choice"] == "de"
-          and _c6["config_version"] == 8 and set(config.MODELS) == {"de", "multi"} and _c6["handover_frame"] == "zna", _c6.get("model_choice"))
+          and _c6["config_version"] == 9 and set(config.MODELS) == {"de", "multi"} and _c6["handover_frame"] == "zna", _c6.get("model_choice"))
     config.FILE.write_text(json.dumps({"config_version": 6, "hotkey_hold": ["ctrl", "win"], "speakers": False,
                                        "model_choice": "multi", "handover_frame": "its"}), encoding="utf-8")
     _c6 = config.load()

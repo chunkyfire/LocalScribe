@@ -83,7 +83,9 @@ beendet sie nicht; sie bleibt im Infobereich (Rechtsklick → Beenden).
   Wortschatz: 16,6 → 11,1 % Wortfehler.
 - **Aufnahme mit Prompts** – aufnehmen oder eine Datei laden; das Transkript wird gespeichert. Darunter ein Klick auf
   Visite (Eintrag nach dem SOAP-Schema), Meeting-Protokoll, Arztbrief oder Pflegebericht (Beobachtung, Maßnahme,
-  Wirkung, Weitergabe; sachlich, ohne Wertung). Alle übernehmen nur, was gesagt wurde. Weitere Prompts stehen in der
+  Wirkung, Weitergabe; sachlich, ohne Wertung). Alle übernehmen nur, was gesagt wurde, mit Uhrzeiten, Beteiligten
+  und genannten Normalbefunden; was dem Eintrag für die Akte fehlt, steht als Hinweis „Nicht diktiert“ darunter und
+  wird nicht mitkopiert. Weitere Prompts stehen in der
   Auswahlliste „Meine Prompts“; einen eigenen schreibt man in die Zeile darunter, auf Wunsch formuliert das
   Sprachmodell ihn aus einer kurzen Eingabe aus. Ein angepinnter Prompt bekommt einen eigenen Menüpunkt und läuft
   nach der Aufnahme von selbst. Die Erkennung läuft lokal; Prompts gehen an das eingestellte Sprachmodell.

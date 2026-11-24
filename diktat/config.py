@@ -8,6 +8,7 @@ Bewusst nicht unter %APPDATA% (Roaming): Dort würden Verlauf und Aufnahmen in F
 mit dem Benutzerprofil auf einen Server wandern.
 """
 import copy
+import hashlib
 import json
 import logging
 import os
@@ -67,10 +68,10 @@ MODELS = {
               "repo": "istupakov/parakeet-tdt-0.6b-v3-onnx", "revision": "8f23f0c03c8761650bdb5b40aaf3e40d2c15f1ce"},
 }
 
-SUMMARY = ("Fasse den Text zusammen und erfinde nichts. Geht es um eine Patientin oder einen Patienten (Anamnese, Visite, "
-           "Fallbesprechung), schreibe eine knappe klinische Dokumentation mit den Abschnitten Anlass, Anamnese, Befunde, "
-           "Beurteilung und Vorgehen; Abschnitte, zu denen nichts gesagt wurde, weglassen. Sonst fünf bis acht Sätze, das "
-           "Wichtigste zuerst.")
+SUMMARY = ("Fasse den Text zusammen und erfinde nichts; Zahlen, Namen und Zeitangaben bleiben, wie sie genannt wurden. "
+           "Geht es um eine Patientin oder einen Patienten (Anamnese, Visite, Fallbesprechung), schreibe eine knappe "
+           "klinische Dokumentation mit den Abschnitten Anlass, Anamnese, Befunde, Beurteilung und Vorgehen; Abschnitte, "
+           "zu denen nichts gesagt wurde, weglassen. Sonst fünf bis acht Sätze, das Wichtigste zuerst.")
 MEETING = ("Schreibe das Protokoll einer Besprechung mit den Abschnitten Teilnehmende, Themen, Entscheidungen und Aufgaben "
            "(wer, was, bis wann). Knapp und sachlich, in ganzen Sätzen. Übernimm nur, was gesagt wurde; was nicht genannt "
            "wurde, weglassen.")
@@ -86,35 +87,93 @@ AS_SAID = ("Übernimm nur, was gesagt wurde, und erfinde nichts: keine Einheit, 
            "ergänzen, auch wenn sie üblich wären. Eine Zahl ohne Einheit bleibt ohne Einheit („Kreatinin 1,9“ bleibt "
            "„Kreatinin 1,9“, „Blutdruck 128 zu 76“ wird „RR 128/76“). Lass nichts weg, was zur Sache gehört: Jede genannte "
            "Beobachtung, jeder Wert, jede Maßnahme und jede Uhrzeit kommt vor.")
-SOAP = ("Schreibe aus dem Text einen Visiteneintrag nach dem SOAP-Schema. " + AS_SAID + " Abschnitte, zu denen nichts "
-        "gesagt wurde, weglassen.\n"
+# Für die Akte eines Krankenhauses: Der Eintrag muss vor dem Medizinischen Dienst und vor Gericht bestehen. Das Modell
+# ergänzt dafür nichts; es lässt aber auch nichts liegen und sagt am Ende, was im Diktat gefehlt hat.
+ALWAYS = ("Schreibe immer einen verwendbaren Eintrag, auch wenn der Text kurz ist oder nur Routine nennt. Kommentiere das "
+          "Diktat nicht, belehre nicht und stelle keine Rückfrage. Ausdrücklich genannte Normalbefunde und Verneinungen "
+          "(„keine Schmerzen“, „kein Sturz“, „keine neuen Vorkommnisse“) gehören in den Eintrag: Sie belegen, dass danach "
+          "gesehen wurde. Wer etwas gesagt, beobachtet, angeordnet oder getan hat, bleibt, wie es im Text steht; mache "
+          "aus einer Feststellung der sprechenden Person keine Aussage der Patientin oder des Patienten.")
+EXACT = ("Genau und vollständig übernehmen, soweit genannt: Uhrzeiten und Daten; Namen und Funktion der Beteiligten (wer "
+         "hat angeordnet, informiert, aufgeklärt, durchgeführt); Seite und Lokalisation; Größe, Grad oder Stadium; Dosis, "
+         "Dauer und Häufigkeit; die Zahl der beteiligten Personen.")
+MISSING = ("Fehlen im Text Angaben aus der folgenden Liste, die zu diesem Eintrag gehören, ende mit einer eigenen letzten "
+           "Zeile, die mit „Nicht diktiert:“ beginnt und die fehlenden Angaben nennt, höchstens fünf, durch Komma "
+           "getrennt, ohne Erklärung und ohne medizinischen Vorschlag. Fehlt nichts, entfällt die Zeile. Liste: ")
+NOTES = ("Nicht diktiert:", "Zusätzlich dokumentieren:")    # solche Schlusszeilen sind Hinweise, kein Teil des Eintrags
+SOAP = ("Schreibe aus dem Text einen ärztlichen Visiten- und Verlaufseintrag nach dem SOAP-Schema für die Akte eines "
+        "Krankenhauses. " + AS_SAID + " " + ALWAYS + " " + EXACT + " Abschnitte, zu denen nichts gesagt wurde, weglassen.\n"
+        "Ist genannt, wer an der Visite teilnahm (Oberärztin, Chefarzt, Pflege), beginne mit der Zeile „Visite mit …“.\n"
         "S – Subjektiv: Befinden und Beschwerden, wie die Patientin oder der Patient sie schildert; Angaben von "
         "Angehörigen und Pflege.\n"
-        "O – Objektiv: Untersuchungsbefund, Vitalwerte, Labor, Bildgebung, Bilanz, Zugänge und Drainagen.\n"
-        "A – Beurteilung: die Einschätzung, wie sie gesagt wurde (Verlauf, Arbeitsdiagnose, offene Fragen). Keine eigene "
-        "Beurteilung hinzufügen.\n"
-        "P – Plan: Anordnungen und nächste Schritte als kurze Liste: Diagnostik, Therapie und Medikation, Konsile, "
-        "Entlassplanung, wer was bis wann.\n"
-        "Knapp, in Stichsätzen. " + UNCLEAR)
-NURSING = ("Schreibe aus dem Text einen Eintrag für den Pflegebericht, den Verlaufsbericht der Pflege. " + AS_SAID + " "
-           "Schlage keine Pflegediagnosen, Ziele oder Maßnahmen vor: Die Einschätzung bleibt bei der Pflegefachperson.\n"
-           "So schreibt man einen Pflegebericht: sachlich und ohne Wertung; was zu sehen, zu hören und zu messen war, "
-           "mit Uhrzeit, Häufigkeit und Ausmaß, soweit genannt. Aussagen der Patientin oder des Patienten wörtlich in "
-           "Anführungszeichen. Steht im Text nur eine Wertung (etwa „aggressiv“, „unkooperativ“), übernimm sie nicht als "
-           "Tatsache, sondern schreibe [Wertung, bitte Verhalten beschreiben]. Eine fachliche Einschätzung der sprechenden "
-           "Person kennzeichne mit „Einschätzung:“. Routine ohne Besonderheit und Floskeln wie „o. B.“ oder „keine "
-           "Besonderheiten“ weglassen. Nennt der Text nur solche Routine, antworte nur: „Nur Routine ohne Besonderheit "
-           "genannt. Dafür reicht in der Regel der Durchführungsnachweis.“\n"
-           "Gliedere jeden Vorgang so; je Vorgang jede Zeile höchstens einmal, Zeilen ohne Inhalt weglassen:\n"
+        "O – Objektiv: Untersuchungsbefund, Vitalwerte, Labor mit Verlauf, Bildgebung, Bilanz, Zugänge und Drainagen; "
+        "auch genannte Normalbefunde.\n"
+        "A – Beurteilung: die Einschätzung, wie sie gesagt wurde (Verlauf, Diagnosen, offene Fragen). Eine Nebendiagnose "
+        "oder Komplikation steht zusammen mit dem, was ihretwegen getan wird, wenn beides genannt ist. Hierher gehört "
+        "auch der genannte Grund, warum die Behandlung im Krankenhaus weiter nötig ist. Keine eigene Beurteilung "
+        "hinzufügen.\n"
+        "P – Plan: Anordnungen und nächste Schritte als kurze Liste: Diagnostik, Therapie und Medikation (neu, geändert, "
+        "abgesetzt), Konsile, Entlassplanung, wer was bis wann. Ebenso Aufklärung, Einwilligung oder Ablehnung und "
+        "Gespräche mit Angehörigen oder Betreuung: wer, worüber, mit welchem Ergebnis.\n"
+        "Form: Jeder Abschnitt beginnt mit seinem Buchstaben und Doppelpunkt („S:“, „O:“, „A:“, „P:“) in einer eigenen "
+        "Zeile, darunter knappe Stichsätze, je Zeile ein Gedanke mit Spiegelstrich; jede Angabe nur einmal. " + UNCLEAR + "\n"
+        + MISSING + "Befinden, Untersuchungsbefund, Beurteilung, weiteres Vorgehen, Grund für die weitere Behandlung im "
+        "Krankenhaus (entfällt, wenn die Entlassung genannt ist).")
+NURSING = ("Schreibe aus dem Text einen Eintrag für den Pflegebericht eines Krankenhauses. " + AS_SAID + " " + ALWAYS + " "
+           + EXACT + " Schlage keine Pflegediagnosen, Ziele oder Maßnahmen vor: Die Einschätzung bleibt bei der "
+           "Pflegefachperson.\n"
+           "Sachlich und ohne Wertung: was zu sehen, zu hören und zu messen war. Was im Text als Aussage der Patientin "
+           "oder des Patienten steht, wörtlich in Anführungszeichen. Steht im Text eine Wertung über das Verhalten (etwa "
+           "„aggressiv“, „unkooperativ“), übernimm sie nicht als Tatsache: Schreibe das geschilderte Verhalten und an "
+           "die Stelle der Wertung [Wertung, bitte Verhalten beschreiben]. Eine fachliche Einschätzung der sprechenden "
+           "Person kennzeichne mit „Einschätzung:“.\n"
+           "Was die Pflege besonders gebunden hat (etwa Sitzwache, Isolation, Lagern zu zweit, Begleitung zu einer "
+           "Untersuchung, Hilfe beim Essen), steht mit Dauer, Häufigkeit und Zahl der Personen im Eintrag, soweit genannt.\n"
+           "Form: Ein Ereignis ist, was vom gewohnten Verlauf abweicht und eine Reaktion verlangt hat (Sturz, geklagte "
+           "Schmerzen, neue Wunde, Unruhe, Bedarfsmedikation, Verschlechterung, Zwischenfall). Ein unauffälliger Wert, "
+           "ein trockener Verband oder eine übliche Mobilisation sind kein Ereignis. Ohne Ereignis: ein bis vier kurze "
+           "Sätze ohne die Überschriften Beobachtung, Maßnahme, Wirkung und Weitergabe. Mit Ereignis gliedere so; je "
+           "Ereignis jede Zeile höchstens einmal, Zeilen ohne Inhalt weglassen:\n"
            "Beobachtung: …\nMaßnahme: … (was, durch wen)\nWirkung: … (Reaktion, Ergebnis)\n"
            "Weitergabe: … (wer wurde wann informiert, was hat die Ärztin oder der Arzt angeordnet)\n"
            "Danach, nur wenn genannt: „Werte:“ (Vitalzeichen, Schmerz, Blutzucker, Ein- und Ausfuhr) und „Offen für die "
            "nächste Schicht:“. Dorthin gehört auch, worum die sprechende Person Kolleginnen und Kollegen bittet; das ist "
            "keine Anordnung.\n"
-           "Geht es um einen Sturz, eine Wunde oder einen Dekubitus, Schmerzen, eine freiheitsentziehende Maßnahme oder "
-           "einen Medikationsfehler, ende mit der Zeile „Zusätzlich dokumentieren:“ und dem passenden Blatt "
-           "(Sturzprotokoll, Wunddokumentation, Schmerzerfassung, Fixierungsprotokoll, Fehlermeldung).\n"
-           "Kurze ganze Sätze. " + UNCLEAR)
+           "Kurze ganze Sätze. " + UNCLEAR + "\n"
+           "Geht es um einen Sturz, eine Wunde oder einen Dekubitus, eine freiheitsentziehende Maßnahme (Fixierung, "
+           "Bettgitter; eine Sitzwache ist keine) oder einen Medikationsfehler, setze danach die Zeile „Zusätzlich dokumentieren:“ mit dem passenden Blatt "
+           "(Sturzprotokoll, Wunddokumentation, Fixierungsprotokoll, Fehlermeldung).\n"
+           + MISSING + "bei Sturz: Uhrzeit, Hergang oder Auffindesituation, Verletzungszeichen, Vitalzeichen, ärztliche "
+           "Information; bei Wunde oder Dekubitus: Lokalisation, Größe, Aussehen oder Kategorie, Versorgung; bei Schmerz: "
+           "Lokalisation, Stärke, Maßnahme, Wirkung; bei Bedarfsmedikation: Uhrzeit, Anlass, Wirkung; bei "
+           "freiheitsentziehender Maßnahme: Art, Anordnung, Beginn und Ende; bei ärztlicher Information: wer, wann, "
+           "Anordnung. Ohne Ereignis entfällt die Zeile immer.")
+LETTER = ("Schreibe aus dem Text den Entwurf eines Arztbriefs eines Krankenhauses (Entlassbrief oder Brief der "
+          "Notaufnahme), ohne Briefkopf, Anrede und Gruß. " + AS_SAID + " " + ALWAYS + " " + EXACT + " Abschnitte, zu "
+          "denen nichts gesagt wurde, weglassen.\n"
+          "Diagnosen: je Zeile eine. Zuerst, weswegen aufgenommen oder behandelt wurde; danach jede weitere Erkrankung, "
+          "Verletzung oder Komplikation, die der Text beim Namen nennt, auch Vorerkrankungen und was erst im Verlauf "
+          "auftrat. Aus Messwerten keine Diagnose machen, keine Schlüsselnummern ergänzen.\n"
+          "Prozeduren: Eingriffe und Interventionen mit Datum, wenn genannt.\n"
+          "Anamnese: Anlass der Aufnahme oder Vorstellung, Beschwerden mit Beginn und Verlauf, Vorerkrankungen, "
+          "Vormedikation, Allergien.\n"
+          "Befund: Untersuchungsbefund und Vitalwerte, auch genannte Normalbefunde.\n"
+          "Diagnostik: Labor, EKG, Bildgebung und Konsile mit Ergebnis.\n"
+          "Verlauf: was getan wurde, warum, und wie es gewirkt hat. Eine Nebendiagnose oder Komplikation steht "
+          "zusammen mit dem, was ihretwegen getan wurde, wenn beides genannt ist.\n"
+          "Medikation bei Entlassung: Liste mit Dosis und Schema wie genannt; neu, geändert oder abgesetzt so "
+          "kennzeichnen, mit Grund, wenn genannt.\n"
+          "Procedere: Empfehlungen, Kontrollen, Termine, ausstehende Befunde, Arbeitsunfähigkeit.\n"
+          "Aufklärung: worüber aufgeklärt wurde (Warnzeichen, Wiedervorstellung), Einwilligung, Ablehnung oder Entlassung "
+          "gegen ärztlichen Rat, wer dabei war; nah am Wortlaut.\n"
+          "Form: jede Überschrift mit Doppelpunkt in einer eigenen Zeile; im Verlauf ganze Sätze, sonst knapp. Jede "
+          "Angabe steht nur einmal, im passenden Abschnitt. " + UNCLEAR + "\n"
+          + MISSING + "Diagnose, Anamnese, Befund, Verlauf oder Therapie, weiteres Vorgehen, bei Entlassung nach Hause "
+          "die Aufklärung über Warnzeichen und Wiedervorstellung.")
+SMOOTH = ("Entferne Füllwörter, Versprecher und Wiederholungen. Korrigiere Grammatik und Zeichensetzung. Ändere weder "
+          "Inhalt noch Tonfall und füge nichts hinzu; Zahlen, Einheiten, Arzneimittel und Namen bleiben unverändert.")
+POINTS = ("Fasse den Inhalt in knappen Stichpunkten zusammen, ein Gedanke pro Zeile. Erfinde nichts; Zahlen, "
+          "Arzneimittel und Namen bleiben unverändert.")
 
 # Seite Aufnahme, Zeichen neben dem eigenen Prompt: aus einer kurzen Eingabe einen ausformulierten Prompt machen
 SPARK = ("Du schreibst Prompts für ein Sprachmodell, das ein Transkript bearbeitet. Mache aus der kurzen Eingabe einen "
@@ -164,7 +223,7 @@ DEFAULTS = {
     "visite_rules": "",           # Hausregeln (Schockraum, Labor, Zuständigkeiten), die Jev mitbekommt; leer = keine
     "training_done": [],          # Stimmtraining: schon gelesene Sätze
     "phone": {"enabled": False, "port": 8765, "token": ""},   # Handy als Mikrofon (Webseite im eigenen Netz)
-    "config_version": 8,
+    "config_version": 9,
     "quantization": "int8",
     "provider": "CPUExecutionProvider",
     "threads": 0,
@@ -205,18 +264,15 @@ DEFAULTS = {
     # Jeder Prompt kann eine eigene Halte-Taste bekommen: halten, sprechen, loslassen.
     "prompts": [
         {"name": "Glätten", "hotkey": ["f8"],
-         "text": "Entferne Füllwörter, Versprecher und Wiederholungen. Korrigiere Grammatik und "
-                 "Zeichensetzung. Ändere weder Inhalt noch Tonfall und füge nichts hinzu."},
+         "text": SMOOTH},
         {"name": "E-Mail", "hotkey": [],
          "text": "Formuliere daraus eine kurze, freundliche E-Mail mit Anrede und Gruß. "
                  "Erfinde keine Inhalte."},
         {"name": "Stichpunkte", "hotkey": [],
-         "text": "Fasse den Inhalt in knappen Stichpunkten zusammen, ein Gedanke pro Zeile."},
+         "text": POINTS},
     ] + [dict(p) for p in (
         {"name": "Arztbrief", "hotkey": [],
-         "text": "Schreibe aus dem Text einen Arztbrief-Entwurf mit den Abschnitten Diagnosen, Anamnese, Befund, "
-                 "Verlauf und Procedere. Übernimm nur, was im Text steht, und erfinde nichts. Wozu nichts gesagt "
-                 "wurde, den Abschnitt weglassen."},
+         "text": LETTER},
         {"name": "Zusammenfassung", "hotkey": [],
          "text": SUMMARY},
         {"name": "Meeting-Protokoll", "hotkey": [],
@@ -244,6 +300,35 @@ def _prompts_v8(prompts) -> list:
     if shown == set(OLD_ROW) & names:
         for p in prompts:
             p["record"] = p.get("name") in ON_RECORD
+    return prompts
+
+
+# 2.1.0: Visite, Arztbrief und Pflegebericht sind für die Akte eines Krankenhauses neu geschrieben, drei weitere Texte
+# geschärft. Wer den Text ab Werk nie geändert hat (Prüfsumme des alten Textes), bekommt den neuen; eigene bleiben.
+OLD_V9 = {"Glätten": "e7070d6fb02cf9faa894e390568007094a6d6cb8ffb68db2f987ffec59fd3df3",
+          "Stichpunkte": "da51f3af7452b5c9615c4d0eeb6764ebada5b400b454b379e0fc40275dcb0194",
+          "Arztbrief": "a10a2e14ddd0b8e0a5aa08c178df6c2ed3560695cd2f057a3054beba3a0059bb",
+          "Zusammenfassung": "fb32d50baa6f4e10a81a4c3d7e477f1749c424f24181cf9f24305f177b24f3ea",
+          "Visite": "23b8ceeeb4eafcd46c8b08508c09f4fe6b6e6950dc338ebd823eb088be66a72d",
+          "Pflegebericht": "6cf43e3b371c6dda0bab5d6c9a6540245088f860f904a65092d05f76fc6a8fa0"}
+
+
+def _prompts_v9(prompts) -> list:
+    new = {p["name"]: p["text"] for p in DEFAULTS["prompts"]}
+    prompts = [dict(p) for p in prompts or [] if isinstance(p, dict)]
+    for p in prompts:
+        old = OLD_V9.get(p.get("name"))
+        if old and hashlib.sha256(str(p.get("text") or "").encode("utf-8")).hexdigest() == old:
+            p["text"] = new[p["name"]]
+    return prompts
+
+
+def _prompts_up(prompts, version: int) -> list:
+    """Gespeicherte Prompts einer älteren Fassung auf den heutigen Stand bringen (config.json, Profil, Sicherung)."""
+    if version < 8:
+        prompts = _prompts_v8(prompts)
+    if version < 9:
+        prompts = _prompts_v9(prompts)
     return prompts
 
 
@@ -327,6 +412,9 @@ def load() -> dict:
             if int(stored.get("config_version") or 1) < 8:
                 cfg["prompts"] = _prompts_v8(cfg.get("prompts"))
                 cfg["config_version"] = 8
+            if int(stored.get("config_version") or 1) < 9:
+                cfg["prompts"] = _prompts_v9(cfg.get("prompts"))
+                cfg["config_version"] = 9
             cfg.pop("model", None)
             cfg.pop("model_revision", None)
         except Exception:
@@ -536,10 +624,10 @@ def _profile_load(name: str):
     version = int(theirs.get("config_version") or 7)
     theirs = {k: theirs[k] for k in PERSONAL if k in theirs}
     OFFLINE = False
-    if version < 8 and "prompts" in theirs:   # Profil aus einer älteren Fassung: dieselben Schritte wie bei config.json
-        theirs["prompts"] = _prompts_v8(theirs["prompts"])
+    if version < 9 and "prompts" in theirs:   # Profil aus einer älteren Fassung: dieselben Schritte wie bei config.json
+        theirs["prompts"] = _prompts_up(theirs["prompts"], version)
         if kept.get("pending") and "prompts" in (kept.get("data") or {}):
-            kept["data"]["prompts"] = _prompts_v8(kept["data"]["prompts"])
+            kept["data"]["prompts"] = _prompts_up(kept["data"]["prompts"], version)
         try:
             _write(root / name / PROFILE_FILE, {**theirs, "config_version": DEFAULTS["config_version"]})
         except OSError:
@@ -774,8 +862,8 @@ def restore(path) -> dict:
     cfg = load()
     if active and ACTIVE == active:
         mine = {k: copy.deepcopy(stored[k]) for k in PERSONAL if k in stored}
-        if int(stored.get("config_version") or 1) < 8 and "prompts" in mine:      # Sicherung aus einer älteren Fassung
-            mine["prompts"] = _prompts_v8(mine["prompts"])
+        if int(stored.get("config_version") or 1) < 9 and "prompts" in mine:      # Sicherung aus einer älteren Fassung
+            mine["prompts"] = _prompts_up(mine["prompts"], int(stored.get("config_version") or 1))
         cfg.update(mine)
         save(cfg)
     if profile is not None:

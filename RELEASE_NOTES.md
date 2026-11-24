@@ -1,3 +1,18 @@
+## LocalScribe 2.1.0
+
+- **Visite, Arztbrief und Pflegebericht neu geschrieben, für die Akte eines Krankenhauses.** Aus jedem Diktat entsteht
+  jetzt ein Eintrag, auch aus einem kurzen; die Antwort „Nur Routine … Durchführungsnachweis“ gibt es nicht mehr.
+  Genannte Normalbefunde und Verneinungen („kein Sturz“, „keine neuen Vorkommnisse“) bleiben stehen, ebenso
+  Uhrzeiten, Namen und Funktion der Beteiligten, Lokalisation, Größe, Dosis und Dauer. Die Visite nennt, wer dabei war
+  und warum die Behandlung im Krankenhaus weitergeht, wenn es gesagt wurde. Der Arztbrief hat eigene Abschnitte für
+  Prozeduren, Diagnostik, Medikation bei Entlassung und Aufklärung; Nebendiagnosen stehen bei dem, was ihretwegen
+  getan wurde. Wie bisher: nur was gesagt wurde, keine ergänzte Einheit, keine eigene Beurteilung.
+- **„Nicht diktiert“.** Fehlt dem Eintrag etwas, das zu einer vollständigen Dokumentation gehört (beim Sturz etwa die
+  Verletzungszeichen, bei der Visite die Beurteilung), steht es als Hinweis unter dem Ergebnis. Der Hinweis wird
+  nicht mitkopiert, und ein Prompt mit Halte-Taste fügt ihn nicht ein.
+- Glätten, Stichpunkte und Zusammenfassung lassen Zahlen, Arzneimittel und Namen ausdrücklich unverändert.
+- Wer einen dieser Prompts selbst geändert hat, behält seinen Text; nur unveränderte werden ersetzt.
+
 ## LocalScribe 2.0.1
 
 - Behoben: Schrieb das Modell nichts, weil im Text nichts für den Prompt stand (etwa ein Testsatz und „Visite“),

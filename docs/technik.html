@@ -172,7 +172,7 @@
 <body>
 <h1 id="localscribe--technische-dokumentation">LocalScribe – Technische
 Dokumentation</h1>
-<p>Stand: Version 2.0.1. Für Betrieb, IT und alle, die den Code lesen
+<p>Stand: Version 2.1.0. Für Betrieb, IT und alle, die den Code lesen
 oder prüfen wollen. Die Bedienung steht im <a
 href="https://chunkyfire.github.io/LocalScribe/LocalScribe-Handbuch.pdf">Handbuch</a>,
 die Messwerte mit Methode in <a
@@ -960,9 +960,20 @@ eine kurze Eingabe mit <code>config.SPARK</code> und dem schnellen
 Modell des Anbieters aus; das Sprachmodell sieht dazu Eingabe und Anfang
 des Transkripts nach dem Schutz. Mitgeliefert: Glätten, E-Mail,
 Stichpunkte, Arztbrief, Zusammenfassung, Meeting-Protokoll, Visite
-(SOAP), Pflegebericht. Beim Wechsel auf 1.7.1 kommen die zwei neuen
-einmal dazu; die Zeile der Aufnahme wird nur umgestellt, wenn sie noch
-der Vorgabe entsprach (<code>config._prompts_v8</code>)</td>
+(SOAP), Pflegebericht. Visite, Arztbrief und Pflegebericht sind für die
+Akte eines Krankenhauses geschrieben (<code>config.SOAP</code>,
+<code>LETTER</code>, <code>NURSING</code>): immer ein Eintrag, nur
+Gesagtes, genannte Verneinungen bleiben; am Ende nennen sie in Zeilen,
+die mit <code>config.NOTES</code> beginnen („Nicht diktiert:“,
+„Zusätzlich dokumentieren:“), was im Diktat gefehlt hat.
+<code>llm.split</code> trennt diese Hinweise ab: Die Seite Aufnahme
+zeigt sie unter dem Ergebnis, kopiert und eingefügt wird nur der
+Eintrag. Beim Wechsel auf 2.1.0 ersetzt <code>config._prompts_v9</code>
+die Texte ab Werk, die nie geändert wurden (Prüfsummen in
+<code>OLD_V9</code>); eigene Texte bleiben. Beim Wechsel auf 1.7.1
+kommen die zwei neuen einmal dazu; die Zeile der Aufnahme wird nur
+umgestellt, wenn sie noch der Vorgabe entsprach
+(<code>config._prompts_v8</code>)</td>
 <td>Aufnahme zeigt Visite, Meeting-Protokoll, Arztbrief,
 Pflegebericht</td>
 </tr>

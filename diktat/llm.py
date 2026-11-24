@@ -239,6 +239,18 @@ def _text(data) -> str:
     return content if isinstance(content, str) else ""
 
 
+def split(text: str) -> tuple:
+    """(Eintrag, Hinweise). Die Prompts für die Klinik enden bei Bedarf mit Zeilen wie „Nicht diktiert: …“: Das sind
+    Hinweise an die schreibende Person und kein Teil des Eintrags; sie werden nicht kopiert und nicht eingefügt."""
+    from .config import NOTES
+    lines = (text or "").rstrip().split("\n")
+    cut = len(lines)
+    while cut and (not lines[cut - 1].strip() or lines[cut - 1].lstrip("-*• ").startswith(NOTES)):
+        cut -= 1
+    notes = [line.lstrip("-*• ").strip() for line in lines[cut:] if line.strip()]
+    return "\n".join(lines[:cut]).rstrip(), "\n".join(notes)
+
+
 def chat(llm: dict, system: str, user: str, json_mode: bool = False, key=None) -> str:
     """Eine einzelne Anfrage ohne den Nachbearbeitungs-Rahmen; für die Fachkorrektur."""
     if not (llm.get("model") or "").strip():
