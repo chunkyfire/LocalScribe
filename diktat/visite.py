@@ -292,6 +292,35 @@ def letter(result: dict) -> str:
 
 
 # ---- Ablage: eine Datei, Löschen ist zuerst nur der Papierkorb ----
+def adopt(store, old_path) -> int:
+    """Einmalig: die Fälle der früheren Seite Übergabe in die Ablage der Aufnahme übernehmen (ab 2.2.0 gibt es nur noch
+    die Seite Aufnahme). Beides in einem Schritt, damit nach einem Abbruch nichts doppelt oder halb da ist; die alte
+    Datei bleibt liegen und trägt danach einen Vermerk."""
+    import pathlib
+    old_path = pathlib.Path(old_path)
+    if not old_path.exists():
+        return 0
+    db = store.db
+    db.execute("ATTACH DATABASE ? AS alt", (str(old_path),))
+    try:
+        db.execute("CREATE TABLE IF NOT EXISTS alt.vermerk (was TEXT PRIMARY KEY, wann REAL)")
+        if db.execute("SELECT 1 FROM alt.vermerk WHERE was = 'uebernommen'").fetchone():
+            return 0
+        if not db.execute("SELECT 1 FROM alt.sqlite_master WHERE name = 'faelle'").fetchone():
+            return 0
+        count = db.execute("INSERT INTO faelle (name, eingabe, ergebnis, erstellt, geaendert, geloescht) "
+                           "SELECT name, eingabe, ergebnis, erstellt, geaendert, geloescht FROM alt.faelle ORDER BY id").rowcount
+        db.execute("INSERT INTO alt.vermerk VALUES ('uebernommen', ?)", (time.time(),))
+        db.commit()
+        return count
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.commit()
+        db.execute("DETACH DATABASE alt")
+
+
 class Store:
     def __init__(self, path=None):
         self.db = sqlite3.connect(str(path or config.DIR / "visite.sqlite"), check_same_thread=False)

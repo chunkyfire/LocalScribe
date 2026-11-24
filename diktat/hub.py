@@ -89,7 +89,7 @@ QComboBox QAbstractItemView { background: #151515; border: 1px solid #2A2A2A;
 QPushButton, QFrame#card QPushButton { background: rgba(255, 255, 255, 0.065); border: 1px solid rgba(255, 255, 255, 0.12);
                                        border-radius: 11px; padding: 7px 15px; }
 QPushButton:hover { border-color: rgba(255, 255, 255, 0.34); background: rgba(255, 255, 255, 0.10); }
-QPushButton#tab, QFrame#card QPushButton#tab { border-radius: 12px; padding: 6px 16px; color: #B9BEC4; }
+QPushButton#tab, QFrame#card QPushButton#tab { border-radius: 12px; padding: 6px 14px; color: #B9BEC4; }
 QPushButton#tab:checked, QFrame#card QPushButton#tab:checked { color: #C6FF3D; background: rgba(198, 255, 61, 0.10);
                                                               border-color: rgba(198, 255, 61, 0.45); }
 QPushButton#seg { border-radius: 10px; padding: 4px 12px; color: #9AA0A6; background: transparent;
@@ -767,17 +767,23 @@ class KeyField(QtWidgets.QLineEdit):
 class Page(QtWidgets.QWidget):
     """Seite mit Überschrift, optionalem Erklärtext (als Info-Zeichen) und scrollbarem Inhalt."""
 
+    GUTTER = 14          # Streifen rechts neben dem Inhalt für den Rollbalken: So enden Kopfzeile, Karten und Listen an
+                         # derselben Kante, ob eine Seite rollt oder nicht.
+
     def __init__(self, title, subtitle="", scroll=True):
         super().__init__()
         outer = QtWidgets.QVBoxLayout(self)
-        outer.setContentsMargins(30, 26, 30, 20)
+        outer.setContentsMargins(30, 26, 30 - self.GUTTER, 20)
         outer.setSpacing(14)
         self.head = QtWidgets.QHBoxLayout()
+        self.head.setContentsMargins(0, 0, self.GUTTER, 0)
         self.title = label(title, "h1")
         self.head.addWidget(self.title)
+        self.head.setSpacing(6)
         if subtitle:                              # der Erklärtext steht beim Überfahren da, nicht auf der Seite
             self.head.addSpacing(2)
             self.head.addWidget(info(subtitle))
+        self.lead_at = self.head.count()          # hierhin kommt, was direkt zur Überschrift gehört (lead)
         self.head.addStretch(1)
         outer.addLayout(self.head)
         self.body = QtWidgets.QVBoxLayout()
@@ -785,13 +791,35 @@ class Page(QtWidgets.QWidget):
         if scroll:
             inner = QtWidgets.QWidget()
             inner.setLayout(self.body)
-            self.body.setContentsMargins(0, 0, 8, 0)
+            self.body.setContentsMargins(0, 0, self.GUTTER, 0)
             area = QtWidgets.QScrollArea(widgetResizable=True)
             area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
             area.setWidget(inner)
             outer.addWidget(area, 1)
-        else:
+            self.gutter(area, self.body)
+        else:                                         # Seiten mit eigener Rollfläche lassen nur diese in den Streifen
+            self.body.setContentsMargins(0, 0, self.GUTTER, 0)
             outer.addLayout(self.body, 1)
+
+    def gutter(self, area, layout):
+        """Der Inhalt einer Rollfläche endet an der Kante der Seite, ob der Rollbalken gerade da ist oder nicht: Der
+        Balken steht im Streifen rechts daneben und nimmt dem Inhalt keine Breite."""
+        bar = area.verticalScrollBar()
+
+        def fit(*_):
+            m = layout.contentsMargins()
+            shown = bar.sizeHint().width() if bar.maximum() > bar.minimum() else 0
+            layout.setContentsMargins(m.left(), m.top(), max(0, self.GUTTER - shown), m.bottom())
+        bar.rangeChanged.connect(fit)
+        fit()
+
+    def lead(self, *widgets):
+        """Bauteile direkt hinter die Überschrift setzen: der Knopf der Seite und ihr kurzer Hinweis. So hat jede Seite
+        dieselbe Kopfzeile: links Überschrift, Info-Zeichen und Knopf, rechts die Reiter."""
+        for w in widgets:
+            self.head.insertSpacing(self.lead_at, 10)
+            self.head.insertWidget(self.lead_at + 1, w)
+            self.lead_at += 2
 
     def saved(self, note, text="Gespeichert", ok=True):
         restyle(note, "ok" if ok else "bad")
@@ -871,10 +899,12 @@ class HistoryPage(Page):
             col.addWidget(num)
             col.addWidget(label(cap, "muted"))
             tiles.addWidget(card(col), 1)
+        self.body.setContentsMargins(0, 0, 0, 0)
+        tiles.setContentsMargins(0, 0, self.GUTTER, 0)
         self.body.addLayout(tiles)
 
         self.list = QtWidgets.QVBoxLayout()
-        self.list.setContentsMargins(0, 0, 8, 0)
+        self.list.setContentsMargins(0, 0, self.GUTTER, 0)
         self.list.setSpacing(0)
         inner = QtWidgets.QWidget()
         inner.setLayout(self.list)
@@ -882,9 +912,12 @@ class HistoryPage(Page):
         area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         area.setWidget(inner)
         self.body.addWidget(area, 1)
+        self.gutter(area, self.list)
 
         self.hint = label("", "muted", wrap=True)          # im schmalen Fenster zwei Zeilen statt abgeschnitten
-        self.body.addLayout(hbox((self.hint, 1), button("Verlauf leeren", self.clear, "ghost")))
+        foot = hbox((self.hint, 1), button("Verlauf leeren", self.clear, "ghost"))
+        foot.setContentsMargins(0, 0, self.GUTTER, 0)
+        self.body.addLayout(foot)
 
     def prompt_names(self):
         cfg = self.ctl.cfg
@@ -1398,15 +1431,60 @@ class Flow(QtWidgets.QLayout):
 
     def _place(self, width, move, left=0, top=0):
         x = y = row = 0
+        line = []                                     # die Bauteile der laufenden Zeile: (Bauteil, x, Größe)
+
+        def settle():                                 # eine Zeile setzen: alle auf derselben Mittellinie
+            for item, at, hint in line:
+                item.setGeometry(QtCore.QRect(left + at, top + y + (row - hint.height()) // 2, hint.width(), hint.height()))
+            line.clear()
         for item in self.items:
+            if item.isEmpty():                        # ausgeblendet: kein Platz und keine Lücke
+                continue
             hint = item.sizeHint()
             if x and x + hint.width() > width:
+                if move:
+                    settle()
                 x, y, row = 0, y + row + self.gap, 0
-            if move:
-                item.setGeometry(QtCore.QRect(left + x, top + y, hint.width(), hint.height()))
+            line.append((item, x, hint))
             x += hint.width() + self.gap
             row = max(row, hint.height())
+        if move:
+            settle()
         return y + row
+
+
+class Tiles(QtWidgets.QWidget):
+    """Kacheln in zwei Spalten, solange jede breit genug bleibt, sonst untereinander. Bei ungerader Zahl füllt die
+    letzte Kachel die ganze Breite, damit rechts unten kein Loch bleibt."""
+
+    def __init__(self, least=280, gap=8):
+        super().__init__()
+        self.least, self.gap, self.cols, self.tiles = least, gap, 0, []
+        self.grid = QtWidgets.QGridLayout(self)
+        self.grid.setContentsMargins(0, 0, 0, 0)
+        self.grid.setSpacing(gap)
+
+    def add(self, w):
+        self.tiles.append(w)
+        self._lay(True)
+        return w
+
+    def resizeEvent(self, e):
+        super().resizeEvent(e)
+        self._lay()
+
+    def _lay(self, force=False):
+        cols = 2 if len(self.tiles) > 1 and self.width() >= 2 * self.least + self.gap else 1
+        if cols == self.cols and not force:
+            return
+        self.cols = cols
+        for w in self.tiles:
+            self.grid.removeWidget(w)
+        for i, w in enumerate(self.tiles):
+            alone = cols == 2 and i == len(self.tiles) - 1 and i % 2 == 0
+            self.grid.addWidget(w, i // cols, i % cols, 1, 2 if alone else 1)
+        self.grid.setColumnStretch(0, 1)
+        self.grid.setColumnStretch(1, 1 if cols == 2 else 0)
 
 
 class Tall(QtWidgets.QWidget):
@@ -1611,11 +1689,17 @@ class VisitPage(Page):
         self.ctl = ctl
         self.pin = ""                                    # angepinnter Prompt: läuft nach der Aufnahme von selbst
         self.new_btn = button("＋ Neuer Fall" if handover else "＋ Neue Aufnahme", lambda: self._new(), "newBtn")
-        at = self.head.count() - 1                       # vor dem Abstand, der die Reiter nach rechts schiebt
-        self.head.insertSpacing(at, 12)
-        self.head.insertWidget(at + 1, self.new_btn)
+        self.lead(self.new_btn)
         self.tab_names = ("Fall", "Fälle", "Papierkorb") if handover else ("Aufnahme", "Gespeichert", "Papierkorb")
         self.store = visite.Store(config.DIR / ("visite.sqlite" if handover else "aufnahme.sqlite"))
+        self.frame_key = "zna"                           # Aufnahme: der Bereich der letzten Übergabe (zna, station, its)
+        if not handover:                                 # die Fälle der früheren Seite Übergabe liegen jetzt hier
+            try:
+                moved = visite.adopt(self.store, config.DIR / "visite.sqlite")
+                if moved:
+                    log.info("Übergabe: %d Fälle in die Ablage der Aufnahme übernommen", moved)
+            except Exception as e:
+                log.warning("Fälle der Übergabe nicht übernommen: %s", type(e).__name__)
         self.case, self.result, self.waiting, self.errors = None, None, set(), {}
         self.tabs = QtWidgets.QButtonGroup(self)
         row = QtWidgets.QHBoxLayout()
@@ -1626,6 +1710,8 @@ class VisitPage(Page):
             self.tabs.addButton(b, i)
             (row if handover else self.head).addWidget(b)       # Aufnahme: Reiter rechts neben der Überschrift
         row.addStretch(1)
+        row.setContentsMargins(0, 0, self.GUTTER, 0)
+        self.body.setContentsMargins(0, 0, 0, 0)         # die Rollfläche des Ergebnisses reicht in den Streifen rechts
         # Übergabe: der Rahmen bestimmt, was gefragt und geschrieben wird (Notaufnahme, Station, Intensiv)
         self.frames = QtWidgets.QButtonGroup(self)
         self.frame_bar = QtWidgets.QWidget()
@@ -1643,8 +1729,6 @@ class VisitPage(Page):
             row.addWidget(self.frame_bar)
         if handover:
             self.body.addLayout(row)
-        else:
-            self.head.setSpacing(6)
         self.stack = QtWidgets.QStackedWidget()
         self.body.addWidget(self.stack, 1)
 
@@ -1686,17 +1770,27 @@ class VisitPage(Page):
         self.left_card.hide()
         self.leftover = None
         new = QtWidgets.QWidget()
-        top = QtWidgets.QVBoxLayout(new)
-        top.setContentsMargins(0, 0, 0, 0)
+        self.whole = whole = QtWidgets.QVBoxLayout(new)  # oben Leiste, Text und Prompts; darunter das Ergebnis
+        whole.setContentsMargins(0, 0, 0, 0)
+        whole.setSpacing(8)
+        top = QtWidgets.QVBoxLayout()
+        top.setContentsMargins(0, 0, self.GUTTER, 0)
         top.setSpacing(8)
+        whole.addLayout(top, 1)
         self.bar = QtWidgets.QWidget()
-        self.bar.setLayout(hbox(self.rec, self.load, (self.name, 1), self.split))
+        # Sprecher trennen ist die Vorgabe und steht in den Einstellungen (Allgemein), nicht mehr in dieser Leiste
+        self.bar.setLayout(hbox(self.rec, self.load, (self.name, 1), self.split) if handover
+                           else hbox(self.rec, self.load, (self.name, 1)))
+        self.bar.layout().setContentsMargins(0, 0, 0, 0)     # Leiste, Text und Ergebnis beginnen an derselben Kante
+        if not handover:
+            self.split.setParent(self.bar)
+            self.split.hide()
         top.addWidget(self.bar)
         self.live_clock = Clock(30)
         self.live_wave = Wave(96, 44)
         self.pulse = QtWidgets.QWidget()                 # nur während der Aufnahme: Zeit und Pegel
         self.pulse.setLayout(hbox(self.live_clock, (self.live_wave, 1), spacing=18))
-        self.pulse.layout().setContentsMargins(4, 6, 4, 2)
+        self.pulse.layout().setContentsMargins(0, 6, 0, 2)
         self.pulse.hide()
         top.addWidget(self.pulse)
         top.addWidget(self.left_card)
@@ -1740,22 +1834,40 @@ class VisitPage(Page):
         self.sig_spark.connect(self._sparked)
         self._own_changed()
         inner = Tall()
-        col = QtWidgets.QVBoxLayout(inner)
-        col.setContentsMargins(0, 0, 8, 0)
+        self.col = col = QtWidgets.QVBoxLayout(inner)
+        col.setContentsMargins(0, 0, self.GUTTER, 0)
         col.setSpacing(12)
-        self.texts = QtWidgets.QVBoxLayout()             # Ergebnisse der Prompts, je ein Block über die ganze Breite
+        self.texts_host = QtWidgets.QWidget()            # Ergebnisse der Prompts, je ein Block über die ganze Breite
+        self.texts = QtWidgets.QVBoxLayout(self.texts_host)
+        self.texts.setContentsMargins(0, 0, 0, 0)
         self.texts.setSpacing(12)
         self.cards = QtWidgets.QGridLayout()
         self.cards.setSpacing(12)
-        col.addLayout(self.texts)
-        col.addLayout(self.cards)
+        col.addWidget(self.texts_host)
+        # Aufnahme: Die Übergabe ist ein Ergebnis unter mehreren. Ihre Zeile nennt den Bereich und erzeugt neu.
+        self.deck_title = label("", "kicker")
+        self.again = button("Neu erzeugen", self._analyse)
+        self.again.setToolTip(tip("Wertet Text und beantwortete Rückfragen noch einmal aus."))
+        self.deck = QtWidgets.QWidget()
+        deck_lay = QtWidgets.QVBoxLayout(self.deck)
+        deck_lay.setContentsMargins(0, 2, 0, 0)
+        deck_lay.setSpacing(10)
+        if not handover:                                 # Bereich, Hinweis, „Neu erzeugen“; darunter die Ablage, falls belegt
+            deck_lay.addLayout(hbox(self.deck_title, info(self.EXPERIMENT), None, self.again, spacing=8))
+            deck_lay.addWidget(self.tray)
+            deck_lay.addLayout(self.cards)
+            col.addWidget(self.deck)
+        else:
+            col.addLayout(self.cards)
+        self.deck.hide()
         col.addStretch(1)
         self.text_boxes = []
         self.area = QtWidgets.QScrollArea(widgetResizable=True)
         self.area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.area.setWidget(inner)
         self.area.hide()
-        top.addWidget(self.area, 4)
+        whole.addWidget(self.area, 4)
+        self.gutter(self.area, col)
         self.boxes, self.columns = {}, 0
         self.stack.addWidget(new)
         self.typing = False
@@ -1794,7 +1906,7 @@ class VisitPage(Page):
             fl.addWidget(area)
             w = QtWidgets.QWidget()
             lay = QtWidgets.QVBoxLayout(w)
-            lay.setContentsMargins(0, 0, 0, 0)
+            lay.setContentsMargins(0, 0, self.GUTTER, 0)
             lay.addWidget(search)
             lay.addWidget(frame, 1)
             if trash:
@@ -1811,8 +1923,49 @@ class VisitPage(Page):
 
     # ----- Übergabe: Rahmen
     def frame(self) -> str:
+        if not self.handover:
+            return self.frame_key
         i = self.frames.checkedId()
-        return self.FRAMES[i][0] if self.handover and 0 <= i < len(self.FRAMES) else "zna"
+        return self.FRAMES[i][0] if 0 <= i < len(self.FRAMES) else "zna"
+
+    # ----- Aufnahme: Übergabe als Auswahl unter „Daraus machen“
+    EXPERIMENT = ("Übergabe: Einschätzung, Sicherheitsnetz, Rückfragen und Dokument sind Ausgaben von Sprachmodellen. "
+                  "Experimentell, für Benchmarking, Forschung und Lehre. Kein Medizinprodukt und keine medizinische "
+                  "Zweckbestimmung; vor jeder Verwendung prüfen.")
+
+    def _ack(self) -> bool:
+        """Der einmalige Hinweis vor der ersten Übergabe. Erst nach „Verstanden“ läuft sie."""
+        if self.ctl.cfg.get("handover_ack"):
+            return True
+        box = QtWidgets.QDialog(self)
+        box.setWindowTitle("Übergabe")
+        box.setStyleSheet(STYLE)
+        lay = QtWidgets.QVBoxLayout(box)
+        lay.setContentsMargins(22, 20, 22, 16)
+        lay.setSpacing(14)
+        lay.addWidget(label("Experimentell, kein Medizinprodukt", "h2"))
+        words = label("Die Übergabe lässt Sprachmodelle einen Fall einschätzen: Ersteinschätzung oder Tages-Check, "
+                      "Sicherheitsnetz, gezielte Rückfragen und ein Dokument. Das dient Benchmarking, Forschung und "
+                      "Lehre und hat keine medizinische Zweckbestimmung. Jede Ausgabe ist ein Entwurf und vor jeder "
+                      "Verwendung zu prüfen.", wrap=True)
+        words.setFixedWidth(420)                 # feste Breite: Nur so rechnet das Fenster die Höhe des Umbruchs richtig
+        lay.addWidget(words)
+        lay.addLayout(hbox(None, button("Abbrechen", box.reject), button("Verstanden", box.accept, "primary")))
+        if not box.exec():
+            return False
+        self.ctl.cfg["handover_ack"] = True
+        config.save(self.ctl.cfg)
+        return True
+
+    def _handover(self, key):
+        """Den Text als Übergabe für einen Bereich auswerten (Notaufnahme, Normalstation, Intensivstation)."""
+        if key not in ("zna", "station", "its") or not self._ack():
+            return
+        self.frame_key = key
+        if key != self.ctl.cfg.get("handover_frame"):
+            self.ctl.cfg["handover_frame"] = key             # steht beim nächsten Mal oben in der Auswahl
+            config.save(self.ctl.cfg)
+        self._analyse()
 
     def _set_frame(self, key):
         if not self.handover:
@@ -1878,17 +2031,30 @@ class VisitPage(Page):
         listed = [p["name"] for p in usable if on_list(p)]
         first = {n: i for i, n in enumerate(self.SHOWN)}
         names.sort(key=lambda n: first.get(n, len(first)))      # die vier ab Werk vorn, in fester Reihenfolge
-        if getattr(self, "task_names", None) == names and getattr(self, "task_listed", None) == listed:
+        hand = "Übergabe" not in (self.ctl.cfg.get("menu_hidden") or [])
+        if (getattr(self, "task_names", None), getattr(self, "task_listed", None), getattr(self, "task_hand", None)) \
+                == (names, listed, hand):
             return
-        self.task_names, self.task_listed = names, listed
+        self.task_names, self.task_listed, self.task_hand = names, listed, hand
         while self.task_row.count():
             w = self.task_row.takeAt(0).widget()
             w.hide()
             w.setParent(None)
             w.deleteLater()
-        self.task_row.addWidget(label("Daraus machen:", "muted"))
+        self.task_label = label("Daraus machen:", "muted")
+        self.task_row.addWidget(self.task_label)
         for name in names:
             self.task_row.addWidget(button(name.replace("&", "&&"), lambda _=False, n=name: self._task(n)))
+        if hand:        # Übergabe: was die Prompts nicht abdecken (Einschätzung, Sicherheitsnetz, Rückfragen), je Bereich
+            self.hand = button("Übergabe  ▾")
+            self.hand.setToolTip(tip(self.EXPERIMENT))
+            areas = QtWidgets.QMenu(self.hand)
+            areas.setToolTipsVisible(True)
+            for key, name in self.FRAMES[:3]:
+                act = areas.addAction(name, lambda k=key: self._handover(k))
+                act.setToolTip(self.FRAME_TIPS[key])
+            self.hand.setMenu(areas)
+            self.task_row.addWidget(self.hand)
         self.more = button("Meine Prompts  ▾")
         menu = QtWidgets.QMenu(self.more)
         for name in listed:
@@ -1898,6 +2064,18 @@ class VisitPage(Page):
         menu.addAction("Sammlung bearbeiten …", lambda: getattr(self.window(), "show_prompts", lambda: None)())
         self.more.setMenu(menu)
         self.task_row.addWidget(self.more)
+        self._fit_tasks()
+
+    def _fit_tasks(self):
+        """„Daraus machen:“ steht nur davor, wenn die Knöpfe mit dem Wort in eine Zeile passen. Sonst rücken sie an den
+        Rand, statt dass ein einzelner Knopf in eine zweite Zeile rutscht."""
+        word = getattr(self, "task_label", None)
+        if self.handover or word is None:
+            return
+        gap = self.task_row.gap
+        need = word.sizeHint().width() + sum(self.task_row.itemAt(i).widget().sizeHint().width() + gap
+                                             for i in range(1, self.task_row.count()))
+        word.setVisible(need <= self.width() - 60)                   # 60: die Ränder der Seite
 
     def _state(self):
         """Aufnahme ohne Inhalt zeigt nur den großen Knopf; sobald aufgenommen oder getippt wird, Text und Prompts."""
@@ -1926,12 +2104,12 @@ class VisitPage(Page):
             w.hide()
             w.setParent(None)
             w.deleteLater()
-        self.tray.setVisible(self.handover and bool(self.items))
+        self.tray.setVisible(bool(self.items))
         if not self.items:
             return
         self.tray_row.addWidget(label(f"Ablage ({len(self.items)}):", "muted"))
         for n, item in enumerate(self.items):
-            words = " ".join((item.get("content") or "").split())
+            words = " ".join((item.get("content") or "").split("\nAntwort: ", 1)[-1].split())    # bei Rückfragen die Antwort
             b = button(f"{item.get('label', 'Eintrag')} · {words[:34]}{'…' if len(words) > 34 else ''}".replace("&", "&&"),
                        lambda _=False, i=n: self._item(i), "tab")
             b.setToolTip("Ansehen, ändern oder aus der Ablage nehmen")
@@ -2064,7 +2242,7 @@ class VisitPage(Page):
         self.note.setText("Läuft …")
         case = self.case
         self.waiting.add(name)
-        self._show({**(self.result or {}), **self.errors})
+        self._show({**(self.result or {}), **self.errors, "first": "text"})
 
         def run():
             try:
@@ -2154,6 +2332,7 @@ class VisitPage(Page):
         if row and not error:
             merged = dict(row[2] or {})
             merged["texts"] = {**(merged.get("texts") or {}), name: text}
+            merged["first"] = "text"
             self.store.save(case, row[0], row[1], merged)
         if case != self.case:
             return self._fill()
@@ -2268,6 +2447,8 @@ class VisitPage(Page):
         self.note.setText("")
         self.info("Aufnehmen oder in das Feld tippen.")
         self._set_frame(self.ctl.cfg.get("handover_frame"))
+        last = self.ctl.cfg.get("handover_frame")
+        self.frame_key = last if last in ("zna", "station", "its") else "zna"
         self._show(None)
         self._tab(tab)
 
@@ -2296,6 +2477,9 @@ class VisitPage(Page):
         self.items = [dict(i) for i in ((row[2] or {}).get("items") or []) if isinstance(i, dict)]
         self._tray()
         self._set_frame((row[2] or {}).get("frame_next") or (row[2] or {}).get("frame"))
+        want = (row[2] or {}).get("frame_next") or (row[2] or {}).get("frame")
+        if want in ("zna", "station", "its"):                  # der Bereich, den der Fall zuletzt hatte
+            self.frame_key = want
         self._show(row[2])
 
     # ----- Aufnahme
@@ -2422,7 +2606,7 @@ class VisitPage(Page):
         keep = {k: (self.result or {})[k] for k in ("texts", "items") if (self.result or {}).get(k)}
         if self.items:
             keep["items"] = self.items
-        self.result = {**keep, "visit": True, "frame": frame}
+        self.result = {**keep, "visit": True, "frame": frame, "first": "visit"}
         self.errors = {k: v for k, v in self.errors.items() if k == "text_errors"}
         self.waiting |= {"brief"} | ({"jev"} if jev.available(server) else set())
         self._show(self.result)
@@ -2451,7 +2635,7 @@ class VisitPage(Page):
                 if (merged.get("jev") or {}).get("frame", "zna") != merged.get("frame", "zna"):
                     merged.pop("jev", None)          # Ersteinschätzung aus einem anderen Rahmen passt nicht mehr dazu
             merged.pop("frame_next", None)
-            merged["visit"] = True
+            merged["visit"], merged["first"] = True, "visit"
             self.store.save(case, row[0], row[1], merged)
         if case != self.case:
             return self._fill()
@@ -2492,9 +2676,12 @@ class VisitPage(Page):
         running = [n for n in self.waiting if n not in ("brief", "jev")]
         structured = bool(result) and bool(result.get("visit") or self.waiting & {"brief", "jev"}
                                            or any(k in result for k in ("documentation", "jev", "error", "jev_error")))
-        output = bool(done or fails or running or structured)
+        kept = bool(self.items) and not self.handover and not structured    # übernommener Fall: Ablage, noch keine Auswertung
+        output = bool(done or fails or running or structured or kept)
         self.area.setVisible(output)
-        self.text.setMaximumHeight(118 if output else 16777215)     # mit Ergebnis tritt der Text zurück
+        self.has_output = output
+        self.whole.setStretch(0, 0 if output else 1)                # mit Ergebnis gehört der freie Platz dem Ergebnis
+        self._fit_text()
         self._state()
         if not output:
             return
@@ -2518,8 +2705,21 @@ class VisitPage(Page):
                     box.add(hint)
             self.texts.addWidget(box)
             self.text_boxes.append(box)
+        self.texts_host.setVisible(bool(self.text_boxes))
+        self.deck.setVisible((structured or kept) and not self.handover)
+        if not self.handover:                         # die Übergabe steht über den Texten, wenn sie zuletzt lief
+            self.col.removeWidget(self.deck)
+            self.col.insertWidget(0 if (result or {}).get("first") == "visit" else 1, self.deck)
+        self.again.setText("Neu erzeugen" if structured else "Auswerten")
+        if kept:                                      # nur die Zeile mit Bereich und Ablage; „Auswerten“ wertet sie aus
+            self.deck_title.setText(f"ÜBERGABE · {dict(self.FRAMES).get(self.frame_key, 'Notaufnahme').upper()}")
+            self.again.setEnabled(True)
         if not structured:
             return
+        busy = bool(self.waiting & {"brief", "jev"})
+        shown = self.frame() if busy else result.get("frame")
+        self.deck_title.setText(f"ÜBERGABE · {dict(self.FRAMES).get(visite.frame_of(shown), 'Notaufnahme').upper()}")
+        self.again.setEnabled(not busy)
         # Was gerade neu erzeugt wird, zeigt den Wartetext statt der alten Fassung
         made = {"jev": self._jev_box(result["jev"]) if result.get("jev") and "jev" not in self.waiting else None,
                 **({} if "brief" in self.waiting else self._letter_boxes(result))}
@@ -2542,7 +2742,13 @@ class VisitPage(Page):
     def resizeEvent(self, e):
         super().resizeEvent(e)
         self._fit_head()
+        self._fit_tasks()
+        self._fit_text()
         self._place()
+
+    def _fit_text(self):
+        """Mit Ergebnis tritt der Text zurück: fünf Zeilen im hohen Fenster, drei im niedrigen."""
+        self.text.setMaximumHeight(16777215 if not getattr(self, "has_output", False) else 118 if self.height() >= 760 else 84)
 
     def _fit_head(self):
         """Aufnahme: Im schmalen Fenster wird der Knopf für eine neue Aufnahme zum Pluszeichen, und ein langer Name
@@ -2565,6 +2771,8 @@ class VisitPage(Page):
             return
         width = self.area.viewport().width() or self.width()
         columns = 3 if width >= 840 else 2 if width >= 560 else 1
+        if not self.handover:
+            columns = min(columns, 2)
         if columns == self.columns:
             return
         self.columns = columns
@@ -2573,6 +2781,9 @@ class VisitPage(Page):
                  2: {"jev": (0, 0, 1, 1), "netz": (0, 1, 1, 1), "fragen": (1, 0, 1, 2), "brief": (2, 0, 1, 2),
                      "codes": (3, 0, 1, 1), "info": (3, 1, 1, 1)},
                  1: {key: (i, 0, 1, 1) for i, key in enumerate(self.ORDER)}}[columns]
+        # Aufnahme: immer höchstens zwei Spalten. Oben Einschätzung und Sicherheitsnetz gleich breit und gleich hoch,
+        # darunter die Rückfragen über die ganze Breite (ihre Kacheln stehen selbst zu zweit), dann das Dokument,
+        # zuletzt Kodierung und Information nebeneinander.
         for key, box in self.boxes.items():
             self.cards.removeWidget(box)
         for c in range(3):
@@ -2661,6 +2872,7 @@ class VisitPage(Page):
         boxes["netz"] = box
         asks = [q for q in result.get("followUpQuestions") or [] if isinstance(q, dict)]
         box = Box("Gezielte Rückfragen", copy=(lambda: "\n".join(f"{i}. {q.get('question', '')}" for i, q in enumerate(asks, 1))) if asks else None)
+        tiles = None if self.handover else box.add(Tiles())           # Aufnahme: die Fragen stehen zu zweit nebeneinander
         for i, q in enumerate(asks, 1):
             word, kind = self.PRIORITY.get(q.get("priority"), self.PRIORITY["medium"])
             row = QtWidgets.QFrame(objectName="ask")
@@ -2671,7 +2883,7 @@ class VisitPage(Page):
             if q.get("rationale"):
                 lay.addWidget(label(str(q["rationale"]), "muted", wrap=True))
             lay.addLayout(hbox(chip(word, kind), None))
-            if self.handover:
+            if True:
                 asked = str(q.get("question") or "")
                 had = next((it for it in self.items if it.get("label") == f"Rückfrage {i} · Antwort"
                             and it.get("content", "").startswith(f"Frage: {asked}")), None)
@@ -2681,8 +2893,9 @@ class VisitPage(Page):
                     reply.setCursorPosition(0)
                 send = button("Ändern" if had else "Ablegen", lambda _=False, n=i, a=asked, e=reply: self._answer(n, a, e.text()))
                 reply.returnPressed.connect(send.click)
+                lay.addStretch(1)                                     # Antwortfelder einer Zeile stehen auf einer Höhe
                 lay.addLayout(hbox((reply, 1), send))
-            box.add(row)
+            (tiles.add if tiles is not None else box.add)(row)
         if not asks:
             box.add(label("Keine Rückfragen.", "muted"))
         boxes["fragen"] = box
@@ -3068,8 +3281,7 @@ class LlmPage(Page):
         self.ctl = ctl
         self.note = label("")
         self.note.setMinimumWidth(1)          # eine lange Meldung darf die Kopfzeile nicht breiter machen als das Fenster
-        self.head.addWidget(self.note)
-        self.head.addWidget(button("Speichern", self.save, "primary"))
+        self.lead(button("Speichern", self.save, "primary"), self.note)
 
         # Verbindung
         self.active = ""                  # Name des gewählten Anbieters; unter diesem Namen liegt sein Schlüssel
@@ -3526,8 +3738,7 @@ class PromptPage(Page):
         self.prompts, self.current = [], -1
         self.note = label("")
         self.note.setMinimumWidth(1)          # eine lange Meldung darf die Kopfzeile nicht breiter machen als das Fenster
-        self.head.addWidget(self.note)
-        self.head.addWidget(button("Speichern", self.save, "primary"))
+        self.lead(button("Speichern", self.save, "primary"), self.note)
         self.list = QtWidgets.QListWidget()
         self.list.setFixedWidth(210)
         self.list.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
@@ -3568,8 +3779,9 @@ class PromptPage(Page):
         # Menüpunkte links
         self.menu = {name: QtWidgets.QCheckBox(name) for name in self.MENU}
         self.body.addWidget(card(
-            hbox(label("Menüpunkte links", "h2"),
-                 info("Abgewählte Menüpunkte verschwinden aus der Leiste links. Aufnahme und Einstellungen bleiben immer."),
+            hbox(label("Anzeigen", "h2"),
+                 info("Abgewählt verschwinden Verlauf und Wortschatz aus der Leiste links und die Auswahl „Übergabe“ von "
+                      "der Seite Aufnahme. Aufnahme und Einstellungen bleiben immer."),
                  None, spacing=8),
             hbox(*self.menu.values(), None, spacing=26)))
 
@@ -3770,8 +3982,7 @@ class SettingsPage(Page):
         self.ctl = ctl
         self.note = label("")
         self.note.setMinimumWidth(1)          # eine lange Meldung darf die Kopfzeile nicht breiter machen als das Fenster
-        self.head.addWidget(self.note)
-        self.head.addWidget(button("Speichern", self.save, "primary"))
+        self.lead(button("Speichern", self.save, "primary"), self.note)
         self.hold = KeyField(ctl, optional=False)
         self.lock = KeyField(ctl, single=True)
         self.paste = KeyField(ctl)
@@ -3782,6 +3993,9 @@ class SettingsPage(Page):
         self.clip = Check("Zwischenablage nach dem Einfügen wiederherstellen")
         self.warm = Check("Mikrofon offen halten: Diktat startet ohne Verzögerung, die erste Silbe geht nicht verloren")
         self.signs = Check("Satzzeichen diktieren: „Punkt“, „Komma“, „Doppelpunkt“, „neue Zeile“, „neuer Absatz“ werden zu Zeichen")
+        self.speakers = Check("Sprecher trennen: Gespräche mit mehreren Personen stehen als „Sprecher 1: …“, „Sprecher 2: …“ da")
+        self.speakers.setToolTip(tip("Gilt für Aufnahmen und Dateien. Die App hört mit, wer wann spricht, und ordnet jedes Wort "
+                                     "einer Stimme zu; bei nur einer Stimme bleibt der Text, wie er ist. Läuft auf diesem Rechner."))
         self.warm.setToolTip("Das Mikrofon bleibt geöffnet, solange LocalScribe läuft (Windows zeigt das Mikrofon-Symbol). "
                              "Außerhalb eines Diktats wird nur die letzte Viertelsekunde im Arbeitsspeicher gehalten.")
         self.phone = Check("Handy als Mikrofon: Telefon im selben WLAN nimmt auf, der Text erscheint hier")
@@ -3813,7 +4027,7 @@ class SettingsPage(Page):
                  ("Zielfenster merken / lösen", self.target)),
             ))
         self.body.addWidget(card(label("Aufnahme", "h2"), form(("Mikrofon", self.mic)),
-                                 self.sounds, self.clip, self.warm, self.signs))
+                                 self.sounds, self.clip, self.warm, self.signs, self.speakers))
         self.body.addWidget(card(
             head("Handy als Mikrofon", "Einschalten, speichern, dann den QR-Code mit dem Telefon scannen. Das Telefon zeigt einmal eine "
                  "Zertifikatswarnung (die Seite kommt von diesem Rechner, nicht aus dem Internet): „Erweitert“ und "
@@ -4132,6 +4346,7 @@ class SettingsPage(Page):
         self.clip.setChecked(bool(cfg.get("restore_clipboard", True)))
         self.warm.setChecked(bool(cfg.get("mic_warm")))
         self.signs.setChecked(bool(cfg.get("spoken_punctuation")))
+        self.speakers.setChecked(bool(cfg.get("speakers")))
         self.phone.setChecked(bool((cfg.get("phone") or {}).get("enabled")))
         self.days.setValue(int(cfg.get("history_days") or 0))
         self.history.setChecked(bool(cfg.get("history_enabled", True)))
@@ -4190,7 +4405,7 @@ class SettingsPage(Page):
                             hotkey_target=target,
                             microphone=self.mic.currentData(), sounds=self.sounds.isChecked(),
                             restore_clipboard=self.clip.isChecked(), mic_warm=self.warm.isChecked(),
-                            spoken_punctuation=self.signs.isChecked(),
+                            spoken_punctuation=self.signs.isChecked(), speakers=self.speakers.isChecked(),
                             history_days=self.days.value(),
                             history_enabled=self.history.isChecked(),
                             model_dir=self.model_dir.text().strip())
@@ -4207,33 +4422,35 @@ class SettingsPage(Page):
 
 
 class Tabs(QtWidgets.QWidget):
-    """Mehrere Seiten unter einem Menüpunkt, oben als Reiter: [(Name, Seite), …]."""
+    """Mehrere Seiten unter einem Menüpunkt: [(Name, Seite), …]. Die Reiter stehen in der Kopfzeile jeder Seite, rechts
+    neben der Überschrift, wie auf der Seite Aufnahme; die Überschrift nennt den Menüpunkt."""
 
-    def __init__(self, entries):
+    def __init__(self, title, entries):
         super().__init__()
         self.pages = [page for _, page in entries]
-        self.tabs = QtWidgets.QButtonGroup(self)
-        row = QtWidgets.QHBoxLayout()
-        row.setContentsMargins(30, 18, 30, 0)
-        row.setSpacing(6)
         self.stack = QtWidgets.QStackedWidget()
-        for i, (name, _) in enumerate(entries):
-            b = QtWidgets.QPushButton(name, checkable=True, objectName="tab")
-            b.setCursor(Qt.PointingHandCursor)
-            self.tabs.addButton(b, i)
-            row.addWidget(b)
-            self.stack.addWidget(self.pages[i])
-        row.addStretch(1)
+        self.strips = []                                 # je Seite ihre eigene Reiterzeile
+        for i, page in enumerate(self.pages):
+            page.title.setText(title)
+            strip = QtWidgets.QButtonGroup(page)
+            for k, (name, _) in enumerate(entries):
+                b = QtWidgets.QPushButton(name, checkable=True, objectName="tab")
+                b.setCursor(Qt.PointingHandCursor)
+                b.setChecked(k == i)
+                strip.addButton(b, k)
+                page.head.addWidget(b)
+            strip.idClicked.connect(self.show_tab)
+            self.strips.append(strip)
+            self.stack.addWidget(page)
+        self.tabs = self.strips[0]
         lay = QtWidgets.QVBoxLayout(self)
         lay.setContentsMargins(0, 0, 0, 0)
         lay.setSpacing(0)
-        lay.addLayout(row)
         lay.addWidget(self.stack, 1)
-        self.tabs.idClicked.connect(self.show_tab)
-        self.tabs.button(0).setChecked(True)
 
     def show_tab(self, i):
-        self.tabs.button(i).setChecked(True)
+        for own, strip in enumerate(self.strips):        # jede Zeile zeigt wieder ihre eigene Seite als gewählt
+            strip.button(own).setChecked(True)
         self.pages[i].refresh()
         self.stack.setCurrentIndex(i)
 
@@ -4270,8 +4487,7 @@ class Hub(QtWidgets.QWidget):
         self.pages = [
             ("Verlauf", HistoryPage(ctl)),
             ("Aufnahme", VisitPage(ctl)),
-            ("Übergabe", VisitPage(ctl, "handover")),
-            ("Wortschatz", Tabs([("Wörterbuch", MapPage(ctl, "Wörterbuch",
+            ("Wortschatz", Tabs("Wortschatz", [("Wörterbuch", MapPage(ctl, "Wörterbuch",
                                    "Wörter, die falsch erkannt werden, automatisch ersetzen. "
                                    "Groß- und Kleinschreibung spielt beim Erkennen keine Rolle.",
                                    "dictionary", ["Erkannt wird", "Ersetzen durch"], learn=True)),
@@ -4281,7 +4497,8 @@ class Hub(QtWidgets.QWidget):
                                       "Für einen Zeilenumbruch \\n schreiben.",
                                       "snippets", ["Stichwort", "Text"],
                                       starter=("Normalbefunde hinzufügen", NORMAL)))])),
-            ("Einstellungen", Tabs([("Allgemein", SettingsPage(ctl)), ("LLM", LlmPage(ctl)), ("Prompts", PromptPage(ctl))])),
+            ("Einstellungen", Tabs("Einstellungen", [("Allgemein", SettingsPage(ctl)), ("LLM", LlmPage(ctl)),
+                                             ("Prompts", PromptPage(ctl))])),
         ]
         self.buttons = QtWidgets.QButtonGroup(self)
         for i, (name, page) in enumerate(self.pages):
@@ -4623,7 +4840,7 @@ class Hub(QtWidgets.QWidget):
 
     def rebuild_nav(self):
         """Leiste links nach den Einstellungen richten: abgewählte Menüpunkte ausblenden, angepinnte Prompts als eigene
-        Punkte unter „Übergabe“ zeigen."""
+        Punkte unter „Aufnahme“ zeigen."""
         hidden = set(self.ctl.cfg.get("menu_hidden") or []) & set(PromptPage.MENU)
         names = [p["name"] for p in self.ctl.cfg.get("prompts") or []
                  if p.get("pin") and p.get("name") and (p.get("text") or "").strip()]
@@ -4638,7 +4855,7 @@ class Hub(QtWidgets.QWidget):
             b.setParent(None)
             b.deleteLater()
         self.pins = []
-        at = self.nav.indexOf(self.buttons.button(2)) + 1
+        at = self.nav.indexOf(self.buttons.button(1)) + 1
         for k, name in enumerate(names):
             b = QtWidgets.QPushButton(checkable=True)
             font = QtGui.QFont(b.font())

@@ -227,8 +227,9 @@ DEFAULTS = {
     "training_scores": [],        # Messungen mit Prüfsätzen: Zeitpunkt, Fachrichtung, Wortfehler, Trainingsminuten
     "live_preview": True,         # Aufnahme: laufende Äußerung schon beim Sprechen vorläufig anzeigen
     "model_dir": "",              # eigener Ordner mit Sprachmodellen (z. B. ein gemeinsames Netzlaufwerk); leer = keiner
-    "handover_frame": "zna",      # Übergabe: zuletzt gewählter Bereich (zna, station, its, pflege); gilt für den nächsten Fall
-    "menu_hidden": [],            # abgewählte Menüpunkte links: "Verlauf", "Übergabe", "Wortschatz"
+    "handover_frame": "zna",      # Übergabe: zuletzt gewählter Bereich (zna, station, its); steht beim nächsten Mal bereit
+    "menu_hidden": [],            # abgewählt: die Menüpunkte "Verlauf" und "Wortschatz", die Auswahl "Übergabe" auf der Seite Aufnahme
+    "handover_ack": False,        # der einmalige Hinweis vor der ersten Übergabe (experimentell, kein Medizinprodukt) ist gelesen
     "visite_prompt": "",          # Visite & Übergabe: eigene Anweisung an das Sprachmodell; leer = die mitgelieferte
     "visite_model": "",           # Modell für den Arztbrief; leer = visite.WRITER bei OpenRouter, sonst das LLM-Modell
     "visite_jev": "",             # Jev-Modell für die Ersteinschätzung; leer = ~typesafe/jev-latest

@@ -73,7 +73,7 @@ beendet sie nicht; sie bleibt im Infobereich (Rechtsklick → Beenden).
 - **Aufnahme** – einmal drücken startet, noch einmal drücken beendet, auch nach einer Stunde.
   Der Text läuft live mit: beim Sprechen grau als Vorschau, nach jeder Sprechpause als gültiger Text.
 - **Datei** – Audio- oder Videodatei hineinziehen (MP3, M4A, WAV, FLAC, OGG, MP4 …).
-- **Sprecher trennen** (Häkchen bei Aufnahme und Datei, ab Werk an) – für Gespräche: Der Text bekommt Zeilen
+- **Sprecher trennen** (ab Werk an; abschaltbar unter Einstellungen, Allgemein) – für Gespräche: Der Text bekommt Zeilen
   „Sprecher 1: …“, „Sprecher 2: …“; bei nur einer Stimme bleibt er, wie er ist. Läuft auf der CPU dieses Rechners;
   einmalig wird ein Stimmmodell geladen (26 MB). Siehe „Sprecher trennen“ unten.
 - **Wortschatz beim Erkennen** – die Erkennung verfolgt acht Lesarten gleichzeitig und bevorzugt die, die auf ein
@@ -89,17 +89,17 @@ beendet sie nicht; sie bleibt im Infobereich (Rechtsklick → Beenden).
   Auswahlliste „Meine Prompts“; einen eigenen schreibt man in die Zeile darunter, auf Wunsch formuliert das
   Sprachmodell ihn aus einer kurzen Eingabe aus. Ein angepinnter Prompt bekommt einen eigenen Menüpunkt und läuft
   nach der Aufnahme von selbst. Die Erkennung läuft lokal; Prompts gehen an das eingestellte Sprachmodell.
-- **Übergabe** – eigener Bereich für Visite und Übergabe, mit einer Ablage je Fall, direkt beantwortbaren Rückfragen
-  und „Neu erzeugen“.
-  Vier Bereiche, oben rechts wählbar: **Notaufnahme**, **Normalstation**, **Intensivstation** und **Pflege** (dort
-  schreibt ein Knopf den Pflegebericht, ohne Einschätzung, Sicherheitsnetz und Rückfragen).
+- **Übergabe** – eine Auswahl auf der Seite Aufnahme, bei den Prompts unter dem Transkript, mit Ablage, direkt
+  beantwortbaren Rückfragen und „Neu erzeugen“. Drei Bereiche: **Notaufnahme**, **Normalstation** und
+  **Intensivstation**; den Pflegebericht schreibt der Prompt gleichen Namens. Vor der ersten Übergabe bestätigt man
+  einmal den Hinweis „Experimentell, kein Medizinprodukt“.
   Jev (TypeSafe, über OpenRouter) antwortet in etwa einer halben Sekunde mit Wahrscheinlichkeiten. In der Notaufnahme
   als Ersteinschätzung: Notaufnahme oder Notdienstpraxis, Schockraum, fallführende Abteilung, Bett, EKG, Zugang, Labor,
   Bildgebung. Auf Station und Intensiv als Tages-Check: droht eine Verschlechterung oder Eskalation, ist Entlassung
   oder Verlegung realistisch, und was heute zu prüfen ist (Antibiotika, Medikation, Katheter, Prophylaxen,
   Aufwachversuch, Therapieziel …). Ein Sprachmodell schreibt je nach Bereich Arztbrief, Visiteneintrag oder Übergabe
   nach Organsystemen, dazu Sicherheitsnetz, gezielte Rückfragen, Kodiervorschlag und Patienteninfo (auf Intensiv:
-  Text für Angehörige), jeweils als eigener Block zum Auf- und Zuklappen und Kopieren; alles liegt unter „Fälle“
+  Text für Angehörige), jeweils als eigener Block zum Auf- und Zuklappen und Kopieren; alles liegt unter „Gespeichert“
   (Klick öffnet; Stift und X beim Überfahren). Verhörte Arzneimittel, Dosen und fehlende Vorzeichen meldet das Sicherheitsnetz.
   Nur für Forschung, Lehre und den Vergleich von Modellen, kein Medizinprodukt. Die Anweisung ist unter Einstellungen
   änderbar.

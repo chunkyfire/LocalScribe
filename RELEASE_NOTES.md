@@ -1,3 +1,17 @@
+## LocalScribe 2.2.0
+
+- **Übergabe gehört jetzt zur Seite Aufnahme.** Die eigene Seite entfällt. Unter dem Transkript steht bei den Prompts
+  die Auswahl „Übergabe“ mit den Bereichen Notaufnahme, Normalstation und Intensivstation. Das Ergebnis erscheint auf
+  derselben Seite, mit „Neu erzeugen“, Ablage und Rückfragen zum Beantworten. Vor der ersten Übergabe bestätigst du
+  einmal den Hinweis „Experimentell, kein Medizinprodukt“. Deine bisherigen Fälle liegen unter „Gespeichert“. Den
+  Pflegebericht schreibt wie bisher der Prompt „Pflegebericht“. Wer die Übergabe nicht braucht, wählt sie in den
+  Einstellungen, Reiter „Prompts“, ab.
+- **Aufgeräumte Seiten.** Jede Seite hat dieselbe Kopfzeile: Überschrift, Knopf der Seite, rechts die Reiter. Kopfzeile,
+  Karten, Listen und Ergebnis enden an derselben Kante, der Rollbalken steht daneben. Das Ergebnis der Übergabe steht
+  in zwei gleich breiten Spalten, die Rückfragen zu zweit nebeneinander. Die Knöpfe der Prompts stehen in einer Zeile.
+- **„Sprecher trennen“ ist eine Einstellung.** Es ist ab Werk an und steht jetzt unter Einstellungen, Allgemein,
+  statt als Haken auf der Seite Aufnahme.
+
 ## LocalScribe 2.1.3
 
 - **Übergabe für Normalstation und Intensivstation zeigt wieder ein Ergebnis, wenn der Anbieter nicht OpenRouter ist.**

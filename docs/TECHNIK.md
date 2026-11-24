@@ -1,6 +1,6 @@
 # LocalScribe – Technische Dokumentation
 
-Stand: Version 2.1.3. Für Betrieb, IT und alle, die den Code lesen oder prüfen wollen. Die Bedienung steht im
+Stand: Version 2.2.0. Für Betrieb, IT und alle, die den Code lesen oder prüfen wollen. Die Bedienung steht im
 [Handbuch](LocalScribe-Handbuch.pdf), die Messwerte mit Methode in [`werkzeug/messen/ERGEBNIS.md`](../werkzeug/messen/ERGEBNIS.md).
 
 ## 1. Was die App ist
@@ -153,7 +153,7 @@ Gepackt mit PyInstaller zu einem Ordner mit `LocalScribe.exe`; `build.ps1` strei
 | `diktat/fach.py` | Fachbegriffe am Klang reparieren (Lexikon mit 39.600 Begriffen, Wirkstoffendungen) |
 | `diktat/training.py` | Stimmtraining: Übungs- und Prüfsätze je Fachrichtung, Lernen aus vorgelesenen Sätzen und aus Aufnahmen mit Transkript, Wortfehler einer Messung |
 | `werkzeug/lesetexte/` | Quelltexte der Übungssätze je Fachrichtung und `bauen.py`, das sie prüft, ordnet und `diktat/lesetexte.json` schreibt |
-| `diktat/visite.py` | Visite & Übergabe: Fall auswerten lassen (Arztbrief-Entwurf, Sicherheitsnetz, Rückfragen), Fallablage mit Papierkorb |
+| `diktat/visite.py` | Visite & Übergabe: Fall auswerten lassen (Arztbrief-Entwurf, Sicherheitsnetz, Rückfragen), Ablage der Aufnahmen und Fälle mit Papierkorb. Seit 2.2.0 ist die Übergabe eine Auswahl auf der Seite Aufnahme (`hub.VisitPage._handover`); `visite.adopt` holt beim ersten Start die Fälle der früheren Seite Übergabe aus `visite.sqlite` nach `aufnahme.sqlite` |
 | `diktat/jev.py` | Jev (TypeSafe): je Rahmen ein fester Fragesatz in einer Anfrage, Antworten als Wahrscheinlichkeiten. Notaufnahme: 17 Fragen aus WacheNG (Ersteinschätzung). Station: 17, Intensiv: 19 Fragen (Tages-Check: Lage und „heute prüfen“) |
 | `diktat/sprecher.py` | Sprecher trennen: pyannote-Segmentierung und WeSpeaker-Stimmabdrücke (ONNX, CPU) |
 | `diktat/vad.py` | Sprache oder Stille (Silero VAD) |
@@ -163,7 +163,7 @@ Gepackt mit PyInstaller zu einem Ordner mit `LocalScribe.exe`; `build.ps1` strei
 | `diktat/schutz.py` | Namen, Daten, Orte, Nummern ersetzen, bevor Text an einen fremden Server geht |
 | `diktat/handy.py` | Handy als Mikrofon: HTTPS-Seite im eigenen Netz |
 | `diktat/winio.py` | Windows: globale Tasten, Einfügen, Zielfenster, Autostart |
-| `diktat/hub.py`, `ui.py` | Fenster, Statusleiste, Tray-Symbol, Verlauf. `hub.Check` ist ein Ankreuzfeld, dessen Text umbricht; `tests/test_fenster.py` prüft, dass keine Seite breiter ist als ihr Fenster (1000 × 680 und 860 × 560) |
+| `diktat/hub.py`, `ui.py` | Fenster, Statusleiste, Tray-Symbol, Verlauf. Vier Seiten: Verlauf, Aufnahme, Wortschatz, Einstellungen; alle Blöcke einer Seite enden an derselben Kante, der Rollbalken steht in einem Streifen daneben (`Page.GUTTER`). `hub.Check` ist ein Ankreuzfeld, dessen Text umbricht; `tests/test_fenster.py` prüft, dass keine Seite breiter ist als ihr Fenster (1000 × 680 und 860 × 560) |
 | `diktat/config.py` | Einstellungen und Ablageorte |
 
 ## 5. Vom Ton zum Text
@@ -286,7 +286,8 @@ zuletzt `%TEMP%` aus (`config._dir`).
 | `modelle\` | Sprachmodell, Stimmmodell für die Sprechertrennung |
 | `diktat.log`, `absturz.log` | Betriebsmeldungen: Dauer, Zeichenzahl, Fehler. Kein diktierter Text. |
 | `aufnahmen\` | Sicherung einer laufenden langen Aufnahme; wird gelöscht, sobald der Text fertig ist |
-| `visite.sqlite` | Fälle aus „Visite & Übergabe“: Eingabe und Ergebnis als Text, mit Papierkorb |
+| `aufnahme.sqlite` | Aufnahmen der Seite Aufnahme: Transkript, Ergebnisse der Prompts und der Übergabe als Text, mit Papierkorb |
+| `visite.sqlite` | bis 2.1.3 die Fälle der Seite Übergabe. 2.2.0 übernimmt sie einmal nach `aufnahme.sqlite`; die Datei bleibt liegen und trägt danach den Vermerk `uebernommen` |
 | `training\` | vorgelesene Übungssätze des Stimmtrainings als Ton mit Text (`index.jsonl`), Prüfsätze in `pruef\`; nie Diktate |
 
 Der Schlüssel für ein Sprachmodell-Konto liegt in der Windows-Anmeldeinformationsverwaltung (`keyring`), nicht in
@@ -302,10 +303,10 @@ Frage nach einer neuen Fassung: nur auf Klick, oder einmal am Tag, wenn das in d
 | `github.com` (Release `modell-primeline-1`) | erster Start | nichts außer der Anfrage |
 | `huggingface.co` | Ausweichquelle für das Modell; Stimmmodell beim ersten Einschalten der Sprechertrennung | nichts außer der Anfrage |
 | `github.com` (Releases) | auf Klick (unten links im Fenster oder „Nach Updates suchen“) und beim Laden der geänderten Dateien; einmal am Tag nur mit `update_check` (ab Werk aus) | nichts außer der Anfrage |
-| selbst eingetragener Sprachmodell-Server | nur wenn KI-Nachbearbeitung oder Fachkorrektur eingeschaltet sind oder in „Visite & Übergabe“ auf „Auswerten“ gedrückt wird | der diktierte Text bzw. der Fall, nach dem Schutz aus `schutz.py` |
+| selbst eingetragener Sprachmodell-Server | nur wenn KI-Nachbearbeitung oder Fachkorrektur eingeschaltet sind oder auf der Seite Aufnahme eine Übergabe gewählt wird | der diktierte Text bzw. der Fall, nach dem Schutz aus `schutz.py` |
 | selbst eingetragener Sprachmodell-Server, `/models` | auf Klick „Modelle abrufen“, nach dem Speichern eines neuen Schlüssels und nach der Wahl eines Servers, zu dem schon ein Schlüssel gespeichert ist (lokale Server und OpenRouter auch ohne); gewählt wird in der einen Liste „Anbieter“ | nichts außer der Anfrage; ein gespeicherter Schlüssel geht nur an den Server, zu dem er gehört |
 | `api.noirdoc.de/v1/prices` | einmal je Programmlauf, zusammen mit der Modellliste von Noirdoc | nichts außer der Anfrage, ohne Schlüssel; daraus liest die App, welcher Anbieter ein Modell ausliefert (`llm.noirdoc_out`) |
-| `openrouter.ai/api/v1/systemone` (Jev) | nur bei „Auswerten“ in „Visite & Übergabe“ und nur, wenn OpenRouter der eingetragene Server ist | der Fall nach dem Schutz aus `schutz.py`, dazu die festen Fragen und, falls eingetragen, die Hausregeln |
+| `openrouter.ai/api/v1/systemone` (Jev) | nur bei einer Übergabe (Seite Aufnahme) und nur, wenn OpenRouter der eingetragene Server ist | der Fall nach dem Schutz aus `schutz.py`, dazu die festen Fragen und, falls eingetragen, die Hausregeln |
 | eigenes Netz, Port 8765 | nur wenn „Handy als Mikrofon“ eingeschaltet ist | nichts; das Telefon schickt Ton an den Rechner |
 
 Telemetrie, Lizenzabfragen oder Updates ohne Klick gibt es nicht. Für eine Firewall genügt es, nach dem ersten
@@ -346,9 +347,10 @@ zufälligen Schlüssel aus dem QR-Code. Ab Werk aus.
 | `learn_terms`, `learned` | Wortschatz aus Diktaten mitlernen; die gelernten Wörter | an, leer |
 | `vocabulary`, `dictionary` | eigene Begriffe (im Wörterbuch als „(am Klang)“); Wörterbuch „falsch → richtig“ | leer |
 | `base_dictionary` | mitgeliefertes medizinisches Wörterbuch und Lexikon anwenden | an |
-| `speakers` | Sprecher trennen bei Aufnahme, Datei und Übergabe; bei nur einer Stimme bleibt der Text unverändert | an (seit 1.5.0, einmal umgestellt) |
-| `handover_frame` | zuletzt gewählter Bereich der Übergabe: `zna`, `station`, `its` oder `pflege` (Pflege schreibt nur den Pflegebericht, ohne Jev: `hub.VisitPage._care`) | `zna` |
-| `menu_hidden` | abgewählte Menüpunkte links: `Verlauf`, `Übergabe`, `Wortschatz` (Einstellungen, Prompts) | leer |
+| `speakers` | Sprecher trennen bei Aufnahme und Datei; bei nur einer Stimme bleibt der Text unverändert. Einstellbar unter Einstellungen, Allgemein | an (mit 2.1.1 einmal überall wieder eingeschaltet) |
+| `handover_frame` | zuletzt gewählter Bereich der Übergabe: `zna`, `station` oder `its` | `zna` |
+| `handover_ack` | der einmalige Hinweis „Experimentell, kein Medizinprodukt“ vor der ersten Übergabe ist bestätigt (`hub.VisitPage._ack`) | aus |
+| `menu_hidden` | abgewählt in den Einstellungen, Reiter Prompts: die Menüpunkte `Verlauf` und `Wortschatz` und die Auswahl `Übergabe` auf der Seite Aufnahme | leer |
 | `spoken_punctuation` | „Punkt“, „Komma“, „neue Zeile“ als Zeichen schreiben | aus |
 | `llm`, `llm_fix` | Sprachmodell-Server und Fachkorrektur. Die Fachkorrektur nimmt bei OpenRouter und Noirdoc das schnelle Modell aus `llm.QUICK`, sonst das gewählte. Sie fragt nur an, wenn der Text ein unbekanntes Wort, eine eigene Berichtigung oder Fachsprache enthält (`korrektor.clinical`): Alltagstext wie eine Mail geht nicht hinaus und wartet nicht. Beim Start lädt `korrektor.warm` im Hintergrund Lexikon und Namenserkennung, damit das erste Diktat nicht darauf wartet. Den API-Schlüssel liest `llm.get_key` je Programmlauf einmal aus dem Schlüsselspeicher | aus |
 | `llm_profiles`, `llm_models` | gespeicherte Anbieter (Name, Adresse, Modell; der Schlüssel liegt im Windows-Schlüsselspeicher) und eigene Modellnamen je Server. Die kurze Liste je Anbieter steht in `llm.PICKS`, das erste ist die Vorgabe | leer |

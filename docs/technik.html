@@ -172,7 +172,7 @@
 <body>
 <h1 id="localscribe--technische-dokumentation">LocalScribe – Technische
 Dokumentation</h1>
-<p>Stand: Version 2.1.3. Für Betrieb, IT und alle, die den Code lesen
+<p>Stand: Version 2.2.0. Für Betrieb, IT und alle, die den Code lesen
 oder prüfen wollen. Die Bedienung steht im <a
 href="https://chunkyfire.github.io/LocalScribe/LocalScribe-Handbuch.pdf">Handbuch</a>,
 die Messwerte mit Methode in <a
@@ -444,7 +444,12 @@ Messung</td>
 <tr class="odd">
 <td><code>diktat/visite.py</code></td>
 <td>Visite &amp; Übergabe: Fall auswerten lassen (Arztbrief-Entwurf,
-Sicherheitsnetz, Rückfragen), Fallablage mit Papierkorb</td>
+Sicherheitsnetz, Rückfragen), Ablage der Aufnahmen und Fälle mit
+Papierkorb. Seit 2.2.0 ist die Übergabe eine Auswahl auf der Seite
+Aufnahme (<code>hub.VisitPage._handover</code>);
+<code>visite.adopt</code> holt beim ersten Start die Fälle der früheren
+Seite Übergabe aus <code>visite.sqlite</code> nach
+<code>aufnahme.sqlite</code></td>
 </tr>
 <tr class="even">
 <td><code>diktat/jev.py</code></td>
@@ -490,10 +495,12 @@ Server geht</td>
 </tr>
 <tr class="odd">
 <td><code>diktat/hub.py</code>, <code>ui.py</code></td>
-<td>Fenster, Statusleiste, Tray-Symbol, Verlauf. <code>hub.Check</code>
-ist ein Ankreuzfeld, dessen Text umbricht;
-<code>tests/test_fenster.py</code> prüft, dass keine Seite breiter ist
-als ihr Fenster (1000 × 680 und 860 × 560)</td>
+<td>Fenster, Statusleiste, Tray-Symbol, Verlauf. Vier Seiten: Verlauf,
+Aufnahme, Wortschatz, Einstellungen; alle Blöcke einer Seite enden an
+derselben Kante, der Rollbalken steht in einem Streifen daneben
+(<code>Page.GUTTER</code>). <code>hub.Check</code> ist ein Ankreuzfeld,
+dessen Text umbricht; <code>tests/test_fenster.py</code> prüft, dass
+keine Seite breiter ist als ihr Fenster (1000 × 680 und 860 × 560)</td>
 </tr>
 <tr class="even">
 <td><code>diktat/config.py</code></td>
@@ -741,11 +748,17 @@ Text.</td>
 Text fertig ist</td>
 </tr>
 <tr class="even">
-<td><code>visite.sqlite</code></td>
-<td>Fälle aus „Visite &amp; Übergabe“: Eingabe und Ergebnis als Text,
-mit Papierkorb</td>
+<td><code>aufnahme.sqlite</code></td>
+<td>Aufnahmen der Seite Aufnahme: Transkript, Ergebnisse der Prompts und
+der Übergabe als Text, mit Papierkorb</td>
 </tr>
 <tr class="odd">
+<td><code>visite.sqlite</code></td>
+<td>bis 2.1.3 die Fälle der Seite Übergabe. 2.2.0 übernimmt sie einmal
+nach <code>aufnahme.sqlite</code>; die Datei bleibt liegen und trägt
+danach den Vermerk <code>uebernommen</code></td>
+</tr>
+<tr class="even">
 <td><code>training\</code></td>
 <td>vorgelesene Übungssätze des Stimmtrainings als Ton mit Text
 (<code>index.jsonl</code>), Prüfsätze in <code>pruef\</code>; nie
@@ -793,7 +806,7 @@ beim Laden der geänderten Dateien; einmal am Tag nur mit
 <tr class="even">
 <td>selbst eingetragener Sprachmodell-Server</td>
 <td>nur wenn KI-Nachbearbeitung oder Fachkorrektur eingeschaltet sind
-oder in „Visite &amp; Übergabe“ auf „Auswerten“ gedrückt wird</td>
+oder auf der Seite Aufnahme eine Übergabe gewählt wird</td>
 <td>der diktierte Text bzw. der Fall, nach dem Schutz aus
 <code>schutz.py</code></td>
 </tr>
@@ -816,8 +829,8 @@ welcher Anbieter ein Modell ausliefert
 </tr>
 <tr class="odd">
 <td><code>openrouter.ai/api/v1/systemone</code> (Jev)</td>
-<td>nur bei „Auswerten“ in „Visite &amp; Übergabe“ und nur, wenn
-OpenRouter der eingetragene Server ist</td>
+<td>nur bei einer Übergabe (Seite Aufnahme) und nur, wenn OpenRouter der
+eingetragene Server ist</td>
 <td>der Fall nach dem Schutz aus <code>schutz.py</code>, dazu die festen
 Fragen und, falls eingetragen, die Hausregeln</td>
 </tr>
@@ -913,31 +926,35 @@ ab</td>
 </tr>
 <tr class="odd">
 <td><code>speakers</code></td>
-<td>Sprecher trennen bei Aufnahme, Datei und Übergabe; bei nur einer
-Stimme bleibt der Text unverändert</td>
-<td>an (seit 1.5.0, einmal umgestellt)</td>
+<td>Sprecher trennen bei Aufnahme und Datei; bei nur einer Stimme bleibt
+der Text unverändert. Einstellbar unter Einstellungen, Allgemein</td>
+<td>an (mit 2.1.1 einmal überall wieder eingeschaltet)</td>
 </tr>
 <tr class="even">
 <td><code>handover_frame</code></td>
 <td>zuletzt gewählter Bereich der Übergabe: <code>zna</code>,
-<code>station</code>, <code>its</code> oder <code>pflege</code> (Pflege
-schreibt nur den Pflegebericht, ohne Jev:
-<code>hub.VisitPage._care</code>)</td>
+<code>station</code> oder <code>its</code></td>
 <td><code>zna</code></td>
 </tr>
 <tr class="odd">
-<td><code>menu_hidden</code></td>
-<td>abgewählte Menüpunkte links: <code>Verlauf</code>,
-<code>Übergabe</code>, <code>Wortschatz</code> (Einstellungen,
-Prompts)</td>
-<td>leer</td>
+<td><code>handover_ack</code></td>
+<td>der einmalige Hinweis „Experimentell, kein Medizinprodukt“ vor der
+ersten Übergabe ist bestätigt (<code>hub.VisitPage._ack</code>)</td>
+<td>aus</td>
 </tr>
 <tr class="even">
+<td><code>menu_hidden</code></td>
+<td>abgewählt in den Einstellungen, Reiter Prompts: die Menüpunkte
+<code>Verlauf</code> und <code>Wortschatz</code> und die Auswahl
+<code>Übergabe</code> auf der Seite Aufnahme</td>
+<td>leer</td>
+</tr>
+<tr class="odd">
 <td><code>spoken_punctuation</code></td>
 <td>„Punkt“, „Komma“, „neue Zeile“ als Zeichen schreiben</td>
 <td>aus</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>llm</code>, <code>llm_fix</code></td>
 <td>Sprachmodell-Server und Fachkorrektur. Die Fachkorrektur nimmt bei
 OpenRouter und Noirdoc das schnelle Modell aus <code>llm.QUICK</code>,
@@ -950,7 +967,7 @@ darauf wartet. Den API-Schlüssel liest <code>llm.get_key</code> je
 Programmlauf einmal aus dem Schlüsselspeicher</td>
 <td>aus</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>llm_profiles</code>, <code>llm_models</code></td>
 <td>gespeicherte Anbieter (Name, Adresse, Modell; der Schlüssel liegt im
 Windows-Schlüsselspeicher) und eigene Modellnamen je Server. Die kurze
@@ -958,7 +975,7 @@ Liste je Anbieter steht in <code>llm.PICKS</code>, das erste ist die
 Vorgabe</td>
 <td>leer</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>prompts</code></td>
 <td>Prompts an das Sprachmodell: Name, Anweisung, Taste,
 <code>record</code> (Knopf auf der Seite Aufnahme), <code>list</code>
@@ -988,14 +1005,14 @@ sie noch der Vorgabe entsprach (<code>config._prompts_v8</code>)</td>
 <td>Aufnahme zeigt Visite, Meeting-Protokoll, Arztbrief,
 Pflegebericht</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>visite_prompt</code></td>
 <td>eigene Anweisung für den Rahmen Notaufnahme; leer = die
 mitgelieferte. Normalstation und Intensivstation haben feste Prompts
 (<code>visite.STATION</code>, <code>visite.ITS</code>)</td>
 <td>leer</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>visite_model</code>, <code>visite_jev</code>,
 <code>visite_rules</code></td>
 <td>Modell für Arztbrief, Visiteneintrag und Übergabe (leer: bei
@@ -1008,47 +1025,47 @@ Jev-Modell (leer: <code>~typesafe/jev-latest</code>), Hausregeln für
 Jev</td>
 <td>leer</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>update_check</code></td>
 <td>einmal am Tag von selbst bei GitHub nach einer neueren Fassung
 fragen</td>
 <td>aus</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>profile_name</code></td>
 <td>gewähltes Profil am Programmordner; leer = die Daten dieses
 Rechners</td>
 <td>leer</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>training_keep</code></td>
 <td>vorgelesene Übungs- und Prüfsätze als Ton aufheben (kein Schalter im
 Fenster; für eine zentrale Vorgabe)</td>
 <td>an (seit 1.6.0)</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>field</code>, <code>training_scores</code></td>
 <td>Fachrichtung im Stimmtraining; Messungen mit Prüfsätzen (Zeitpunkt,
 Wortfehler, Trainingsminuten)</td>
 <td>leer</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>phone</code></td>
 <td>Handy als Mikrofon</td>
 <td>aus</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>model_dir</code></td>
 <td>eigener Ordner mit den Sprachmodellen, zum Beispiel ein
 Netzlaufwerk</td>
 <td>leer</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>live_preview</code> (nur Datei)</td>
 <td>Vorschau auf die laufende Äußerung in der Aufnahme</td>
 <td>an</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>threads</code> (nur Datei)</td>
 <td>Zahl der Rechen-Threads; 0 überlässt es der Laufzeit</td>
 <td>0</td>

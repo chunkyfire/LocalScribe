@@ -1013,5 +1013,25 @@ try:
 finally:
     config.DIR, config.FILE = _real
     _mo._beside = _beside0; _mo._alive.clear(); _mo._noted.clear()
+# 2.2.0: Die Seite Übergabe gibt es nicht mehr; ihre Fälle ziehen einmal in die Ablage der Aufnahme um
+from diktat import visite as _vi
+_dir = pathlib.Path(tempfile.mkdtemp())
+_old = _vi.Store(_dir / "visite.sqlite")
+_a = _old.save(None, "Zimmer 4", "Sturz unter Apixaban, erfunden.", {"visit": True, "frame": "zna", "documentation": {"anamnese": "Sturz."}})
+_b = _old.save(None, "Bett 3", "Übergabe, erfunden.", {"visit": True, "frame": "its", "items": [{"label": "Eintrag 1", "content": "Tag 4"}]})
+_old.db.close()
+_new = _vi.Store(_dir / "aufnahme.sqlite")
+_new.save(None, "Besprechung Montag", "Zeitplan.")
+check("Übergabe zieht um: beide Fälle liegen danach bei den Aufnahmen, mit Ergebnis, Bereich und Ablage",
+      _vi.adopt(_new, _dir / "visite.sqlite") == 2
+      and sorted((r[0], (r[2] or {}).get("frame")) for r in (_new.get(i) for i in (1, 2, 3))) == [("Besprechung Montag", None), ("Bett 3", "its"), ("Zimmer 4", "zna")]
+      and (_new.get(3)[2] or {}).get("items") == [{"label": "Eintrag 1", "content": "Tag 4"}])
+check("Ein zweiter Start übernimmt nichts doppelt; die alte Datei bleibt liegen",
+      _vi.adopt(_new, _dir / "visite.sqlite") == 0 and (_dir / "visite.sqlite").exists()
+      and _new.db.execute("SELECT COUNT(*) FROM faelle").fetchone()[0] == 3)
+check("Ohne alte Datei passiert nichts", _vi.adopt(_new, _dir / "gibtsnicht.sqlite") == 0)
+check("Ab Werk: Der Hinweis vor der ersten Übergabe ist noch nicht bestätigt, Sprecher trennen ist an",
+      config.DEFAULTS.get("handover_ack") is False and config.DEFAULTS.get("speakers") is True)
+
 print("FEHLER:" if failed else "ALLES OK", failed or "")
 sys.exit(1 if failed else 0)

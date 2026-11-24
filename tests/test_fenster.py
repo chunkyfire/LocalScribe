@@ -193,8 +193,8 @@ def pick(name):
 
 
 llm.list_models = fake_models
-hub.show_page(4)
-S = hub.pages[4][1]
+hub.show_page(3)
+S = hub.pages[3][1]
 S.show_tab(1)
 L = S.pages[1]
 settle()
@@ -299,16 +299,16 @@ P.on_pin.setChecked(True)
 P.menu["Wortschatz"].setChecked(False)
 P.save()
 pinned = [b.property("prompt") for b in hub.pins]
-check("Angepinnter Prompt steht als Menüpunkt links, unter Übergabe",
-      pinned == ["Tumorboard-Notiz"] and hub.nav.indexOf(hub.pins[0]) == hub.nav.indexOf(hub.buttons.button(2)) + 1, pinned)
+check("Angepinnter Prompt steht als Menüpunkt links, unter Aufnahme",
+      pinned == ["Tumorboard-Notiz"] and hub.nav.indexOf(hub.pins[0]) == hub.nav.indexOf(hub.buttons.button(1)) + 1, pinned)
 check("Abgewählter Menüpunkt verschwindet aus der Leiste, die anderen bleiben",
-      hub.buttons.button(3).isHidden() and not hub.buttons.button(2).isHidden() and ctl.cfg["menu_hidden"] == ["Wortschatz"])
+      hub.buttons.button(2).isHidden() and not hub.buttons.button(0).isHidden() and ctl.cfg["menu_hidden"] == ["Wortschatz"])
 P.menu["Wortschatz"].setChecked(True)
 P.save()
-check("Wieder angekreuzt, steht er wieder da", not hub.buttons.button(3).isHidden() and ctl.cfg["menu_hidden"] == [])
+check("Wieder angekreuzt, steht er wieder da", not hub.buttons.button(2).isHidden() and ctl.cfg["menu_hidden"] == [])
 
 # Einstellungen, Prompts: Das Zeichen neben der Anweisung formuliert aus oder verbessert (wie auf der Seite Aufnahme)
-hub.show_page(4)
+hub.show_page(3)
 S.show_tab(2)
 P.list.setCurrentRow(P.list.count() - 1)
 polished = []
@@ -420,49 +420,139 @@ first.on_open()
 settle()
 check("Klick auf die Zeile öffnet die Aufnahme", V.stack.currentIndex() == 0 and V.case is not None and V.text.toPlainText().strip() != "")
 
-# Übergabe: Bereich Pflege schreibt den Pflegebericht, sonst nichts
-hub.show_page(2)
-U = hub.pages[2][1]
+# Übergabe: keine eigene Seite mehr, sondern eine Auswahl auf der Seite Aufnahme
+hub.resize(1000, 680)
+hub.show_page(1)
+V._new()
+V.text.setPlainText("95-jährige Patientin, Sturz auf den Kopf, nimmt Apixaban. Kurz bewusstlos, jetzt wach.")
 settle()
-check("Übergabe: vier Bereiche, „Neuer Fall“ neben der Überschrift, kein Erklärtext auf der Seite",
-      [b.text() for b in U.frames.buttons()] == ["Notaufnahme", "Normalstation", "Intensivstation", "Pflege"]
-      and "Neuer Fall" in U.new_btn.text() and not [w for w in U.findChildren(QtWidgets.QLabel) if "Kein Medizinprodukt" in w.text()])
-U._frame_picked(3)
-U.text.setPlainText("Herr Beispiel vor dem Bett sitzend vorgefunden.")
+check("Es gibt vier Seiten; die Seite Übergabe ist weg", [name for name, _ in hub.pages] == ["Verlauf", "Aufnahme", "Wortschatz", "Einstellungen"])
+check("Aufnahme: „Übergabe“ steht bei den Prompts und bietet die drei Bereiche an",
+      V.hand.isVisible() and [a.text() for a in V.hand.menu().actions()] == ["Notaufnahme", "Normalstation", "Intensivstation"])
+check("In der Standardgröße stehen alle Knöpfe in einer Zeile; das Wort „Daraus machen:“ weicht dafür",
+      not V.task_label.isVisible() and len({V.task_row.itemAt(k).geometry().y() // 20 for k in range(1, V.task_row.count())}) == 1)
+hub.resize(1300, 800)
 settle()
-check("Bereich Pflege: Der Knopf heißt „Pflegebericht schreiben“", U.go.text() == "Pflegebericht schreiben" and U.frame() == "pflege")
-ran.clear()
-jev_calls = []
-visite.triage = lambda *a, **k: jev_calls.append("jev")
-visite.analyse = lambda *a, **k: jev_calls.append("brief")
-U._analyse()
-check("Er schreibt den Pflegebericht mit dem Prompt der Sammlung; Ersteinschätzung und Arztbrief laufen nicht",
-      wait(lambda: ((U.result or {}).get("texts") or {}).get("Pflegebericht") == "ERGEBNIS") and not jev_calls
-      and ran[-1] == (config.prompt_by_name(ctl.cfg, "Pflegebericht")["text"], "Herr Beispiel vor dem Bett sitzend vorgefunden."),
-      (ran[-1:], jev_calls))
-case = U.case
-U._new()
-U._frame_picked(0)
-U._open(case)
-check("Der Fall merkt sich den Bereich Pflege", U.frame() == "pflege" and U.go.text() == "Pflegebericht schreiben", U.frame())
-U._frame_picked(0)
-
-# Übergabe ohne Jev (jeder Anbieter außer OpenRouter): Auch Station und Intensiv zeigen das Dokument
+check("Im breiten Fenster steht „Daraus machen:“ davor", V.task_label.isVisible())
+hub.resize(1000, 680)
+settle()
+calls = []
+JEV = {"noul": {"admission": 0.91, "shock_red": 0.04, "shock_orange": 0.31, "ecg": 0.97, "iv_access": 0.93, "blood": 0.96,
+                "monitoring": 0.88, "sepsis_screening": 0.05, "img_sono": 0.12, "img_xray": 0.35, "img_ct": 0.98,
+                "img_mri": 0.03, "img_echo": 0.41},
+       "choice": {"placement": {"choice": "emergency_department", "p": 0.99}, "specialty": {"choice": "trauma_surgery", "p": 0.62},
+                  "lab_profile": {"choice": "basis2", "p": 0.7}, "ct_contrast": {"choice": "without_contrast", "p": 0.93}},
+       "model": "typesafe/jev-1.14", "at": 0}
+DOC = {"documentation": {"anamnese": "Sturz mit Kopfanprall unter Apixaban.", "befund": "GCS 15."},
+       "safetyAlerts": [{"severity": "warning", "context": "Sturz unter Antikoagulation", "suggestion": "cCT."}],
+       "followUpQuestions": [{"question": "Wann war die letzte Einnahme von Apixaban?", "rationale": "Blutungsrisiko.", "priority": "critical"},
+                             {"question": "Gab es eine Bewusstlosigkeit vor dem Sturz?", "rationale": "Synkope.", "priority": "high"},
+                             {"question": "Besteht die Dyspnoe erst seit dem Sturz?", "rationale": "Rippenfraktur.", "priority": "medium"}],
+       "codes": [{"code": "S01.0", "description": "Offene Wunde der behaarten Kopfhaut"}],
+       "patientHandout": {"title": "Information", "content": "Sie sind gestürzt."}}
+visite.triage = lambda cfg, text, request=None, frame="zna": calls.append(("jev", frame, text)) or {**JEV, "frame": frame}
+visite.analyse = lambda cfg, text, ask=None, frame="zna": calls.append(("brief", frame, text)) or {**DOC, "frame": frame}
+answer = [QtWidgets.QDialog.Rejected]
+asked = []
+real_exec = QtWidgets.QDialog.exec
+QtWidgets.QDialog.exec = lambda self: asked.append(self.windowTitle()) or answer[0]
+V._handover("zna")
+settle()
+check("Vor der ersten Übergabe kommt der Hinweis „kein Medizinprodukt“; ohne „Verstanden“ läuft nichts",
+      asked == ["Übergabe"] and not calls and not ctl.cfg.get("handover_ack") and not V.deck.isVisible())
+answer[0] = QtWidgets.QDialog.Accepted
 from diktat import jev
 real_available = jev.available
-jev.available = lambda server: False
-visite.analyse = lambda cfg, text, ask=None, frame="zna": {"documentation": {"anamnese": "Tag 4 nach Aufnahme."}, "safetyAlerts": [],
-                                                           "followUpQuestions": [], "frame": frame}
-U._new()
-U._frame_picked(2)
-U.text.setPlainText("Übergabe Bett 3, erfundener Fall.")
-U._analyse()
-check("Übergabe ohne Jev, Bereich Intensivstation: Das Dokument kommt an (bis 2.1.2 blieb die Seite bei „schreibt …“ stehen)",
-      wait(lambda: not U.waiting) and "documentation" in (U.result or {}) and (U.result or {}).get("frame") == "its"
-      and "brief" in U.boxes and not (U.result or {}).get("error"), (sorted(U.result or {}), U.waiting))
+jev.available = lambda server: True
+V._handover("zna")
+check("Nach „Verstanden“ läuft die Übergabe: Ersteinschätzung und Dokument, für den gewählten Bereich",
+      wait(lambda: len(calls) == 2 and not V.waiting) and {c[:2] for c in calls} == {("jev", "zna"), ("brief", "zna")}
+      and ctl.cfg.get("handover_ack") is True, calls)
+settle()
+spots = {k: V.cards.getItemPosition(V.cards.indexOf(b)) for k, b in V.boxes.items()}
+check("Das Ergebnis steht auf der Seite Aufnahme: Zeile mit Bereich und „Neu erzeugen“, darunter sechs Blöcke",
+      V.deck.isVisible() and V.deck_title.text() == "ÜBERGABE · NOTAUFNAHME" and V.again.isEnabled() and len(V.boxes) == 6
+      and V.col.indexOf(V.deck) == 0, V.deck_title.text())
+check("Zwei Spalten: Einschätzung und Sicherheitsnetz nebeneinander, Rückfragen und Dokument über die ganze Breite",
+      spots["jev"] == (0, 0, 1, 1) and spots["netz"] == (0, 1, 1, 1) and spots["fragen"] == (1, 0, 1, 2)
+      and spots["brief"] == (2, 0, 1, 2) and spots["codes"] == (3, 0, 1, 1) and spots["info"] == (3, 1, 1, 1), spots)
+check("Einschätzung und Sicherheitsnetz sind gleich breit und gleich hoch",
+      abs(V.boxes["jev"].width() - V.boxes["netz"].width()) <= 1 and V.boxes["jev"].height() == V.boxes["netz"].height(),
+      (V.boxes["jev"].size(), V.boxes["netz"].size()))
+from diktat.hub import Tiles
+tiles = V.boxes["fragen"].findChild(Tiles)
+check("Die Rückfragen stehen zu zweit nebeneinander, die dritte füllt die Breite",
+      tiles is not None and tiles.cols == 2 and tiles.grid.getItemPosition(2) == (1, 0, 1, 2), tiles and tiles.cols)
+edge = lambda w: w.mapTo(V, QtCore.QPoint(w.width(), 0)).x()
+check("Reiter, Titel, Text und Ergebnis enden an derselben Kante",
+      len({edge(V.tabs.button(2)), edge(V.name), edge(V.text), edge(V.again), edge(V.boxes["netz"]), edge(V.boxes["brief"])}) == 1,
+      [edge(w) for w in (V.tabs.button(2), V.name, V.text, V.again, V.boxes["netz"], V.boxes["brief"])])
+check("Der Rollbalken steht daneben und nimmt dem Ergebnis keine Breite",
+      V.area.verticalScrollBar().isVisible() and edge(V.area) > edge(V.boxes["brief"]))
+calls.clear()
+asked.clear()
+V._answer(1, "Wann war die letzte Einnahme von Apixaban?", "heute Morgen gegen 8 Uhr")
+settle()
+check("Eine beantwortete Rückfrage liegt in der Ablage, mit der Antwort auf dem Kärtchen",
+      len(V.items) == 1 and V.tray.isVisible() and "heute Morgen" in V.tray_row.itemAt(1).widget().text(), V.items)
+V.again.click()
+check("„Neu erzeugen“ wertet mit der Antwort aus, ohne den Hinweis noch einmal zu zeigen",
+      wait(lambda: len(calls) == 2 and not V.waiting) and all("heute Morgen gegen 8 Uhr" in c[2] for c in calls) and not asked, calls)
+jev.available = lambda server: False                 # ein Anbieter ohne Jev, etwa Noirdoc oder ein Server im Haus
+V._handover("its")
+check("Ein anderer Bereich wertet neu aus und steht in der Zeile; ohne Jev kommt das Dokument trotzdem an",
+      wait(lambda: len(calls) == 3 and not V.waiting) and calls[-1][:2] == ("brief", "its")
+      and V.deck_title.text() == "ÜBERGABE · INTENSIVSTATION" and ctl.cfg.get("handover_frame") == "its"
+      and (V.result or {}).get("frame") == "its" and "documentation" in (V.result or {}) and "jev" not in (V.result or {}),
+      (calls[-1][:2], V.deck_title.text(), sorted(V.result or {})))
 jev.available = real_available
-U._new()
-U._frame_picked(0)
+V._task("Visite")
+check("Ein Prompt danach steht über der Übergabe: Was zuletzt erzeugt wurde, steht oben",
+      wait(lambda: ((V.result or {}).get("texts") or {}).get("Visite") == "ERGEBNIS") and V.col.indexOf(V.deck) == 1
+      and V.texts_host.isVisible())
+case = V.case
+V._new()
+check("Neue Aufnahme: die Zeile der Übergabe ist weg", not V.deck.isVisible() and not V.items)
+V._open(case)
+settle()
+check("Der gespeicherte Fall kommt mit Bereich, Ablage und Reihenfolge zurück",
+      V.deck.isVisible() and V.deck_title.text() == "ÜBERGABE · INTENSIVSTATION" and len(V.items) == 1 and V.frame() == "its"
+      and V.col.indexOf(V.deck) == 1, (V.deck_title.text(), V.frame()))
+old = V.store.save(None, "Bett 7", "Verlauf, erfunden.", {"items": [{"label": "Eintrag 1", "content": "Aufnahme, erfunden."}], "frame_next": "station"})
+V._open(old)
+settle()
+check("Ein übernommener Fall ohne Auswertung zeigt seine Ablage und „Auswerten“",
+      V.deck.isVisible() and V.tray.isVisible() and V.again.text() == "Auswerten" and V.again.isEnabled() and not V.boxes
+      and len(V.items) == 1, (V.deck.isVisible(), V.again.text(), len(V.boxes)))
+calls.clear()
+V.again.click()
+check("„Auswerten“ dort wertet Ablage und Text zusammen aus, für den Bereich, den der Fall hatte",
+      wait(lambda: len(calls) >= 1 and not V.waiting) and all("Aufnahme, erfunden." in c[2] and "Verlauf, erfunden." in c[2] for c in calls)
+      and {c[1] for c in calls} == {"station"} and V.deck_title.text() == "ÜBERGABE · NORMALSTATION"
+      and V.again.text() == "Neu erzeugen" and len(V.boxes) == 6, calls)
+V._new()
+QtWidgets.QDialog.exec = real_exec
+hub.show_page(3)
+S.show_tab(2)
+P.menu["Übergabe"].setChecked(False)
+P.save()
+hub.show_page(1)
+settle()
+check("In den Einstellungen abgewählt, verschwindet die Auswahl „Übergabe“ von der Seite Aufnahme",
+      ctl.cfg["menu_hidden"] == ["Übergabe"] and V.task_hand is False
+      and "Übergabe  ▾" not in [V.task_row.itemAt(k).widget().text() for k in range(V.task_row.count())])
+hub.show_page(3)
+P.menu["Übergabe"].setChecked(True)
+P.save()
+S.show_tab(0)
+settle()
+check("Sprecher trennen steht in den Einstellungen und ist ab Werk an; in der Leiste der Aufnahme steht es nicht mehr",
+      hub.settings.speakers.isChecked() and ctl.cfg["speakers"] is True and not V.split.isVisibleTo(V))
+hub.settings.speakers.setChecked(False)
+hub.settings.save()
+check("Abschalten in den Einstellungen gilt", ctl.cfg["speakers"] is False)
+hub.settings.speakers.setChecked(True)
+hub.settings.save()
 
 # Keine Seite ist breiter als ihr Fenster: Sonst schneidet das Fenster die Karten rechts ab (so bis 2.1.1 unter
 # Einstellungen, Allgemein, wegen eines Ankreuzfelds mit einem Text von 960 Pixeln in einer Zeile).
