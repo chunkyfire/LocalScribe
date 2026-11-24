@@ -172,7 +172,7 @@
 <body>
 <h1 id="localscribe--technische-dokumentation">LocalScribe – Technische
 Dokumentation</h1>
-<p>Stand: Version 2.1.1. Für Betrieb, IT und alle, die den Code lesen
+<p>Stand: Version 2.1.2. Für Betrieb, IT und alle, die den Code lesen
 oder prüfen wollen. Die Bedienung steht im <a
 href="https://chunkyfire.github.io/LocalScribe/LocalScribe-Handbuch.pdf">Handbuch</a>,
 die Messwerte mit Methode in <a
@@ -490,7 +490,10 @@ Server geht</td>
 </tr>
 <tr class="odd">
 <td><code>diktat/hub.py</code>, <code>ui.py</code></td>
-<td>Fenster, Statusleiste, Tray-Symbol, Verlauf</td>
+<td>Fenster, Statusleiste, Tray-Symbol, Verlauf. <code>hub.Check</code>
+ist ein Ankreuzfeld, dessen Text umbricht;
+<code>tests/test_fenster.py</code> prüft, dass keine Seite breiter ist
+als ihr Fenster (1000 × 680 und 860 × 560)</td>
 </tr>
 <tr class="even">
 <td><code>diktat/config.py</code></td>

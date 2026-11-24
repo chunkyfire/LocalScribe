@@ -1,6 +1,6 @@
 # LocalScribe – Technische Dokumentation
 
-Stand: Version 2.1.1. Für Betrieb, IT und alle, die den Code lesen oder prüfen wollen. Die Bedienung steht im
+Stand: Version 2.1.2. Für Betrieb, IT und alle, die den Code lesen oder prüfen wollen. Die Bedienung steht im
 [Handbuch](LocalScribe-Handbuch.pdf), die Messwerte mit Methode in [`werkzeug/messen/ERGEBNIS.md`](../werkzeug/messen/ERGEBNIS.md).
 
 ## 1. Was die App ist
@@ -163,7 +163,7 @@ Gepackt mit PyInstaller zu einem Ordner mit `LocalScribe.exe`; `build.ps1` strei
 | `diktat/schutz.py` | Namen, Daten, Orte, Nummern ersetzen, bevor Text an einen fremden Server geht |
 | `diktat/handy.py` | Handy als Mikrofon: HTTPS-Seite im eigenen Netz |
 | `diktat/winio.py` | Windows: globale Tasten, Einfügen, Zielfenster, Autostart |
-| `diktat/hub.py`, `ui.py` | Fenster, Statusleiste, Tray-Symbol, Verlauf |
+| `diktat/hub.py`, `ui.py` | Fenster, Statusleiste, Tray-Symbol, Verlauf. `hub.Check` ist ein Ankreuzfeld, dessen Text umbricht; `tests/test_fenster.py` prüft, dass keine Seite breiter ist als ihr Fenster (1000 × 680 und 860 × 560) |
 | `diktat/config.py` | Einstellungen und Ablageorte |
 
 ## 5. Vom Ton zum Text

@@ -1,3 +1,11 @@
+## LocalScribe 2.1.2
+
+- **Einstellungen und Stimmtraining passen wieder ins Fenster.** Unter „Einstellungen“, Reiter „Allgemein“, waren die
+  Karten rechts abgeschnitten: Ein Ankreuzfeld mit langem Text machte die Seite breiter als das Fenster. Lange Texte an
+  Ankreuzfeldern brechen jetzt um. Dasselbe galt im Reiter „Stimmtraining“ für die Karte „Aus eigenem Material lernen“
+  und im kleinsten Fenster für die Reiter „LLM“ und „Prompts“, die Bereiche der Seite Übergabe und die Fußzeile im
+  Verlauf. Ein Test prüft ab jetzt jede Seite in der Standardgröße und in der kleinsten Fenstergröße.
+
 ## LocalScribe 2.1.1
 
 - **KI-Zeichen auch bei den Prompts in den Einstellungen.** Im Reiter „Prompts“ steht neben der Anweisung dasselbe

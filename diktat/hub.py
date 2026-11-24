@@ -110,6 +110,7 @@ QMenu::item:selected { background: #C6FF3D; color: #0B0B0B; }
 QCheckBox::indicator { width: 16px; height: 16px; border: 1px solid rgba(255, 255, 255, 0.22); border-radius: 5px;
                        background: rgba(0, 0, 0, 0.30); }
 QCheckBox::indicator:checked { background: #C6FF3D; border-color: #C6FF3D; }
+QCheckBox#wrap::indicator { subcontrol-origin: padding; subcontrol-position: top left; }
 QListWidget, QTableWidget { background: rgba(0, 0, 0, 0.24); border: 1px solid rgba(255, 255, 255, 0.10); border-radius: 14px;
                             outline: none; gridline-color: rgba(255, 255, 255, 0.06); }
 QListWidget::item { padding: 7px 10px; }
@@ -519,6 +520,44 @@ def label(text, name=None, wrap=False):
     return w
 
 
+class Check(QtWidgets.QCheckBox):
+    """Ankreuzfeld, dessen Text umbricht. Ein gewöhnliches Ankreuzfeld schreibt seinen Text in eine Zeile; ist die
+    länger als das Fenster, wird die ganze Seite breiter als das Fenster und rechts abgeschnitten."""
+
+    def __init__(self, text=""):
+        super().__init__(objectName="wrap")                           # das Kästchen steht an der ersten Zeile
+        self.words = QtWidgets.QLabel(text, self)
+        self.words.setWordWrap(True)
+        self.words.setAttribute(Qt.WA_TransparentForMouseEvents)       # Klick und Hinweis gehören dem Ankreuzfeld
+        lay = QtWidgets.QHBoxLayout(self)
+        lay.setContentsMargins(24, 1, 0, 1)                            # links das Kästchen
+        lay.addWidget(self.words)
+        policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Minimum)
+        policy.setHeightForWidth(True)
+        self.setSizePolicy(policy)
+
+    def text(self):
+        return self.words.text()
+
+    def setText(self, text):
+        self.words.setText(text)
+
+    def hitButton(self, pos):
+        return self.rect().contains(pos)
+
+    def sizeHint(self):
+        return self.layout().sizeHint().expandedTo(QtCore.QSize(0, 20))
+
+    def minimumSizeHint(self):
+        return self.layout().minimumSize().expandedTo(QtCore.QSize(0, 20))
+
+    def hasHeightForWidth(self):
+        return True
+
+    def heightForWidth(self, width):
+        return max(20, self.layout().heightForWidth(width))
+
+
 def tip(text: str) -> str:
     """Hinweis beim Überfahren, der umbricht (Qt bricht nur formatierten Text um)."""
     return "<qt>" + text.replace("&", "&amp;").replace("<", "&lt;").replace("\n", "<br>") + "</qt>"
@@ -619,6 +658,16 @@ def hbox(*items, spacing=10):
         else:
             lay.addWidget(it)
     return lay
+
+
+def flow(*widgets, gap=10):
+    """Bauteile nebeneinander, die in die nächste Zeile rücken, wenn das Fenster zu schmal wird."""
+    host = QtWidgets.QWidget()
+    lay = Flow(gap=gap)
+    for w in widgets:
+        lay.addWidget(w)
+    host.setLayout(lay)
+    return host
 
 
 def form(*pairs):
@@ -834,8 +883,8 @@ class HistoryPage(Page):
         area.setWidget(inner)
         self.body.addWidget(area, 1)
 
-        self.hint = label("", "muted")
-        self.body.addLayout(hbox(self.hint, None, button("Verlauf leeren", self.clear, "ghost")))
+        self.hint = label("", "muted", wrap=True)          # im schmalen Fenster zwei Zeilen statt abgeschnitten
+        self.body.addLayout(hbox((self.hint, 1), button("Verlauf leeren", self.clear, "ghost")))
 
     def prompt_names(self):
         cfg = self.ctl.cfg
@@ -2498,7 +2547,10 @@ class VisitPage(Page):
     def _fit_head(self):
         """Aufnahme: Im schmalen Fenster wird der Knopf für eine neue Aufnahme zum Pluszeichen, und ein langer Name
         eines angepinnten Prompts endet früher mit „…“, damit Überschrift und Reiter nebeneinander Platz haben."""
-        if self.handover:
+        if self.handover:                                # Übergabe: im schmalen Fenster kurze Namen der Bereiche
+            short = {"zna": "ZNA", "station": "Station", "its": "Intensiv"} if self.width() < 700 else {}
+            for (key, name), b in zip(self.FRAMES, self.frames.buttons()):
+                b.setText(short.get(key, name))
             return
         narrow = self.width() < 720
         self.new_btn.setText("＋" if narrow else "＋ Neue Aufnahme")
@@ -2678,7 +2730,7 @@ class TrainPage(Page):
                               "Die Minuten gelten für beides zusammen.")
         # die Auswahl darf die Karte nicht breiter machen als das Fenster: Sie füllt den Platz, statt ihn zu fordern
         self.topic.setSizeAdjustPolicy(QtWidgets.QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
-        self.topic.setMinimumContentsLength(16)
+        self.topic.setMinimumContentsLength(12)
         self.topic.setMaximumWidth(460)
         self.topic.setCurrentIndex(max(0, self.topic.findData(ctl.cfg.get("field") or training.BASE)))
         self.topic.currentIndexChanged.connect(self._field)
@@ -2715,8 +2767,8 @@ class TrainPage(Page):
                                       "gleichen Namens daneben oder wird im zweiten Schritt gewählt. Eigene Briefe und "
                                       "Befunde: LocalScribe liest daraus nur einzelne Fachwörter. Ton und Texte werden nur "
                                       "gelesen, nicht gespeichert."), self.pairs,
-                                 hbox(self.pair_btn, button("Aus eigenen Texten lernen …", self._learn_files), None,
-                                      self.words_n, button("Leeren", self._learn_clear)), self.words))
+                                 hbox(self.pair_btn, button("Aus eigenen Texten lernen …", self._learn_files), None),
+                                 hbox(self.words_n, None, button("Leeren", self._learn_clear)), self.words))
         self.kept = label("", "muted", wrap=True)
         self.body.addWidget(card(label("Deine Stimmaufnahmen", "h2"), self.kept,
                                  hbox(button("Ordner öffnen", self._open_store), button("Alle löschen", self._clear), None)))
@@ -3015,6 +3067,7 @@ class LlmPage(Page):
                          "OpenAI-Schnittstelle spricht: auf diesem Rechner oder bei einem Anbieter deiner Wahl.")
         self.ctl = ctl
         self.note = label("")
+        self.note.setMinimumWidth(1)          # eine lange Meldung darf die Kopfzeile nicht breiter machen als das Fenster
         self.head.addWidget(self.note)
         self.head.addWidget(button("Speichern", self.save, "primary"))
 
@@ -3025,12 +3078,12 @@ class LlmPage(Page):
         self.provider.activated.connect(self._provider_picked)
         self.delete = button("Löschen", self._delete, "ghost")
         self.delete.setToolTip("Diesen eigenen Anbieter samt Schlüssel entfernen.")
-        self.protect = QtWidgets.QCheckBox("Vor dem Versand schützen: Namen, Daten, Nummern und Anschriften durch Platzhalter ersetzen")
+        self.protect = Check("Vor dem Versand schützen: Namen, Daten, Nummern und Anschriften durch Platzhalter ersetzen")
         self.protect.setToolTip("Gilt für jeden Server außerhalb dieses Rechners. Der Server sieht „[NAME_1] kam am "
                                 "[DATUM_1]“; die Antwort wird hier zurückübersetzt.")
         self.shield = label("", "muted", wrap=True)
         self.shield_btn = button("Namenserkennung laden (293 MB)", self._shield_load)
-        self.enabled = QtWidgets.QCheckBox("KI-Nachbearbeitung einschalten")
+        self.enabled = Check("KI-Nachbearbeitung einschalten")
         self.url = QtWidgets.QLineEdit(placeholderText="Adresse des Servers: https://…/v1")
         self.url.textChanged.connect(self._where)
         self.url.editingFinished.connect(lambda: self._fill_models())
@@ -3051,7 +3104,7 @@ class LlmPage(Page):
         self.status = label("", "muted", wrap=True)
         self.status.hide()
         self.fetch = button("Modelle abrufen", self.load_models)
-        self.fix = QtWidgets.QCheckBox("Fachkorrektur: Hörfehler bei Fachbegriffen vom Sprachmodell korrigieren lassen")
+        self.fix = Check("Fachkorrektur: Hörfehler bei Fachbegriffen vom Sprachmodell korrigieren lassen")
         self.fix.setToolTip("Das Sprachmodell schlägt vor, was bei verhörten Wörtern gemeint war. Übernommen wird nur, "
                             "was selbst ein Fachbegriff ist, ähnlich klingt und keine Zahl ändert. Kostet je Diktat "
                             "eine Anfrage an den Server oben; mit kleinen lokalen Modellen bringt es wenig. Bei "
@@ -3075,6 +3128,7 @@ class LlmPage(Page):
         for box in (self.v_writer, self.model, self.provider):    # lange Einträge dürfen die Karte nicht breiter machen
             box.setSizeAdjustPolicy(QtWidgets.QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
             box.setMinimumContentsLength(18)
+        self.model.setMinimumWidth(190)       # sonst fordert der lange Platzhalter die Breite, und die Karte läuft über
         self.v_writer.view().setMinimumWidth(self.v_writer.view().sizeHintForColumn(0) + 28)   # aufgeklappt ganz lesbar
         self.v_writer.activated.connect(lambda _: self.v_writer.lineEdit().setCursorPosition(0))  # Anfang zeigen, nicht das Ende
         self.v_writer.setToolTip("Auswählen oder einen eigenen Modellnamen eintippen. Der Zusatz @low hinter dem Namen lässt "
@@ -3471,6 +3525,7 @@ class PromptPage(Page):
         self.ctl = ctl
         self.prompts, self.current = [], -1
         self.note = label("")
+        self.note.setMinimumWidth(1)          # eine lange Meldung darf die Kopfzeile nicht breiter machen als das Fenster
         self.head.addWidget(self.note)
         self.head.addWidget(button("Speichern", self.save, "primary"))
         self.list = QtWidgets.QListWidget()
@@ -3483,9 +3538,9 @@ class PromptPage(Page):
         self.text = QtWidgets.QPlainTextEdit()
         self.text.setMinimumHeight(120)
         self.auto = QtWidgets.QComboBox()
-        self.on_record = QtWidgets.QCheckBox("Knopf auf der Seite Aufnahme")
-        self.on_list = QtWidgets.QCheckBox("In der Auswahlliste „Meine Prompts“")
-        self.on_pin = QtWidgets.QCheckBox("Als Menüpunkt links anpinnen")
+        self.on_record = Check("Knopf auf der Seite Aufnahme")
+        self.on_list = Check("In der Auswahlliste „Meine Prompts“")
+        self.on_pin = Check("Als Menüpunkt links anpinnen")
         self.on_pin.setToolTip(tip("Der Prompt bekommt einen eigenen Menüpunkt. Dort aufnehmen, und nach dem Stopp schreibt "
                                    "LocalScribe das Ergebnis von selbst."))
         left = QtWidgets.QVBoxLayout()
@@ -3714,6 +3769,7 @@ class SettingsPage(Page):
         super().__init__("Einstellungen")
         self.ctl = ctl
         self.note = label("")
+        self.note.setMinimumWidth(1)          # eine lange Meldung darf die Kopfzeile nicht breiter machen als das Fenster
         self.head.addWidget(self.note)
         self.head.addWidget(button("Speichern", self.save, "primary"))
         self.hold = KeyField(ctl, optional=False)
@@ -3722,15 +3778,15 @@ class SettingsPage(Page):
         self.field = KeyField(ctl)
         self.target = KeyField(ctl)
         self.mic = QtWidgets.QComboBox()
-        self.sounds = QtWidgets.QCheckBox("Töne bei Start und Ende der Aufnahme")
-        self.clip = QtWidgets.QCheckBox("Zwischenablage nach dem Einfügen wiederherstellen")
-        self.warm = QtWidgets.QCheckBox("Mikrofon offen halten: Diktat startet ohne Verzögerung, die erste Silbe geht nicht verloren")
-        self.signs = QtWidgets.QCheckBox("Satzzeichen diktieren: „Punkt“, „Komma“, „Doppelpunkt“, „neue Zeile“, „neuer Absatz“ werden zu Zeichen")
+        self.sounds = Check("Töne bei Start und Ende der Aufnahme")
+        self.clip = Check("Zwischenablage nach dem Einfügen wiederherstellen")
+        self.warm = Check("Mikrofon offen halten: Diktat startet ohne Verzögerung, die erste Silbe geht nicht verloren")
+        self.signs = Check("Satzzeichen diktieren: „Punkt“, „Komma“, „Doppelpunkt“, „neue Zeile“, „neuer Absatz“ werden zu Zeichen")
         self.warm.setToolTip("Das Mikrofon bleibt geöffnet, solange LocalScribe läuft (Windows zeigt das Mikrofon-Symbol). "
                              "Außerhalb eines Diktats wird nur die letzte Viertelsekunde im Arbeitsspeicher gehalten.")
-        self.phone = QtWidgets.QCheckBox("Handy als Mikrofon: Telefon im selben WLAN nimmt auf, der Text erscheint hier")
-        self.auto = QtWidgets.QCheckBox("Mit Windows starten")
-        self.history = QtWidgets.QCheckBox("Verlauf führen (auf gemeinsam genutzten Windows-Konten ausschalten)")
+        self.phone = Check("Handy als Mikrofon: Telefon im selben WLAN nimmt auf, der Text erscheint hier")
+        self.auto = Check("Mit Windows starten")
+        self.history = Check("Verlauf führen (auf gemeinsam genutzten Windows-Konten ausschalten)")
         self.days = QtWidgets.QSpinBox(minimum=0, maximum=3650, suffix=" Tage", specialValueText="nie löschen")
         self.days.setFixedWidth(150)
         self.model = QtWidgets.QComboBox()
@@ -3786,8 +3842,8 @@ class SettingsPage(Page):
                  "Stimmtraining. Updates fassen das Profil nicht an; vor jedem Wechsel der Fassung legt LocalScribe "
                  "zusätzlich eine Kopie der Einstellungen ab (Ordner „sicherung“, die letzten zehn). API-Schlüssel "
                  "stehen nicht in der Datei: Die liegen im Schlüsselspeicher von Windows."),
-                        hbox(button("Profil sichern …", self._keep), button("Profil zurückholen …", self._bring),
-                 button("Ordner mit den Sicherungen öffnen", self._kept_open), None),
+            flow(button("Profil sichern …", self._keep), button("Profil zurückholen …", self._bring),
+                 button("Ordner mit den Sicherungen öffnen", self._kept_open)),
             self.keep_note))
         self.many_note = label("", "muted", wrap=True)
         self.many_btn = button("Profile einschalten", self._many)
@@ -3800,8 +3856,8 @@ class SettingsPage(Page):
                         hbox(self.many_btn, None), self.many_note)
         self.body.addWidget(self.many)
         self.care_note = label("", "muted", wrap=True)
-        self.auto_check = QtWidgets.QCheckBox("Einmal am Tag von selbst nach Updates fragen (bei GitHub; von dir wird dabei nichts "
-                                              "übertragen). Gibt es eines, leuchtet unten links der Knopf „Update“.")
+        self.auto_check = Check("Einmal am Tag von selbst nach Updates fragen (bei GitHub; von dir wird dabei nichts "
+                                "übertragen). Gibt es eines, leuchtet unten links der Knopf „Update“.")
         self.auto_check.toggled.connect(self._auto_check)
         self.check_button = button("Nach Updates suchen", self._check, name="primary")
         self.found = None                    # neuere Fassung bei GitHub, sobald gefunden
@@ -3812,8 +3868,8 @@ class SettingsPage(Page):
                  "nicht (häufig in Kliniken): die ZIP-Datei an einem anderen Rechner laden und hier auswählen, das "
                  "kleine Paket genügt. Ein Update richtet die neue Fassung neben der laufenden ein: Du arbeitest "
                  "weiter, sie gilt ab dem nächsten Start. Einstellungen, Verlauf, Wörterbuch und Sprachmodell bleiben."),
-                        hbox(self.check_button, self.notes_button, button("Aus ZIP-Datei aktualisieren …", self._update),
-                 button("LocalScribe entfernen …", self._remove), None),
+            hbox(self.check_button, self.notes_button, None),
+            hbox(button("Aus ZIP-Datei aktualisieren …", self._update), button("LocalScribe entfernen …", self._remove), None),
             self.auto_check, self.care_note))
         self.quiet = False                   # läuft gerade die stille tägliche Nachfrage?
         self.sig_latest.connect(self._latest)

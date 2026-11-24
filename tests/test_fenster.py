@@ -447,5 +447,38 @@ U._open(case)
 check("Der Fall merkt sich den Bereich Pflege", U.frame() == "pflege" and U.go.text() == "Pflegebericht schreiben", U.frame())
 U._frame_picked(0)
 
+# Keine Seite ist breiter als ihr Fenster: Sonst schneidet das Fenster die Karten rechts ab (so bis 2.1.1 unter
+# Einstellungen, Allgemein, wegen eines Ankreuzfelds mit einem Text von 960 Pixeln in einer Zeile).
+from diktat.hub import Check
+wide = []
+for size in ((1000, 680), (860, 560)):
+    hub.resize(*size)
+    settle()
+    for i, (name, page) in enumerate(hub.pages):
+        hub.show_page(i)
+        for k, sub in enumerate(getattr(page, "pages", None) or [page]):
+            if hasattr(page, "show_tab"):
+                page.show_tab(k)
+            settle()
+            if sub.minimumSizeHint().width() > sub.width():
+                wide.append((size, name, k, "Seite", sub.minimumSizeHint().width(), sub.width()))
+            for area in sub.findChildren(QtWidgets.QScrollArea):
+                inner = area.widget()
+                if inner is not None and area.isVisible() and inner.width() > area.viewport().width() + 1:
+                    wide.append((size, name, k, inner.width(), area.viewport().width()))
+check("Keine Seite ist breiter als ihr Fenster, in der Standardgröße und in der kleinsten Größe", not wide, wide)
+hub.resize(1000, 680)
+settle()
+long = Check("Einmal am Tag von selbst nach Updates fragen (bei GitHub; von dir wird dabei nichts übertragen). "
+             "Gibt es eines, leuchtet unten links der Knopf „Update“.")
+check("Ankreuzfeld mit langem Text: Der Text bricht um, statt Breite zu fordern",
+      long.minimumSizeHint().width() < 200 and long.heightForWidth(300) > long.heightForWidth(900) >= 18
+      and long.text().startswith("Einmal am Tag"), (long.minimumSizeHint().width(), long.heightForWidth(300), long.heightForWidth(900)))
+long.resize(400, long.heightForWidth(400))
+long.click()
+check("Es bleibt ein Ankreuzfeld: Klick schaltet um, auch auf dem Text", long.isChecked() and long.hitButton(QtCore.QPoint(300, 30)))
+check("Einstellungen: Die Ankreuzfelder mit langen Texten brechen um",
+      all(isinstance(w, Check) for w in (hub.settings.auto_check, hub.settings.signs, hub.settings.warm, L.protect, L.fix)))
+
 print("FEHLER:" if failed else "ALLES OK", failed or "")
 sys.exit(1 if failed else 0)
