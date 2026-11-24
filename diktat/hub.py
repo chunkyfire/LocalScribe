@@ -2449,7 +2449,7 @@ class VisitPage(Page):
             else:
                 merged = {**result, **{k: merged[k] for k in ("jev", "texts", "items") if merged.get(k)}}
                 if (merged.get("jev") or {}).get("frame", "zna") != merged.get("frame", "zna"):
-                    merged.pop("jev")                # Ersteinschätzung aus einem anderen Rahmen passt nicht mehr dazu
+                    merged.pop("jev", None)          # Ersteinschätzung aus einem anderen Rahmen passt nicht mehr dazu
             merged.pop("frame_next", None)
             merged["visit"] = True
             self.store.save(case, row[0], row[1], merged)

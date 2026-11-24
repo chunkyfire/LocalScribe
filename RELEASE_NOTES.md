@@ -1,3 +1,11 @@
+## LocalScribe 2.1.3
+
+- **Übergabe für Normalstation und Intensivstation zeigt wieder ein Ergebnis, wenn der Anbieter nicht OpenRouter ist.**
+  Mit Noirdoc, IONOS, STACKIT oder einem Server im Haus gibt es die Ersteinschätzung von Jev nicht. In diesen beiden
+  Bereichen blieb die Seite dann bei „Das Sprachmodell schreibt …“ stehen: Dokument, Sicherheitsnetz und Rückfragen
+  kamen an, wurden aber weder gespeichert noch angezeigt. Der Bereich Notaufnahme und der Pflegebericht waren nicht
+  betroffen.
+
 ## LocalScribe 2.1.2
 
 - **Einstellungen und Stimmtraining passen wieder ins Fenster.** Unter „Einstellungen“, Reiter „Allgemein“, waren die

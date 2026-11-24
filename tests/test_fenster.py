@@ -447,6 +447,23 @@ U._open(case)
 check("Der Fall merkt sich den Bereich Pflege", U.frame() == "pflege" and U.go.text() == "Pflegebericht schreiben", U.frame())
 U._frame_picked(0)
 
+# Übergabe ohne Jev (jeder Anbieter außer OpenRouter): Auch Station und Intensiv zeigen das Dokument
+from diktat import jev
+real_available = jev.available
+jev.available = lambda server: False
+visite.analyse = lambda cfg, text, ask=None, frame="zna": {"documentation": {"anamnese": "Tag 4 nach Aufnahme."}, "safetyAlerts": [],
+                                                           "followUpQuestions": [], "frame": frame}
+U._new()
+U._frame_picked(2)
+U.text.setPlainText("Übergabe Bett 3, erfundener Fall.")
+U._analyse()
+check("Übergabe ohne Jev, Bereich Intensivstation: Das Dokument kommt an (bis 2.1.2 blieb die Seite bei „schreibt …“ stehen)",
+      wait(lambda: not U.waiting) and "documentation" in (U.result or {}) and (U.result or {}).get("frame") == "its"
+      and "brief" in U.boxes and not (U.result or {}).get("error"), (sorted(U.result or {}), U.waiting))
+jev.available = real_available
+U._new()
+U._frame_picked(0)
+
 # Keine Seite ist breiter als ihr Fenster: Sonst schneidet das Fenster die Karten rechts ab (so bis 2.1.1 unter
 # Einstellungen, Allgemein, wegen eines Ankreuzfelds mit einem Text von 960 Pixeln in einer Zeile).
 from diktat.hub import Check
